@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Xcode
+iOS/Vitola.xcodeproj/xcuserdata/
+iOS/Vitola.xcodeproj/project.xcworkspace/xcuserdata/
+iOS/*.xcodeproj/xcuserdata/
+**/xcuserdata/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+
+# Build
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Secrets (never commit real keys beyond the public anon key already in SupabaseConfig.swift)
+*.env
+.env.local

@@ -1,0 +1,46 @@
+name: Vitola
+options:
+  bundleIdPrefix: com.tomerikheggedal
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.0.0
+
+targets:
+  Vitola:
+    type: application
+    platform: iOS
+    sources:
+      - path: CigarApp
+        excludes:
+          - "**/.DS_Store"
+    resources:
+      - CigarApp/Assets.xcassets
+      - CigarApp/Preview Content
+    dependencies:
+      - package: Supabase
+        product: Supabase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tomerikheggedal.vitola
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: "Vitola bruker kameraet til å scanne sigarbandet"
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Velg et bilde av et sigarband fra biblioteket ditt"
+      debug:
+        DEBUG_INFORMATION_FORMAT: dwarf
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      release:
+        DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+        SWIFT_OPTIMIZATION_LEVEL: "-O"

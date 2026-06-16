@@ -1,0 +1,463 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		049C64C7CAE75A3F42357820 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038EFE70A641325AE1E1126B /* AuthService.swift */; };
+		11CD2586D2F7EEBC5DF601BA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */; };
+		1C6013B1827F341DD6399DC5 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1699BCF102E89578F9D6B763 /* ScanView.swift */; };
+		38EAE0227590945771B2C132 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DE84548D3017B15393EC79 /* ResultsView.swift */; };
+		587CF733F8E275C6C93F8E94 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FA22E9CEDD719507D54C5C19 /* Assets.xcassets */; };
+		6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4268E9B5C5FFA4E0654230A9 /* CigarService.swift */; };
+		6D9D07638987891501525A6A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */; };
+		8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909149207DD9D2747DEE4727 /* ContentView.swift */; };
+		89F8550E1C3BCA13B41F03C5 /* ScanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 775627F695B6D8E09B10E267 /* ScanService.swift */; };
+		8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99853265E9A2AA623B941165 /* CigarAppApp.swift */; };
+		B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45A0F899263EDC54E49B8EA /* Cigar.swift */; };
+		BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 333232B66274F8E65263E2F7 /* Supabase */; };
+		C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831F95D91D3339D747199BE9 /* HumidorView.swift */; };
+		E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */; };
+		F714AAB8F26FC2F201A749FB /* CigarDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D122C57181C85D5D43402807 /* CigarDetailView.swift */; };
+		FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB0B9043F2D93F6611FC592 /* UserModels.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		038EFE70A641325AE1E1126B /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		1699BCF102E89578F9D6B763 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
+		21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		4268E9B5C5FFA4E0654230A9 /* CigarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarService.swift; sourceTree = "<group>"; };
+		5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		775627F695B6D8E09B10E267 /* ScanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanService.swift; sourceTree = "<group>"; };
+		81DE84548D3017B15393EC79 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
+		831F95D91D3339D747199BE9 /* HumidorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorView.swift; sourceTree = "<group>"; };
+		8EB0B9043F2D93F6611FC592 /* UserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModels.swift; sourceTree = "<group>"; };
+		909149207DD9D2747DEE4727 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		99853265E9A2AA623B941165 /* CigarAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarAppApp.swift; sourceTree = "<group>"; };
+		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D122C57181C85D5D43402807 /* CigarDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailView.swift; sourceTree = "<group>"; };
+		F45A0F899263EDC54E49B8EA /* Cigar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cigar.swift; sourceTree = "<group>"; };
+		FA22E9CEDD719507D54C5C19 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		96AFFEF21FC19A677708B7F6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		267D4DDCCB36A66B5803A328 /* Humidor */ = {
+			isa = PBXGroup;
+			children = (
+				831F95D91D3339D747199BE9 /* HumidorView.swift */,
+			);
+			path = Humidor;
+			sourceTree = "<group>";
+		};
+		26D8711B8BF3A784CA8B36DF /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		2F0509F4A1DC49DE9F02CBEF = {
+			isa = PBXGroup;
+			children = (
+				CC75E0DD266D797153C622EA /* CigarApp */,
+				74FB52B4C2F775FFE89822E3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		40EEFE934072986E234CE62A /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				038EFE70A641325AE1E1126B /* AuthService.swift */,
+				4268E9B5C5FFA4E0654230A9 /* CigarService.swift */,
+				775627F695B6D8E09B10E267 /* ScanService.swift */,
+				5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4E70DB050FBA5B17C4335964 /* Cigar */ = {
+			isa = PBXGroup;
+			children = (
+				D122C57181C85D5D43402807 /* CigarDetailView.swift */,
+			);
+			path = Cigar;
+			sourceTree = "<group>";
+		};
+		5A25E33360319C9EE1C977F4 /* Scan */ = {
+			isa = PBXGroup;
+			children = (
+				81DE84548D3017B15393EC79 /* ResultsView.swift */,
+				1699BCF102E89578F9D6B763 /* ScanView.swift */,
+			);
+			path = Scan;
+			sourceTree = "<group>";
+		};
+		74FB52B4C2F775FFE89822E3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B9F107D7AB9A439828124088 /* Vitola.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		75AA68BEDE0DE8C6E0C0F472 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F45A0F899263EDC54E49B8EA /* Cigar.swift */,
+				8EB0B9043F2D93F6611FC592 /* UserModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A33C09926E43D5FE9635B915 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		CC75E0DD266D797153C622EA /* CigarApp */ = {
+			isa = PBXGroup;
+			children = (
+				75AA68BEDE0DE8C6E0C0F472 /* Models */,
+				A33C09926E43D5FE9635B915 /* Preview Content */,
+				40EEFE934072986E234CE62A /* Services */,
+				E8F076DC670DAC0CD98C0043 /* Views */,
+				FA22E9CEDD719507D54C5C19 /* Assets.xcassets */,
+				99853265E9A2AA623B941165 /* CigarAppApp.swift */,
+			);
+			path = CigarApp;
+			sourceTree = "<group>";
+		};
+		E8F076DC670DAC0CD98C0043 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				26D8711B8BF3A784CA8B36DF /* Auth */,
+				4E70DB050FBA5B17C4335964 /* Cigar */,
+				267D4DDCCB36A66B5803A328 /* Humidor */,
+				5A25E33360319C9EE1C977F4 /* Scan */,
+				909149207DD9D2747DEE4727 /* ContentView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8926F3C15BA9A18BCE11896B /* Vitola */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "Vitola" */;
+			buildPhases = (
+				9826BF3DD8BF0B27B15A5D59 /* Sources */,
+				F53AD1EBEB3F6CD9F5626326 /* Resources */,
+				96AFFEF21FC19A677708B7F6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Vitola;
+			packageProductDependencies = (
+				333232B66274F8E65263E2F7 /* Supabase */,
+			);
+			productName = Vitola;
+			productReference = B9F107D7AB9A439828124088 /* Vitola.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		22712C416411416E89CA7B60 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "Vitola" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 2F0509F4A1DC49DE9F02CBEF;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 74FB52B4C2F775FFE89822E3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8926F3C15BA9A18BCE11896B /* Vitola */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F53AD1EBEB3F6CD9F5626326 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				587CF733F8E275C6C93F8E94 /* Assets.xcassets in Resources */,
+				11CD2586D2F7EEBC5DF601BA /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9826BF3DD8BF0B27B15A5D59 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				049C64C7CAE75A3F42357820 /* AuthService.swift in Sources */,
+				6D9D07638987891501525A6A /* AuthView.swift in Sources */,
+				B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */,
+				8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */,
+				F714AAB8F26FC2F201A749FB /* CigarDetailView.swift in Sources */,
+				6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */,
+				8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */,
+				C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */,
+				38EAE0227590945771B2C132 /* ResultsView.swift in Sources */,
+				89F8550E1C3BCA13B41F03C5 /* ScanService.swift in Sources */,
+				1C6013B1827F341DD6399DC5 /* ScanView.swift in Sources */,
+				E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */,
+				FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		7AA12BB2A1AE06985663ABE7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AE68DC98A95CAA036BC01169 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Vitola bruker kameraet til å scanne sigarbandet";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Velg et bilde av et sigarband fra biblioteket ditt";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomerikheggedal.vitola;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		B9520257BC520B238292C1FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Vitola bruker kameraet til å scanne sigarbandet";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Velg et bilde av et sigarband fra biblioteket ditt";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomerikheggedal.vitola;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		EA592A9C18B2F205CE926746 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "Vitola" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA592A9C18B2F205CE926746 /* Debug */,
+				7AA12BB2A1AE06985663ABE7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "Vitola" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9520257BC520B238292C1FA /* Debug */,
+				AE68DC98A95CAA036BC01169 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		333232B66274F8E65263E2F7 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 22712C416411416E89CA7B60 /* Project object */;
+}
