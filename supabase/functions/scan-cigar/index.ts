@@ -55,6 +55,13 @@ Deno.serve(async (req) => {
     // Steg 1: Spør GPT-4o Vision om hva den ser på sigarbåndet
     const guesses = await identifyWithGPT4o(image, ocr_text ?? "", openaiKey);
 
+    console.log(
+      `scan-cigar: GPT-4o gjettet ${guesses.length} kandidat(er): ` +
+        guesses
+          .map((g) => `${g.brand}${g.series ? ` / ${g.series}` : ""} (${g.confidence})`)
+          .join(", "),
+    );
+
     // Steg 2: Koble AI-gjetningene mot ekte rader i "cigars"-tabellen
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -108,6 +115,11 @@ Deno.serve(async (req) => {
     // Beste treff først, og ikke overvelde brukeren med for mange valg
     matches.sort((a, b) => b.confidence - a.confidence);
     const topMatches = matches.slice(0, 12);
+
+    console.log(
+      `scan-cigar: fant ${matches.length} totale treff, returnerer topp ${topMatches.length}. ` +
+        `Eksakte treff: ${topMatches.filter((m) => m.exact_match).length}.`,
+    );
 
     return new Response(JSON.stringify(topMatches), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
