@@ -7,10 +7,11 @@ import AVFoundation
 struct ScanView: View {
 
     @StateObject private var scanService = ScanService()
-    @State private var showImagePicker = false
+    @State private var showCameraPicker = false
+    @State private var showLibraryPicker = false
     @State private var capturedImage: UIImage?
     @State private var navigateToResults = false
-    @State private var sourceType: UIImagePickerController.SourceType = .camera
+    @State private var navigateToDetail = false
 
     var body: some View {
         NavigationStack {
@@ -37,10 +38,10 @@ struct ScanView: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "camera.viewfinder")
                                     .font(.system(size: 48))
-                                    .foregroundColor(Color("Accent"))
+                                    .foregroundColor(Color("TextPrimary"))
                                 Text("Hold bandet innenfor rammen")
                                     .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(Color("TextSecondary"))
                             }
                         }
                     }
@@ -51,7 +52,7 @@ struct ScanView: View {
                             .font(.title2.bold())
                         Text("Ta bilde av etiketten på sigaren\nfor å identifisere den")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color("TextSecondary"))
                             .multilineTextAlignment(.center)
                     }
 
@@ -96,8 +97,15 @@ struct ScanView: View {
             }
             .navigationTitle("Vitola")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $capturedImage, sourceType: sourceType) {
+            .sheet(isPresented: $showCameraPicker) {
+                ImagePicker(image: $capturedImage, sourceType: .camera) {
+                    if let image = capturedImage {
+                        Task { await scanService.scanBandImage(image) }
+                    }
+                }
+            }
+            .sheet(isPresented: $showLibraryPicker) {
+                ImagePicker(image: $capturedImage, sourceType: .photoLibrary) {
                     if let image = capturedImage {
                         Task { await scanService.scanBandImage(image) }
                     }
@@ -106,8 +114,19 @@ struct ScanView: View {
             .navigationDestination(isPresented: $navigateToResults) {
                 ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText)
             }
+            .navigationDestination(isPresented: $navigateToDetail) {
+                if let cigar = scanService.autoSelectedCigar {
+                    CigarDetailView(cigar: cigar)
+                }
+            }
             .onChange(of: scanService.scanResults) { results in
-                if !results.isEmpty { navigateToResults = true }
+                guard !results.isEmpty else { return }
+                if scanService.autoSelectedCigar != nil {
+                    // Båndet sa noe om variant — gå rett til detaljskjermen
+                    navigateToDetail = true
+                } else {
+                    navigateToResults = true
+                }
             }
             .alert("Feil", isPresented: .constant(scanService.errorMessage != nil)) {
                 Button("OK") { scanService.errorMessage = nil }
@@ -118,13 +137,11 @@ struct ScanView: View {
     }
 
     private func openCamera() {
-        sourceType = .camera
-        showImagePicker = true
+        showCameraPicker = true
     }
 
     private func openPhotoLibrary() {
-        sourceType = .photoLibrary
-        showImagePicker = true
+        showLibraryPicker = true
     }
 }
 

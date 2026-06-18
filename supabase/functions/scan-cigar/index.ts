@@ -26,6 +26,9 @@ interface AICigarMatch {
   cigar_id: string;
   confidence: number;
   reason: string;
+  // true når båndet/AI-en eksplisitt pekte ut nøyaktig denne serien —
+  // appen kan da velge denne automatisk i stedet for å vise en liste.
+  exact_match: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -58,30 +61,55 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Vi henter ALLE varianter/serier av merket AI-en gjettet på — ikke
+    // bare den ene serien AI-en var mest sikker på. Det gjør at brukeren
+    // får velge mellom f.eks. alle Ashton-seriene i appen, i stedet for
+    // å bli "gjettet for" på nøyaktig hvilken Ashton det er.
     const matches: AICigarMatch[] = [];
+    const seenCigarIds = new Set<string>();
 
     for (const guess of guesses) {
-      let query = supabase
+      const { data, error } = await supabase
         .from("cigars")
-        .select("id")
-        .ilike("brand", `%${guess.brand}%`);
+        .select("id, series")
+        .ilike("brand", `%${guess.brand}%`)
+        .limit(15);
 
-      if (guess.series) {
-        query = query.ilike("series", `%${guess.series}%`);
-      }
+      if (error || !data) continue;
 
-      const { data, error } = await query.limit(1);
+      for (const row of data) {
+        if (seenCigarIds.has(row.id)) continue;
+        seenCigarIds.add(row.id);
 
-      if (!error && data && data.length > 0) {
+        const seriesMatchesGuess = !!(
+          guess.series &&
+          row.series &&
+          row.series.toLowerCase().includes(guess.series.toLowerCase())
+        );
+
         matches.push({
-          cigar_id: data[0].id,
-          confidence: guess.confidence,
-          reason: guess.reason,
+          cigar_id: row.id,
+          // Serien AI-en faktisk gjettet på får full konfidens. Andre
+          // serier av samme merke får lavere, men fortsatt synlig
+          // konfidens — de er reelle kandidater, ikke bare gjetning.
+          confidence: seriesMatchesGuess
+            ? guess.confidence
+            : Math.max(guess.confidence - 0.35, 0.3),
+          reason: seriesMatchesGuess
+            ? guess.reason
+            : `Samme merke (${guess.brand}) som ble identifisert på bildet`,
+          // Eksakt treff kun når AI-en faktisk nevnte en spesifikk serie
+          // OG den matcher denne raden — da vet vi båndet sa noe om variant.
+          exact_match: !!guess.series && seriesMatchesGuess,
         });
       }
     }
 
-    return new Response(JSON.stringify(matches), {
+    // Beste treff først, og ikke overvelde brukeren med for mange valg
+    matches.sort((a, b) => b.confidence - a.confidence);
+    const topMatches = matches.slice(0, 12);
+
+    return new Response(JSON.stringify(topMatches), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

@@ -1,12 +1,14 @@
 import SwiftUI
 
 // MARK: - ContentView
-// Tab-navigasjon: Scan | Humidor | Historikk
+// Tab-navigasjon: Scan | Humidor | Profil
+// Vises uavhengig av innloggingsstatus — Humidor-tab og lagring krever
+// innlogging, men det håndteres internt i HumidorView/CigarDetailView.
 
 struct ContentView: View {
 
     @EnvironmentObject var authService: AuthService
-    @State private var selectedTab = 0
+    @State private var selectedTab = 1
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -21,29 +23,18 @@ struct ContentView: View {
             // Tab 2: Humidor
             HumidorView()
                 .tabItem {
-                    Label("Humidor", systemImage: "archivebox.fill")
+                    Label("Min humidor", systemImage: "archivebox.fill")
                 }
                 .tag(1)
 
-            // Tab 3: Historikk
-            HistoryView()
+            // Tab 3: Profil
+            ProfileView()
                 .tabItem {
-                    Label("Historikk", systemImage: "clock.fill")
+                    Label("Profil", systemImage: "person.crop.circle")
                 }
                 .tag(2)
         }
         .accentColor(Color("Accent"))
-    }
-}
-
-// MARK: - History View (placeholder)
-struct HistoryView: View {
-    var body: some View {
-        NavigationStack {
-            Text("Røykelogg kommer her")
-                .foregroundColor(.secondary)
-                .navigationTitle("Historikk")
-        }
     }
 }
 

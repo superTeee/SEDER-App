@@ -9,12 +9,14 @@ class CigarService: ObservableObject {
 
     // MARK: - Søk etter sigarer (tekst-matching fra OCR)
     func searchCigars(query: String) async throws -> [Cigar] {
+        // Bruker search_cigars_ranked() i Supabase (se migrations/002_ranked_search.sql)
+        // i stedet for å sortere på avg_rating — den sorterer på faktisk
+        // tekst-relevans (ts_rank), så et godt OCR-treff ikke kan bli
+        // overstyrt av en populær sigar som bare matcher løst på ett ord.
+        let tsQuery = query.lowercased().split(separator: " ").joined(separator: " | ")
+
         let results: [Cigar] = try await supabase
-            .from("cigars")
-            .select()
-            .textSearch("search_vector", query: query.lowercased().split(separator: " ").joined(separator: " | "))
-            .order("avg_rating", ascending: false)
-            .limit(10)
+            .rpc("search_cigars_ranked", params: ["search_query": tsQuery])
             .execute()
             .value
 
@@ -80,8 +82,10 @@ class HumidorService: ObservableObject {
         return results
     }
 
-    // Legg til sigar i humidoren
-    func addToHumidor(cigarId: UUID, userId: UUID, quantity: Int = 1) async throws {
+    // Legg til sigar i humidoren — returnerer den nye raden (inkl. id)
+    // slik at UI kan tilby "Fjern fra humidor" umiddelbart uten ny navigasjon.
+    @discardableResult
+    func addToHumidor(cigarId: UUID, userId: UUID, quantity: Int = 1) async throws -> HumidorEntry {
         let entry = NewHumidorEntry(
             userId: userId,
             cigarId: cigarId,
@@ -91,10 +95,15 @@ class HumidorService: ObservableObject {
             storageNotes: nil
         )
 
-        try await supabase
+        let inserted: HumidorEntry = try await supabase
             .from("humidor")
             .insert(entry)
+            .select("*, cigars(*)")
+            .single()
             .execute()
+            .value
+
+        return inserted
     }
 
     // Oppdater antall
@@ -111,6 +120,68 @@ class HumidorService: ObservableObject {
         try await supabase
             .from("humidor")
             .delete()
+            .eq("id", value: entryId.uuidString)
+            .execute()
+    }
+
+    // Oppdater stjerne-vurderinger (konstruksjon, trekk, aske, smak)
+    func updateScores(
+        entryId: UUID,
+        construction: Int?,
+        draw: Int?,
+        burn: Int?,
+        flavor: Int?
+    ) async throws {
+        let update = HumidorScoreUpdate(
+            scoreConstruction: construction,
+            scoreDraw: draw,
+            scoreBurn: burn,
+            scoreFlavor: flavor
+        )
+
+        try await supabase
+            .from("humidor")
+            .update(update)
+            .eq("id", value: entryId.uuidString)
+            .execute()
+    }
+
+    // Last opp bilde til Supabase Storage og lagre URL på humidor-oppføringen
+    func uploadPhoto(entryId: UUID, userId: UUID, imageData: Data) async throws -> String {
+        // VIKTIG: auth.uid()::text i Postgres er små bokstaver, mens Swift sin
+        // UUID.uuidString er store bokstaver. RLS-policyen på "humidor-photos"
+        // sjekker at første mappenivå i path == auth.uid()::text, så path MÅ
+        // være lowercase her, ellers blir opplastingen avvist (RLS-feil).
+        let path = "\(userId.uuidString.lowercased())/\(entryId.uuidString.lowercased()).jpg"
+
+        try await supabase.storage
+            .from("humidor-photos")
+            .upload(path, data: imageData, options: FileOptions(contentType: "image/jpeg", upsert: true))
+
+        let publicURL = try supabase.storage
+            .from("humidor-photos")
+            .getPublicURL(path: path)
+
+        // Cache-buster: path er deterministisk per entryId, så uten denne
+        // serverer AsyncImage/URLCache det gamle bildet etter "Bytt bilde"
+        // siden URL-strengen ellers er identisk.
+        var finalURLString = publicURL.absoluteString
+        if var components = URLComponents(url: publicURL, resolvingAgainstBaseURL: false) {
+            components.queryItems = [URLQueryItem(name: "v", value: "\(Int(Date().timeIntervalSince1970))")]
+            if let url = components.url {
+                finalURLString = url.absoluteString
+            }
+        }
+
+        try await updatePhotoURL(entryId: entryId, url: finalURLString)
+        return finalURLString
+    }
+
+    // Oppdater bilde-URL på en humidor-oppføring
+    func updatePhotoURL(entryId: UUID, url: String) async throws {
+        try await supabase
+            .from("humidor")
+            .update(["photo_url": url])
             .eq("id", value: entryId.uuidString)
             .execute()
     }

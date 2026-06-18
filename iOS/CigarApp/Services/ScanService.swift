@@ -14,6 +14,9 @@ class ScanService: ObservableObject {
     @Published var extractedText: String = ""
     @Published var scanResults: [ScanResult] = []
     @Published var errorMessage: String?
+    // Satt når båndet/AI-en eksplisitt pekte ut én bestemt variant —
+    // da hopper appen rett til detaljskjermen i stedet for en velgerliste.
+    @Published var autoSelectedCigar: Cigar?
 
     private let cigarService = CigarService()
 
@@ -21,6 +24,7 @@ class ScanService: ObservableObject {
     func scanBandImage(_ image: UIImage) async {
         isScanning = true
         scanResults = []
+        autoSelectedCigar = nil
         errorMessage = nil
 
         do {
@@ -42,6 +46,10 @@ class ScanService: ObservableObject {
                             matchReason: "Tekst: \(text)"
                         )
                     }
+
+                    // Nevner båndet eksplisitt én bestemt serie/variant?
+                    // Da slipper brukeren å velge selv.
+                    autoSelectedCigar = exactSeriesMatch(in: cigars, ocrText: text)
                 } else {
                     // Steg 3: Fallback til GPT-4o via Edge Function
                     try await scanWithAI(image: image)
@@ -53,6 +61,10 @@ class ScanService: ObservableObject {
 
         } catch {
             errorMessage = "Scanning feilet: \(error.localizedDescription)"
+        }
+
+        if errorMessage == nil && scanResults.isEmpty {
+            errorMessage = "Fant ingen treff for denne sigaren. Prøv et tydeligere bilde av båndet, eller søk den opp manuelt."
         }
 
         isScanning = false
@@ -113,6 +125,7 @@ class ScanService: ObservableObject {
             )
 
         // Hent fulle cigar-objekter for hvert AI-treff
+        var exactMatches: [Cigar] = []
         for match in aiResults {
             if let cigar = try? await cigarService.fetchCigar(id: match.cigarId) {
                 scanResults.append(ScanResult(
@@ -120,8 +133,29 @@ class ScanService: ObservableObject {
                     confidence: match.confidence,
                     matchReason: match.reason
                 ))
+                if match.exactMatch {
+                    exactMatches.append(cigar)
+                }
             }
         }
+
+        // AI-en/båndet pekte eksplisitt på akkurat én variant — velg den
+        // automatisk. Er det flere eksakte treff (usikkert), la brukeren velge.
+        if exactMatches.count == 1 {
+            autoSelectedCigar = exactMatches.first
+        }
+    }
+
+    // MARK: - Eksplisitt variant-gjenkjenning fra OCR-tekst
+    // Returnerer cigaren hvis AKKURAT ÉN av treffene har en serie som
+    // faktisk står skrevet i OCR-teksten fra båndet.
+    private func exactSeriesMatch(in cigars: [Cigar], ocrText: String) -> Cigar? {
+        let text = ocrText.lowercased()
+        let candidates = cigars.filter { cigar in
+            guard let series = cigar.series, series.count > 2 else { return false }
+            return text.contains(series.lowercased())
+        }
+        return candidates.count == 1 ? candidates.first : nil
     }
 
     // MARK: - Konfidensberegning (enkel heuristikk)
@@ -146,11 +180,13 @@ struct AICigarMatch: Decodable {
     let cigarId: UUID
     let confidence: Double
     let reason: String
+    let exactMatch: Bool
 
     enum CodingKeys: String, CodingKey {
         case cigarId    = "cigar_id"
         case confidence
         case reason
+        case exactMatch = "exact_match"
     }
 }
 

@@ -37,6 +37,15 @@ class AuthService: ObservableObject {
         await checkSession()
     }
 
+    // Sign In with Google
+    func signInWithGoogle() async throws {
+        try await supabase.auth.signInWithOAuth(
+            provider: .google,
+            redirectTo: URL(string: "cigarapp://auth/callback")
+        )
+        await checkSession()
+    }
+
     // E-post/passord (for testing)
     func signIn(email: String, password: String) async throws {
         let session = try await supabase.auth.signIn(email: email, password: password)
@@ -46,9 +55,26 @@ class AuthService: ObservableObject {
 
     // Registrer ny bruker
     func signUp(email: String, password: String) async throws {
-        let response = try await supabase.auth.signUp(email: email, password: password)
+        let response = try await supabase.auth.signUp(
+            email: email,
+            password: password,
+            redirectTo: URL(string: "cigarapp://auth/callback")
+        )
         currentUser = response.user
         isAuthenticated = true
+    }
+
+    // Kalles fra .onOpenURL når brukeren trykker på lenken i bekreftelses-
+    // eller passord-reset-e-posten, som sender dem tilbake til appen via
+    // cigarapp://auth/callback
+    func handleDeepLink(_ url: URL) async {
+        do {
+            let session = try await supabase.auth.session(from: url)
+            currentUser = session.user
+            isAuthenticated = true
+        } catch {
+            print("Kunne ikke håndtere deep link: \(error)")
+        }
     }
 
     // Logg ut

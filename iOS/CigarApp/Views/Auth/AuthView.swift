@@ -1,14 +1,14 @@
 import SwiftUI
 
 // MARK: - AuthView
-// Aldersbekreftelse + innlogging
+// Innlogging — presenteres som sheet når brukeren faktisk trenger en konto
+// (f.eks. for å lagre en sigar i humidoren). Aldersbekreftelsen ligger nå i
+// AgeGateView og vises kun én gang, uavhengig av innlogging.
 
 struct AuthView: View {
 
     @EnvironmentObject var authService: AuthService
-    @State private var birthYear = ""
-    @State private var showAgeError = false
-    @State private var ageVerified = false
+    @Environment(\.dismiss) private var dismiss
     @State private var isSigningIn = false
     @State private var errorMessage: String?
 
@@ -16,6 +16,10 @@ struct AuthView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showEmailLogin = false
+
+    /// Kalles i tillegg til at sheet-en lukkes, slik at f.eks. CigarDetailView
+    /// kan fortsette en avbrutt "legg i humidor"-handling rett etter innlogging.
+    var onSuccess: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -26,62 +30,35 @@ struct AuthView: View {
 
                 // Logo
                 VStack(spacing: 8) {
-                    Image(systemName: "leaf.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(Color("Accent"))
-                    Text("Vitola")
-                        .font(.largeTitle.bold())
-                    Text("Din digitale humidor")
+                    Image("Logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    Text("Logg inn")
+                        .font(.title.bold())
+                        .foregroundColor(Color("TextPrimary"))
+                    Text("for å lagre sigarer i humidoren din")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("TextSecondary"))
                 }
 
                 Spacer()
 
-                if !ageVerified {
-                    // Aldersbekreftelse
-                    AgeVerificationView(
-                        birthYear: $birthYear,
-                        showError: $showAgeError,
-                        onVerify: verifyAge
-                    )
-                } else {
-                    // Innlogging
-                    LoginOptionsView(
-                        showEmailLogin: $showEmailLogin,
-                        email: $email,
-                        password: $password,
-                        isSigningIn: $isSigningIn,
-                        errorMessage: $errorMessage,
-                        onAppleSignIn: signInWithApple,
-                        onEmailSignIn: signInWithEmail
-                    )
-                }
+                LoginOptionsView(
+                    showEmailLogin: $showEmailLogin,
+                    email: $email,
+                    password: $password,
+                    isSigningIn: $isSigningIn,
+                    errorMessage: $errorMessage,
+                    onAppleSignIn: signInWithApple,
+                    onGoogleSignIn: signInWithGoogle,
+                    onEmailSignIn: signInWithEmail
+                )
 
                 Spacer()
-
-                Text("Appen er kun for personer over 18 år.\nKjøp og promotering av tobakk er ikke en del av appen.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
             }
-        }
-    }
-
-    private func verifyAge() {
-        guard let year = Int(birthYear) else {
-            showAgeError = true
-            return
-        }
-        let currentYear = Calendar.current.component(.year, from: Date())
-        let age = currentYear - year
-
-        if age >= 18 {
-            ageVerified = true
-        } else {
-            showAgeError = true
+            .padding(.top, 24)
         }
     }
 
@@ -90,8 +67,22 @@ struct AuthView: View {
         Task {
             do {
                 try await authService.signInWithApple()
+                handleSuccess()
             } catch {
                 errorMessage = "Apple-innlogging feilet: \(error.localizedDescription)"
+            }
+            isSigningIn = false
+        }
+    }
+
+    private func signInWithGoogle() {
+        isSigningIn = true
+        Task {
+            do {
+                try await authService.signInWithGoogle()
+                handleSuccess()
+            } catch {
+                errorMessage = "Google-innlogging feilet: \(error.localizedDescription)"
             }
             isSigningIn = false
         }
@@ -102,10 +93,12 @@ struct AuthView: View {
         Task {
             do {
                 try await authService.signIn(email: email, password: password)
+                handleSuccess()
             } catch {
                 // Prøv å registrere ny bruker
                 do {
                     try await authService.signUp(email: email, password: password)
+                    handleSuccess()
                 } catch {
                     errorMessage = "Innlogging feilet: \(error.localizedDescription)"
                 }
@@ -113,45 +106,10 @@ struct AuthView: View {
             isSigningIn = false
         }
     }
-}
 
-// MARK: - Aldersbekreftelse
-struct AgeVerificationView: View {
-    @Binding var birthYear: String
-    @Binding var showError: Bool
-    var onVerify: () -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Bekreft alder")
-                .font(.title3.bold())
-            Text("Du må være 18 år eller eldre for å bruke Vitola")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            TextField("Fødselsår (f.eks. 1990)", text: $birthYear)
-                .keyboardType(.numberPad)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
-
-            if showError {
-                Text("Du må være over 18 år for å bruke appen.")
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-
-            Button(action: onVerify) {
-                Text("Bekreft")
-                    .fontWeight(.semibold)
-                    .frame(width: 200)
-                    .padding()
-                    .background(Color("Accent"))
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-        }
-        .padding(.horizontal, 24)
+    private func handleSuccess() {
+        onSuccess?()
+        dismiss()
     }
 }
 
@@ -163,6 +121,7 @@ struct LoginOptionsView: View {
     @Binding var isSigningIn: Bool
     @Binding var errorMessage: String?
     var onAppleSignIn: () -> Void
+    var onGoogleSignIn: () -> Void
     var onEmailSignIn: () -> Void
 
     var body: some View {
@@ -178,6 +137,24 @@ struct LoginOptionsView: View {
                 .padding()
                 .background(Color.primary)
                 .foregroundColor(Color(UIColor.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+
+            // Google Sign In
+            Button(action: onGoogleSignIn) {
+                HStack {
+                    Image(systemName: "globe")
+                    Text("Fortsett med Google")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color("Surface"))
+                .foregroundColor(Color("TextPrimary"))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color("TextSecondary").opacity(0.3), lineWidth: 1)
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
@@ -206,7 +183,7 @@ struct LoginOptionsView: View {
                 Button(action: { showEmailLogin = true }) {
                     Text("Bruk e-post i stedet")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("Accent"))
                 }
             }
 

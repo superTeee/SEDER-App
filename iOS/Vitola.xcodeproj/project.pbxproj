@@ -23,6 +23,15 @@
 		E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */; };
 		F714AAB8F26FC2F201A749FB /* CigarDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D122C57181C85D5D43402807 /* CigarDetailView.swift */; };
 		FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB0B9043F2D93F6611FC592 /* UserModels.swift */; };
+		A1B2C3D4E5F60718293A4B5D /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* AgeGateView.swift */; };
+		A1B2C3D4E5F60718293A4B5F /* PINComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5E /* PINComponents.swift */; };
+		A1B2C3D4E5F60718293A4B61 /* PINSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B60 /* PINSetupView.swift */; };
+		A1B2C3D4E5F60718293A4B63 /* PINUnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B62 /* PINUnlockView.swift */; };
+		A1B2C3D4E5F60718293A4B65 /* PINService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B64 /* PINService.swift */; };
+		A1B2C3D4E5F60718293A4B67 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B66 /* ProfileView.swift */; };
+		A1B2C3D4E5F60718293A4B6A /* CigarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B69 /* CigarIcon.swift */; };
+		A1B2C3D4E5F60718293A4B6C /* MailComposeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B6B /* MailComposeView.swift */; };
+		A1B2C3D4E5F60718293A4B6E /* StarRatingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B6F /* StarRatingRow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,10 +47,19 @@
 		8EB0B9043F2D93F6611FC592 /* UserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModels.swift; sourceTree = "<group>"; };
 		909149207DD9D2747DEE4727 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		99853265E9A2AA623B941165 /* CigarAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarAppApp.swift; sourceTree = "<group>"; };
-		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D122C57181C85D5D43402807 /* CigarDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailView.swift; sourceTree = "<group>"; };
 		F45A0F899263EDC54E49B8EA /* Cigar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cigar.swift; sourceTree = "<group>"; };
 		FA22E9CEDD719507D54C5C19 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5E /* PINComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINComponents.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B60 /* PINSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINSetupView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B62 /* PINUnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINUnlockView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B64 /* PINService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINService.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B66 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B69 /* CigarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarIcon.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B6B /* MailComposeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposeView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B6F /* StarRatingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRatingRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +86,10 @@
 			isa = PBXGroup;
 			children = (
 				6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */,
+				A1B2C3D4E5F60718293A4B5C /* AgeGateView.swift */,
+				A1B2C3D4E5F60718293A4B5E /* PINComponents.swift */,
+				A1B2C3D4E5F60718293A4B60 /* PINSetupView.swift */,
+				A1B2C3D4E5F60718293A4B62 /* PINUnlockView.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -87,6 +109,7 @@
 				4268E9B5C5FFA4E0654230A9 /* CigarService.swift */,
 				775627F695B6D8E09B10E267 /* ScanService.swift */,
 				5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */,
+				A1B2C3D4E5F60718293A4B64 /* PINService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -153,9 +176,29 @@
 				4E70DB050FBA5B17C4335964 /* Cigar */,
 				267D4DDCCB36A66B5803A328 /* Humidor */,
 				5A25E33360319C9EE1C977F4 /* Scan */,
+				A1B2C3D4E5F60718293A4B68 /* Profile */,
+				A1B2C3D4E5F60718293A4B6D /* Shared */,
 				909149207DD9D2747DEE4727 /* ContentView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F60718293A4B68 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60718293A4B66 /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F60718293A4B6D /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60718293A4B69 /* CigarIcon.swift */,
+				A1B2C3D4E5F60718293A4B6B /* MailComposeView.swift */,
+				A1B2C3D4E5F60718293A4B6F /* StarRatingRow.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -189,8 +232,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "Vitola" */;
 			developmentRegion = en;
@@ -244,6 +285,15 @@
 				1C6013B1827F341DD6399DC5 /* ScanView.swift in Sources */,
 				E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */,
 				FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5D /* AgeGateView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5F /* PINComponents.swift in Sources */,
+				A1B2C3D4E5F60718293A4B61 /* PINSetupView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B63 /* PINUnlockView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B65 /* PINService.swift in Sources */,
+				A1B2C3D4E5F60718293A4B67 /* ProfileView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B6A /* CigarIcon.swift in Sources */,
+				A1B2C3D4E5F60718293A4B6C /* MailComposeView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B6E /* StarRatingRow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,7 +361,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Vitola bruker kameraet til å scanne sigarbandet";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Velg et bilde av et sigarband fra biblioteket ditt";
@@ -335,7 +386,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Vitola bruker kameraet til å scanne sigarbandet";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Velg et bilde av et sigarband fra biblioteket ditt";

@@ -27,20 +27,52 @@ struct HumidorEntry: Codable, Identifiable {
     let purchasePrice: Double?
     let storageNotes: String?
     let createdAt: Date?
+    var photoURL: String?
+    var scoreConstruction: Int?  // 1–5
+    var scoreDraw: Int?          // 1–5
+    var scoreBurn: Int?          // 1–5
+    var scoreFlavor: Int?        // 1–5
 
     // Joined data (via Supabase select med foreign key)
     var cigar: Cigar?
 
     enum CodingKeys: String, CodingKey {
         case id
-        case userId         = "user_id"
-        case cigarId        = "cigar_id"
+        case userId             = "user_id"
+        case cigarId            = "cigar_id"
         case quantity
-        case purchaseDate   = "purchase_date"
-        case purchasePrice  = "purchase_price"
-        case storageNotes   = "storage_notes"
-        case createdAt      = "created_at"
-        case cigar          = "cigars"
+        case purchaseDate       = "purchase_date"
+        case purchasePrice      = "purchase_price"
+        case storageNotes       = "storage_notes"
+        case createdAt          = "created_at"
+        case photoURL           = "photo_url"
+        case scoreConstruction  = "score_construction"
+        case scoreDraw          = "score_draw"
+        case scoreBurn          = "score_burn"
+        case scoreFlavor        = "score_flavor"
+        case cigar              = "cigars"
+    }
+
+    // Snittscore av alle parametere som er satt (1–5). Nil hvis ingen er vurdert.
+    var totalScore: Double? {
+        let scores = [scoreConstruction, scoreDraw, scoreBurn, scoreFlavor].compactMap { $0 }
+        guard !scores.isEmpty else { return nil }
+        return Double(scores.reduce(0, +)) / Double(scores.count)
+    }
+}
+
+// For å oppdatere stjerne-vurderinger på en humidor-oppføring
+struct HumidorScoreUpdate: Encodable {
+    let scoreConstruction: Int?
+    let scoreDraw: Int?
+    let scoreBurn: Int?
+    let scoreFlavor: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case scoreConstruction = "score_construction"
+        case scoreDraw         = "score_draw"
+        case scoreBurn         = "score_burn"
+        case scoreFlavor       = "score_flavor"
     }
 }
 
