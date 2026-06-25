@@ -190,6 +190,10 @@ class HumidorService: ObservableObject {
         userId: UUID,
         smokedAt: Date,
         rating: Int?,
+        smokeAgain: Bool?,
+        drawRating: Int?,
+        burnRating: Int?,
+        flavorRating: Int?,
         notes: String?
     ) async throws {
         guard let cigar = humidorEntry.cigar else { return }
@@ -201,6 +205,10 @@ class HumidorService: ObservableObject {
             humidorEntryId: humidorEntry.id,
             smokedAt: smokedAt,
             rating: rating,
+            smokeAgain: smokeAgain,
+            drawRating: drawRating,
+            burnRating: burnRating,
+            flavorRating: flavorRating,
             personalNotes: notes?.isEmpty == false ? notes : nil
         )
         try await supabase

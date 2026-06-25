@@ -1,14 +1,14 @@
 #!/bin/bash
-# Bygg og arkiver Vitola build 15 (OCR-strip: HABANA, CUBA, Desde)
+# Bygg og arkiver Vitola build 35 (OCR-strip: HABANA, CUBA, Desde)
 set -e
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 XCODE_PROJECT="$PROJECT_DIR/iOS/Vitola.xcodeproj"
-ARCHIVE_PATH="/tmp/Vitola_build15.xcarchive"
-EXPORT_PATH="/tmp/Vitola_build15_export"
+ARCHIVE_PATH="/tmp/Vitola_build35.xcarchive"
+EXPORT_PATH="/tmp/Vitola_build35_export"
 
 echo "📁 Prosjekt: $PROJECT_DIR"
-echo "🔨 Arkiverer build 15 (CURRENT_PROJECT_VERSION=15)..."
+echo "🔨 Arkiverer build 35 (CURRENT_PROJECT_VERSION=35)..."
 echo ""
 
 /usr/bin/xcodebuild archive \

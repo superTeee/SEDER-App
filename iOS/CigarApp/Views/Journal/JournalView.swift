@@ -164,14 +164,14 @@ struct JournalRow: View {
                     Text(dateLabel)
                         .font(.caption)
                         .foregroundColor(Color("TextSecondary"))
-                    if let rating = log.rating {
-                        HStack(spacing: 2) {
-                            ForEach(1...5, id: \.self) { star in
-                                Image(systemName: star <= rating ? "star.fill" : "star")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(star <= rating ? .orange : Color("TextSecondary").opacity(0.3))
-                            }
-                        }
+                    if let rating = log.rating, let label = log.scoreLabel {
+                        Text("\(rating) · \(label)")
+                            .font(.caption.weight(.medium))
+                            .foregroundColor(scoreColor(for: rating))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(scoreColor(for: rating).opacity(0.12))
+                            .clipShape(Capsule())
                     }
                 }
             }
@@ -185,5 +185,14 @@ struct JournalRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func scoreColor(for score: Int) -> Color {
+        switch score {
+        case 90...100: return Color(red: 0.85, green: 0.65, blue: 0.2)
+        case 80...89:  return Color(red: 0.65, green: 0.5,  blue: 0.1)
+        case 70...79:  return Color(.systemGray)
+        default:       return Color(.systemBrown)
+        }
     }
 }

@@ -180,7 +180,7 @@ struct CigarDetailView: View {
                     .sheet(isPresented: $showSmokingSheet) {
                         SmokingLogSheet(
                             humidorEntry: currentEntry,
-                            onSave: { smokedAt, rating, notes in
+                            onSave: { smokedAt, rating, smokeAgain, drawRating, burnRating, flavorRating, notes in
                                 guard let userId = authService.userId else { return }
                                 Task {
                                     try? await humidorService.logSmokingSession(
@@ -188,6 +188,10 @@ struct CigarDetailView: View {
                                         userId: userId,
                                         smokedAt: smokedAt,
                                         rating: rating,
+                                        smokeAgain: smokeAgain,
+                                        drawRating: drawRating,
+                                        burnRating: burnRating,
+                                        flavorRating: flavorRating,
                                         notes: notes
                                     )
                                     // Oppdater lokal antall
@@ -449,58 +453,243 @@ struct AddToHumidorSheet: View {
 struct SmokingLogSheet: View {
 
     let humidorEntry: HumidorEntry
-    let onSave: (Date, Int?, String?) -> Void
+    /// (smokedAt, score, smokeAgain, draw, burn, flavor, notes)
+    let onSave: (Date, Int?, Bool?, Int?, Int?, Int?, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var smokedAt: Date = Date()
-    @State private var rating: Int = 0
-    @State private var notes: String = ""
+    @State private var smokedAt: Date        = Date()
+    @State private var hasScore: Bool        = true
+    @State private var score: Int            = 85
+    @State private var smokeAgain: Bool?     = nil   // nil = ikke valgt
+    @State private var drawRating: Int       = 0     // 0 = ikke satt, 1-5
+    @State private var burnRating: Int       = 0
+    @State private var flavorRating: Int     = 0
+    @State private var notes: String         = ""
+    @State private var showSubRatings: Bool  = false
+
+    // MARK: Hjelpere
+
+    private var scoreLabel: String {
+        switch score {
+        case 95...100: return "Exceptional"
+        case 90...94:  return "Excellent"
+        case 85...89:  return "Very good"
+        case 80...84:  return "Good"
+        case 70...79:  return "Average"
+        default:       return "Not for me"
+        }
+    }
+
+    private var scoreColor: Color {
+        switch score {
+        case 90...100: return Color(red: 0.85, green: 0.65, blue: 0.2)   // gull
+        case 80...89:  return Color(red: 0.75, green: 0.55, blue: 0.15)  // mørk gull
+        case 70...79:  return Color(red: 0.5,  green: 0.5,  blue: 0.5)   // grå
+        default:       return Color(red: 0.55, green: 0.35, blue: 0.25)  // brun-rød
+        }
+    }
+
+    // MARK: Body
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
+            ScrollView {
+                VStack(spacing: 0) {
+
+                    // ── Sigar-header ──────────────────────────────────
                     if let cigar = humidorEntry.cigar {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(cigar.brand).font(.headline)
+                        VStack(spacing: 4) {
+                            Text(cigar.brand)
+                                .font(.headline)
                             if let series = cigar.series {
-                                Text(series).font(.subheadline).foregroundColor(Color("TextSecondary"))
+                                Text(series)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
                             if let vitola = cigar.vitola {
-                                Text(vitola).font(.caption).foregroundColor(Color("TextSecondary"))
+                                Text(vitola)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
+                        .padding(.top, 20)
+                        .padding(.bottom, 8)
                     }
-                }
 
-                Section("Røykesession") {
+                    // ── Dato ─────────────────────────────────────────
                     DatePicker("Dato", selection: $smokedAt, displayedComponents: .date)
-                }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
 
-                Section("Rating") {
-                    HStack(spacing: 8) {
-                        ForEach(1...5, id: \.self) { star in
-                            Image(systemName: star <= rating ? "star.fill" : "star")
-                                .font(.title2)
-                                .foregroundColor(star <= rating ? .orange : Color("TextSecondary").opacity(0.4))
-                                .onTapGesture {
-                                    // Klikk på valgt stjerne nullstiller ratingen
-                                    rating = (rating == star) ? 0 : star
-                                }
+                    Divider().padding(.horizontal, 20)
+
+                    // ── Score-seksjon ─────────────────────────────────
+                    VStack(spacing: 16) {
+
+                        // Stor score-visning
+                        VStack(spacing: 4) {
+                            if hasScore {
+                                Text("\(score)")
+                                    .font(.system(size: 80, weight: .semibold, design: .rounded))
+                                    .foregroundColor(scoreColor)
+                                    .contentTransition(.numericText())
+                                    .animation(.spring(duration: 0.2), value: score)
+
+                                Text(scoreLabel)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .animation(.easeInOut, value: scoreLabel)
+                            } else {
+                                Text("–")
+                                    .font(.system(size: 80, weight: .thin, design: .rounded))
+                                    .foregroundColor(.secondary)
+                                Text("Ingen score")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
-                        Spacer()
-                        if rating > 0 {
-                            Text("\(rating)/5")
-                                .font(.subheadline)
-                                .foregroundColor(Color("TextSecondary"))
+                        .padding(.top, 20)
+
+                        // Slider
+                        if hasScore {
+                            Slider(
+                                value: Binding(
+                                    get: { Double(score) },
+                                    set: { score = Int($0) }
+                                ),
+                                in: 50...100,
+                                step: 1
+                            )
+                            .tint(scoreColor)
+                            .padding(.horizontal, 24)
+
+                            // ±1/±5 justeringsknapper
+                            HStack(spacing: 10) {
+                                ForEach([-5, -1], id: \.self) { delta in
+                                    Button("\(delta)") {
+                                        score = max(50, min(100, score + delta))
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(.secondary)
+                                    .font(.subheadline)
+                                }
+                                Spacer()
+                                ForEach([1, 5], id: \.self) { delta in
+                                    Button("+\(delta)") {
+                                        score = max(50, min(100, score + delta))
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(scoreColor)
+                                    .font(.subheadline)
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                        }
+
+                    }
+                    .padding(.vertical, 8)
+
+                    Divider().padding(.horizontal, 20).padding(.top, 8)
+
+                    // ── Smoke again ───────────────────────────────────
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Ville røkt igjen?")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        HStack(spacing: 10) {
+                            smokeAgainButton(label: "Ja", icon: "checkmark.circle.fill", value: true)
+                            smokeAgainButton(label: "Kanskje", icon: "minus.circle.fill", value: nil)
+                            smokeAgainButton(label: "Nei",    icon: "xmark.circle.fill",   value: false)
                         }
                     }
-                    .padding(.vertical, 4)
-                }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
 
-                Section("Kommentar") {
-                    TextField("Smaksnotat, anledning...", text: $notes, axis: .vertical)
-                        .lineLimit(4...)
+                    Divider().padding(.horizontal, 20)
+
+                    // ── Sub-ratings (valgfritt) ───────────────────────
+                    VStack(spacing: 12) {
+                        Button {
+                            withAnimation { showSubRatings.toggle() }
+                        } label: {
+                            HStack {
+                                Text("Detaljer (valgfritt)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Image(systemName: showSubRatings ? "chevron.up" : "chevron.down")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 14)
+
+                        if showSubRatings {
+                            VStack(spacing: 14) {
+                                dotRatingRow(label: "Trekk",    value: $drawRating)
+                                dotRatingRow(label: "Brenning", value: $burnRating)
+                                dotRatingRow(label: "Smak",     value: $flavorRating)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 4)
+                        }
+                    }
+
+                    Divider().padding(.horizontal, 20).padding(.top, 12)
+
+                    // ── Notater ───────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Kommentar")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        TextField("Smaksnotat, anledning, pairing...", text: $notes, axis: .vertical)
+                            .lineLimit(3...6)
+                            .padding(12)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+
+                    // ── Handlingsknapper ──────────────────────────────
+                    VStack(spacing: 10) {
+                        Button {
+                            onSave(
+                                smokedAt,
+                                hasScore ? score : nil,
+                                smokeAgain,
+                                drawRating > 0 ? drawRating : nil,
+                                burnRating > 0 ? burnRating : nil,
+                                flavorRating > 0 ? flavorRating : nil,
+                                notes.isEmpty ? nil : notes
+                            )
+                            dismiss()
+                        } label: {
+                            Text("Logg røykesession")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(scoreColor)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+
+                        Button {
+                            onSave(smokedAt, nil, smokeAgain, nil, nil, nil, notes.isEmpty ? nil : notes)
+                            dismiss()
+                        } label: {
+                            Text("Logg uten score")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 32)
                 }
             }
             .navigationTitle("Har røkt den")
@@ -509,14 +698,63 @@ struct SmokingLogSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lagre") {
-                        onSave(smokedAt, rating > 0 ? rating : nil, notes)
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
+            }
+        }
+    }
+
+    // MARK: Sub-views
+
+    @ViewBuilder
+    private func smokeAgainButton(label: String, icon: String, value: Bool?) -> some View {
+        let isSelected: Bool = {
+            switch (smokeAgain, value) {
+            case (.none, .none): return true    // "Kanskje"-knappen
+            case (.some(let a), .some(let b)): return a == b
+            default: return false
+            }
+        }()
+
+        Button {
+            smokeAgain = value
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                Text(label)
+                    .font(.subheadline)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(isSelected ? Color.accentColor.opacity(0.15) : Color(.secondarySystemBackground))
+            .foregroundColor(isSelected ? Color.accentColor : .secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func dotRatingRow(label: String, value: Binding<Int>) -> some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .frame(width: 80, alignment: .leading)
+            HStack(spacing: 10) {
+                ForEach(1...5, id: \.self) { dot in
+                    Circle()
+                        .fill(dot <= value.wrappedValue ? scoreColor : Color(.tertiarySystemBackground))
+                        .frame(width: 26, height: 26)
+                        .overlay(
+                            Circle().stroke(dot <= value.wrappedValue ? scoreColor : Color(.systemGray4), lineWidth: 1.5)
+                        )
+                        .onTapGesture {
+                            value.wrappedValue = (value.wrappedValue == dot) ? 0 : dot
+                        }
                 }
             }
+            Spacer()
         }
     }
 }

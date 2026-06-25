@@ -124,8 +124,12 @@ struct TastingLog: Codable, Identifiable {
     let cigarId: UUID
     let humidorEntryId: UUID?      // Koblet humidor-oppføring (for antall-sporing)
     let smokedAt: Date
-    var rating: Int?               // 1–5 stjerner
-    var personalNotes: String?     // Kommentar
+    var rating: Int?               // 0–100 personlig score (Cigar Aficionado-skala)
+    var smokeAgain: Bool?          // Ville røkt igjen? true=ja, false=nei, nil=kanskje/ikke satt
+    var drawRating: Int?           // 1–5 sub-rating: trekk
+    var burnRating: Int?           // 1–5 sub-rating: brenning
+    var flavorRating: Int?         // 1–5 sub-rating: smak
+    var personalNotes: String?     // Fritekst-kommentar
     let createdAt: Date?
 
     var cigar: Cigar?
@@ -137,9 +141,26 @@ struct TastingLog: Codable, Identifiable {
         case humidorEntryId     = "humidor_entry_id"
         case smokedAt           = "smoked_at"
         case rating
+        case smokeAgain         = "smoke_again"
+        case drawRating         = "draw_rating"
+        case burnRating         = "burn_rating"
+        case flavorRating       = "flavor_rating"
         case personalNotes      = "personal_notes"
         case createdAt          = "created_at"
         case cigar              = "cigars"
+    }
+
+    // Hjelpefunksjon: label for 0-100 score
+    var scoreLabel: String? {
+        guard let r = rating else { return nil }
+        switch r {
+        case 95...100: return "Exceptional"
+        case 90...94:  return "Excellent"
+        case 85...89:  return "Very good"
+        case 80...84:  return "Good"
+        case 70...79:  return "Average"
+        default:       return "Not for me"
+        }
     }
 }
 
@@ -149,6 +170,10 @@ struct NewTastingLog: Encodable {
     let humidorEntryId: UUID?
     let smokedAt: Date
     let rating: Int?
+    let smokeAgain: Bool?
+    let drawRating: Int?
+    let burnRating: Int?
+    let flavorRating: Int?
     let personalNotes: String?
 
     enum CodingKeys: String, CodingKey {
@@ -157,6 +182,10 @@ struct NewTastingLog: Encodable {
         case humidorEntryId     = "humidor_entry_id"
         case smokedAt           = "smoked_at"
         case rating
+        case smokeAgain         = "smoke_again"
+        case drawRating         = "draw_rating"
+        case burnRating         = "burn_rating"
+        case flavorRating       = "flavor_rating"
         case personalNotes      = "personal_notes"
     }
 }
