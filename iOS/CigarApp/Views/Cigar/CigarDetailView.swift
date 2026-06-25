@@ -2,64 +2,57 @@ import SwiftUI
 import PhotosUI
 
 // MARK: - CigarDetailView
-// Fullt informasjonskort for en sigar + lagre til humidor
+// Fullt informasjonskort for en sigar.
+// To moduser:
+//   - Treff-modus (entry == nil): viser sigarinfo + "Legg i humidor"-knapp → sheet
+//   - Humidor-modus (entry != nil): viser sigarinfo + antall + "Har røkt den"-knapp
 
 struct CigarDetailView: View {
 
     let cigar: Cigar
     @EnvironmentObject var authService: AuthService
-    @State private var isSaved = false
-    @State private var showSaveConfirm = false
-    @State private var isSaving = false
-    @State private var showLoginSheet = false
-    private let humidorService = HumidorService()
+    @Environment(\.dismiss) private var dismiss
 
-    // Satt når sigaren åpnes fra "Min humidor" — styrer bilde-opplasting,
-    // stjerne-vurdering og antall-editor.
     @State private var entry: HumidorEntry?
     @State private var quantity: Int = 1
-    @State private var scoreConstruction: Int?
-    @State private var scoreDraw: Int?
-    @State private var scoreBurn: Int?
-    @State private var scoreFlavor: Int?
+    @State private var isSaving = false
+    @State private var showLoginSheet = false
+    @State private var saveError: String?
+
+    // Legg i humidor
+    @State private var showAddToHumidorSheet = false
+
+    // Har røkt den
+    @State private var showSmokingSheet = false
+
+    // Bilde-opplasting
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isUploadingPhoto = false
     @State private var photoUploadError: String?
+
+    private let humidorService = HumidorService()
 
     init(cigar: Cigar, humidorEntry: HumidorEntry? = nil) {
         self.cigar = cigar
         _entry = State(initialValue: humidorEntry)
         _quantity = State(initialValue: humidorEntry?.quantity ?? 1)
-        _scoreConstruction = State(initialValue: humidorEntry?.scoreConstruction)
-        _scoreDraw = State(initialValue: humidorEntry?.scoreDraw)
-        _scoreBurn = State(initialValue: humidorEntry?.scoreBurn)
-        _scoreFlavor = State(initialValue: humidorEntry?.scoreFlavor)
         if humidorEntry != nil {
-            _isSaved = State(initialValue: true)
+            // ingen isSaved-state nødvendig lenger
         }
-    }
-
-    private var totalScore: Double? {
-        let scores = [scoreConstruction, scoreDraw, scoreBurn, scoreFlavor].compactMap { $0 }
-        guard !scores.isEmpty else { return nil }
-        return Double(scores.reduce(0, +)) / Double(scores.count)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
 
-                // MARK: Last opp bilde (kun fra Min humidor)
+                // MARK: Bilde-opplasting (kun fra Min humidor)
                 if entry != nil {
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                         HStack(spacing: 6) {
                             Image(systemName: "camera.fill")
                             Text(entry?.photoURL == nil ? "Last opp bilde" : "Bytt bilde")
                                 .fontWeight(.semibold)
-                            if isUploadingPhoto {
-                                ProgressView()
-                                    .padding(.leading, 4)
-                            }
+                            if isUploadingPhoto { ProgressView().padding(.leading, 4) }
                         }
                         .font(.subheadline)
                         .foregroundColor(Color("Accent"))
@@ -70,73 +63,31 @@ struct CigarDetailView: View {
                 }
 
                 // MARK: Header
-                // Bilde vises kun når sigaren er lagret i humidoren — på et
-                // "treff" (ikke lagret) finnes det ennå ikke noe brukerbilde.
                 CigarHeaderSection(cigar: cigar, photoURL: entry?.photoURL, showImage: entry != nil)
-
                 Divider().padding(.horizontal)
 
-                // MARK: Din vurdering + antall (kun fra Min humidor)
+                // MARK: Antall i humidor (kun humidor-modus)
                 if entry != nil {
-                    DetailSection(title: "Din vurdering") {
-                        VStack(spacing: 10) {
-                            StarRatingRow(label: "Konstruksjon", rating: $scoreConstruction)
-                            StarRatingRow(label: "Trekk", rating: $scoreDraw)
-                            StarRatingRow(label: "Aske", rating: $scoreBurn)
-                            StarRatingRow(label: "Smak", rating: $scoreFlavor)
-
-                            if let total = totalScore {
-                                Divider()
-                                HStack {
-                                    Text("Totalscore")
-                                        .font(.subheadline.bold())
-                                    Spacer()
-                                    Text(String(format: "%.1f", total))
-                                        .font(.subheadline.bold())
-                                    Image(systemName: "star.fill")
-                                        .foregroundColor(.orange)
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                    }
-                    .onChange(of: scoreConstruction) { _, _ in saveScores() }
-                    .onChange(of: scoreDraw) { _, _ in saveScores() }
-                    .onChange(of: scoreBurn) { _, _ in saveScores() }
-                    .onChange(of: scoreFlavor) { _, _ in saveScores() }
-
-                    Divider().padding(.horizontal)
-
                     DetailSection(title: "Antall i humidor") {
                         HStack(spacing: 20) {
                             Button {
-                                if quantity > 0 {
-                                    quantity -= 1
-                                    saveQuantity()
-                                }
+                                if quantity > 0 { quantity -= 1; saveQuantity() }
                             } label: {
                                 Image(systemName: "minus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Accent"))
+                                    .font(.title2).foregroundColor(Color("Accent"))
                             }
-
                             Text("\(quantity) stk")
                                 .font(.title3.bold())
                                 .frame(minWidth: 70, alignment: .center)
-
                             Button {
-                                quantity += 1
-                                saveQuantity()
+                                quantity += 1; saveQuantity()
                             } label: {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Accent"))
+                                    .font(.title2).foregroundColor(Color("Accent"))
                             }
-
                             Spacer()
                         }
                     }
-
                     Divider().padding(.horizontal)
                 }
 
@@ -145,20 +96,15 @@ struct CigarDetailView: View {
                     if let wrapper = cigar.wrapperLeaf {
                         DetailRow(label: "Wrapper", value: "\(wrapper)\(cigar.wrapperCountry.map { " (\($0))" } ?? "")")
                     }
-                    if let binder = cigar.binder {
-                        DetailRow(label: "Binder", value: binder)
-                    }
+                    if let binder = cigar.binder { DetailRow(label: "Binder", value: binder) }
                     if let filler = cigar.filler, !filler.isEmpty {
                         DetailRow(label: "Filler", value: filler.joined(separator: ", "))
                     }
-                    if let origin = cigar.countryOrigin {
-                        DetailRow(label: "Opprinnelse", value: origin)
-                    }
+                    if let origin = cigar.countryOrigin { DetailRow(label: "Opprinnelse", value: origin) }
                     if let gauge = cigar.ringGauge, let length = cigar.lengthInches {
                         DetailRow(label: "Størrelse", value: "\(length)\" × \(gauge) RG")
                     }
                 }
-
                 Divider().padding(.horizontal)
 
                 // MARK: Smaksprofil
@@ -169,8 +115,7 @@ struct CigarDetailView: View {
                     Divider().padding(.horizontal)
                 }
 
-                // MARK: Om sigaren + Pris (kun nøkkelinfo vises for et "treff" —
-                // disse to skjules når sigaren ikke er lagret i humidoren)
+                // MARK: Om sigaren (kun humidor-modus)
                 if entry != nil {
                     if let desc = cigar.description {
                         DetailSection(title: "Om sigaren") {
@@ -181,30 +126,35 @@ struct CigarDetailView: View {
                         }
                         Divider().padding(.horizontal)
                     }
-
-                    if let price = cigar.priceRange {
-                        DetailSection(title: "Prisnivå") {
-                            Text(price)
-                                .font(.subheadline)
-                                .foregroundColor(Color("TextSecondary"))
-                        }
-                    }
                 }
 
-                // MARK: Lagre- og dele-knapper
-                if entry != nil {
-                    // Allerede i humidoren — full "Fjern fra humidor"-knapp + del
+                // MARK: Handlingsknapper
+                if let currentEntry = entry {
+                    // --- Humidor-modus ---
                     VStack(spacing: 12) {
+                        // Har røkt den
+                        Button(action: { showSmokingSheet = true }) {
+                            HStack {
+                                Image(systemName: "flame.fill")
+                                Text("Har røkt den")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color("Accent"))
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+
+                        // Fjern fra humidor
                         Button(action: removeFromHumidorAction) {
                             HStack {
                                 if isSaving {
-                                    ProgressView()
-                                        .tint(.white)
+                                    ProgressView().tint(.white)
                                 } else {
                                     Image(systemName: "minus.circle.fill")
                                 }
-                                Text("Fjern fra humidor")
-                                    .fontWeight(.semibold)
+                                Text("Fjern fra humidor").fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -217,8 +167,7 @@ struct CigarDetailView: View {
                         ShareLink(item: shareText) {
                             HStack {
                                 Image(systemName: "square.and.arrow.up")
-                                Text("Del med andre")
-                                    .fontWeight(.semibold)
+                                Text("Del med andre").fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -228,64 +177,97 @@ struct CigarDetailView: View {
                         }
                     }
                     .padding(24)
-                } else {
-                    // Et "treff" som ikke er lagret — kompakt humidor+pluss-ikon
-                    // i stedet for full-bredde tekstknapp.
-                    VStack(spacing: 12) {
-                        Button(action: saveToHumidor) {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "archivebox.fill")
-                                    .font(.system(size: 28))
-                                    .frame(width: 68, height: 68)
-                                    .foregroundColor(.white)
-                                    .background(Color("Accent"))
-                                    .clipShape(Circle())
-
-                                if isSaving {
-                                    ProgressView()
-                                        .tint(.white)
-                                        .frame(width: 68, height: 68)
-                                } else {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 22))
-                                        .foregroundColor(.white)
-                                        .background(Circle().fill(Color("Accent")))
-                                        .clipShape(Circle())
-                                        .offset(x: 4, y: -4)
+                    .sheet(isPresented: $showSmokingSheet) {
+                        SmokingLogSheet(
+                            humidorEntry: currentEntry,
+                            onSave: { smokedAt, rating, notes in
+                                guard let userId = authService.userId else { return }
+                                Task {
+                                    try? await humidorService.logSmokingSession(
+                                        humidorEntry: currentEntry,
+                                        userId: userId,
+                                        smokedAt: smokedAt,
+                                        rating: rating,
+                                        notes: notes
+                                    )
+                                    // Oppdater lokal antall
+                                    quantity = max(0, quantity - 1)
+                                    // Oppdater entry.quantity for videre logging
+                                    if var updatedEntry = self.entry {
+                                        updatedEntry.quantity = quantity
+                                        self.entry = updatedEntry
+                                    }
                                 }
                             }
-                            .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
+                        )
+                    }
+
+                } else {
+                    // --- Treff-modus ---
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            guard authService.userId != nil else { showLoginSheet = true; return }
+                            showAddToHumidorSheet = true
+                        }) {
+                            HStack {
+                                if isSaving {
+                                    ProgressView().tint(.white)
+                                } else {
+                                    Image(systemName: "archivebox.fill")
+                                }
+                                Text("Legg i humidor").fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color("Accent"))
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .disabled(isSaving)
 
-                        Text("Legg til i humidor")
-                            .font(.caption)
-                            .foregroundColor(Color("TextSecondary"))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-
-                    ShareLink(item: shareText) {
-                        HStack {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("Del med andre")
-                                .fontWeight(.semibold)
+                        ShareLink(item: shareText) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Del med andre").fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color("Surface"))
+                            .foregroundColor(Color("Accent"))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color("Surface"))
-                        .foregroundColor(Color("Accent"))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
+                    .padding(24)
+                    .sheet(isPresented: $showAddToHumidorSheet) {
+                        AddToHumidorSheet(cigar: cigar) { purchasedAt, addedAt, qty in
+                            guard let userId = authService.userId else { return }
+                            isSaving = true
+                            Task {
+                                do {
+                                    let newEntry = try await humidorService.addToHumidor(
+                                        cigarId: cigar.id,
+                                        userId: userId,
+                                        quantity: qty,
+                                        purchasedAt: purchasedAt,
+                                        addedToHumidorAt: addedAt
+                                    )
+                                    self.entry = newEntry
+                                    self.quantity = newEntry.quantity
+                                } catch {
+                                    print("Feil ved lagring: \(error)")
+                                    saveError = error.localizedDescription
+                                }
+                                isSaving = false
+                            }
+                        }
+                    }
                 }
             }
         }
         .navigationTitle(cigar.brand)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showLoginSheet) {
-            AuthView(onSuccess: { saveToHumidor() })
+            AuthView(onSuccess: { showAddToHumidorSheet = true })
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem, let entry, let userId = authService.userId else { return }
@@ -303,6 +285,7 @@ struct CigarDetailView: View {
                     print("Feil ved bildeopplasting: \(error)")
                     photoUploadError = "Opplasting av bilde feilet. Sjekk internettforbindelsen og prøv igjen."
                 }
+                selectedPhotoItem = nil
             }
         }
         .alert("Feil", isPresented: .constant(photoUploadError != nil)) {
@@ -310,83 +293,236 @@ struct CigarDetailView: View {
         } message: {
             Text(photoUploadError ?? "")
         }
-    }
-
-    // MARK: - Lagre vurdering/antall
-    private func saveScores() {
-        guard let entry else { return }
-        Task {
-            try? await humidorService.updateScores(
-                entryId: entry.id,
-                construction: scoreConstruction,
-                draw: scoreDraw,
-                burn: scoreBurn,
-                flavor: scoreFlavor
-            )
+        .alert("Kunne ikke lagre", isPresented: .constant(saveError != nil)) {
+            Button("OK") { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
         }
     }
+
+    // MARK: - Handlinger
 
     private func saveQuantity() {
         guard let entry else { return }
-        Task {
-            try? await humidorService.updateQuantity(entryId: entry.id, quantity: quantity)
-        }
-    }
-
-    // MARK: - Deletekst
-    private var shareText: String {
-        var lines = [cigar.fullName]
-        if cigar.strength != nil {
-            lines.append("Styrke: \(cigar.strengthLabel)")
-        }
-        if let notes = cigar.flavorNotes, !notes.isEmpty {
-            lines.append("Smaksnotater: \(notes.joined(separator: ", "))")
-        }
-        if let desc = cigar.description {
-            lines.append(desc)
-        }
-        lines.append("Funnet med Vitola 🍃")
-        return lines.joined(separator: "\n")
-    }
-
-    private func saveToHumidor() {
-        guard let userId = authService.userId else {
-            showLoginSheet = true
-            return
-        }
-        isSaving = true
-
-        Task {
-            do {
-                let newEntry = try await humidorService.addToHumidor(cigarId: cigar.id, userId: userId)
-                self.entry = newEntry
-                quantity = newEntry.quantity
-                isSaved = true
-            } catch {
-                print("Feil ved lagring: \(error)")
-            }
-            isSaving = false
-        }
+        Task { try? await humidorService.updateQuantity(entryId: entry.id, quantity: quantity) }
     }
 
     private func removeFromHumidorAction() {
         guard let entry else { return }
         isSaving = true
-
         Task {
             do {
                 try await humidorService.removeFromHumidor(entryId: entry.id)
                 self.entry = nil
-                isSaved = false
-            } catch {
-                print("Feil ved fjerning: \(error)")
-            }
+            } catch { print("Feil ved fjerning: \(error)") }
             isSaving = false
+        }
+    }
+
+    private var shareText: String {
+        var lines = [cigar.fullName]
+        if cigar.strength != nil { lines.append("Styrke: \(cigar.strengthLabel)") }
+        if let notes = cigar.flavorNotes, !notes.isEmpty {
+            lines.append("Smaksnotater: \(notes.joined(separator: ", "))")
+        }
+        if let desc = cigar.description { lines.append(desc) }
+        lines.append("Funnet med Vitola 🍃")
+        return lines.joined(separator: "\n")
+    }
+}
+
+// MARK: - Legg i humidor Sheet
+
+struct AddToHumidorSheet: View {
+
+    let cigar: Cigar
+    let onSave: (Date, Date, Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var purchasedAt: Date = Date()
+    @State private var addedAt: Date = Date()
+    @State private var quantity: Int = 1
+    @State private var showPurchasePicker = false
+    @State private var showHumidorPicker = false
+
+    private let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        f.locale = Locale(identifier: "nb_NO")
+        return f
+    }()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(cigar.brand).font(.headline)
+                        if let series = cigar.series {
+                            Text(series).font(.subheadline).foregroundColor(Color("TextSecondary"))
+                        }
+                        if let vitola = cigar.vitola {
+                            Text(vitola).font(.caption).foregroundColor(Color("TextSecondary"))
+                        }
+                    }
+                }
+
+                Section("Datoer") {
+                    // Kjøpsdato — klikk for å åpne, velg dato for å lukke
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showPurchasePicker.toggle()
+                            if showPurchasePicker { showHumidorPicker = false }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Kjøpsdato")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text(dateFormatter.string(from: purchasedAt))
+                                .foregroundColor(Color("TextSecondary"))
+                            Image(systemName: showPurchasePicker ? "chevron.up" : "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(Color("TextSecondary"))
+                        }
+                    }
+                    if showPurchasePicker {
+                        DatePicker("", selection: $purchasedAt, in: ...Date(), displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .onChange(of: purchasedAt) { _, _ in
+                                withAnimation(.easeInOut(duration: 0.2)) { showPurchasePicker = false }
+                            }
+                    }
+
+                    // Humidordato
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showHumidorPicker.toggle()
+                            if showHumidorPicker { showPurchasePicker = false }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Lagt i humidor")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text(dateFormatter.string(from: addedAt))
+                                .foregroundColor(Color("TextSecondary"))
+                            Image(systemName: showHumidorPicker ? "chevron.up" : "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(Color("TextSecondary"))
+                        }
+                    }
+                    if showHumidorPicker {
+                        DatePicker("", selection: $addedAt, in: ...Date(), displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .onChange(of: addedAt) { _, _ in
+                                withAnimation(.easeInOut(duration: 0.2)) { showHumidorPicker = false }
+                            }
+                    }
+                }
+
+                Section("Antall") {
+                    Stepper("\(quantity) stk", value: $quantity, in: 1...100)
+                }
+            }
+            .navigationTitle("Legg i humidor")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Avbryt") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Legg til") {
+                        onSave(purchasedAt, addedAt, quantity)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Røyke-logg Sheet ("Har røkt den")
+
+struct SmokingLogSheet: View {
+
+    let humidorEntry: HumidorEntry
+    let onSave: (Date, Int?, String?) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var smokedAt: Date = Date()
+    @State private var rating: Int = 0
+    @State private var notes: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    if let cigar = humidorEntry.cigar {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(cigar.brand).font(.headline)
+                            if let series = cigar.series {
+                                Text(series).font(.subheadline).foregroundColor(Color("TextSecondary"))
+                            }
+                            if let vitola = cigar.vitola {
+                                Text(vitola).font(.caption).foregroundColor(Color("TextSecondary"))
+                            }
+                        }
+                    }
+                }
+
+                Section("Røykesession") {
+                    DatePicker("Dato", selection: $smokedAt, displayedComponents: .date)
+                }
+
+                Section("Rating") {
+                    HStack(spacing: 8) {
+                        ForEach(1...5, id: \.self) { star in
+                            Image(systemName: star <= rating ? "star.fill" : "star")
+                                .font(.title2)
+                                .foregroundColor(star <= rating ? .orange : Color("TextSecondary").opacity(0.4))
+                                .onTapGesture {
+                                    // Klikk på valgt stjerne nullstiller ratingen
+                                    rating = (rating == star) ? 0 : star
+                                }
+                        }
+                        Spacer()
+                        if rating > 0 {
+                            Text("\(rating)/5")
+                                .font(.subheadline)
+                                .foregroundColor(Color("TextSecondary"))
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Section("Kommentar") {
+                    TextField("Smaksnotat, anledning...", text: $notes, axis: .vertical)
+                        .lineLimit(4...)
+                }
+            }
+            .navigationTitle("Har røkt den")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Avbryt") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Lagre") {
+                        onSave(smokedAt, rating > 0 ? rating : nil, notes)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
         }
     }
 }
 
 // MARK: - Header Section
+
 struct CigarHeaderSection: View {
 
     let cigar: Cigar
@@ -395,21 +531,17 @@ struct CigarHeaderSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Bilde (opplastet) — vises kun når sigaren er lagret i humidoren.
-            // For et "treff" finnes det ennå ikke noe brukerbilde, så hele
-            // bilde-området (inkl. placeholder) utelates.
             if showImage {
                 ZStack {
                     if let photoURL, let url = URL(string: photoURL) {
                         AsyncImage(url: url) { phase in
                             if let image = phase.image {
-                                image
-                                    .resizable()
-                                    .scaledToFill()
+                                image.resizable().scaledToFill()
                             } else {
                                 Rectangle().fill(Color("Surface"))
                             }
                         }
+                        .id(photoURL)
                         .frame(maxWidth: .infinity)
                         .frame(height: 200)
                         .clipped()
@@ -430,33 +562,24 @@ struct CigarHeaderSection: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(cigar.brand)
-                    .font(.title2.bold())
+                Text(cigar.brand).font(.title2.bold())
                 if let series = cigar.series {
-                    Text(series)
-                        .font(.title3)
-                        .foregroundColor(Color("TextSecondary"))
+                    Text(series).font(.title3).foregroundColor(Color("TextSecondary"))
                 }
-
                 HStack(spacing: 12) {
-                    // Styrke-badge
                     if let strength = cigar.strength {
                         Label(cigar.strengthLabel, systemImage: "flame.fill")
                             .font(.caption.bold())
                             .foregroundColor(strengthColor(strength))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(strengthColor(strength).opacity(0.12))
                             .clipShape(Capsule())
                     }
-
-                    // Vitola
                     if let vitola = cigar.vitola {
                         Text(vitola)
                             .font(.caption)
                             .foregroundColor(Color("TextSecondary"))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(Color("Surface"))
                             .clipShape(Capsule())
                     }
@@ -478,24 +601,21 @@ struct CigarHeaderSection: View {
 }
 
 // MARK: - Detail Section
+
 struct DetailSection<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-            content
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
+            Text(title).font(.headline).padding(.horizontal, 20).padding(.top, 16)
+            content.padding(.horizontal, 20).padding(.bottom, 16)
         }
     }
 }
 
 // MARK: - Detail Row
+
 struct DetailRow: View {
     let label: String
     let value: String
@@ -506,13 +626,13 @@ struct DetailRow: View {
                 .font(.subheadline)
                 .foregroundColor(Color("TextSecondary"))
                 .frame(width: 90, alignment: .leading)
-            Text(value)
-                .font(.subheadline)
+            Text(value).font(.subheadline)
         }
     }
 }
 
 // MARK: - Flavor Tags
+
 struct FlavorTagsView: View {
     let notes: [String]
 
@@ -521,8 +641,7 @@ struct FlavorTagsView: View {
             ForEach(notes, id: \.self) { note in
                 Text(note)
                     .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
                     .background(Color("Accent").opacity(0.12))
                     .foregroundColor(Color("TextPrimary"))
                     .clipShape(Capsule())
@@ -532,6 +651,7 @@ struct FlavorTagsView: View {
 }
 
 // MARK: - Flow Layout (for tags)
+
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 
@@ -558,16 +678,12 @@ struct FlowLayout: Layout {
 
             for subview in subviews {
                 let size = subview.sizeThatFits(.unspecified)
-                if x + size.width > maxWidth, x > 0 {
-                    x = 0
-                    y += rowHeight + spacing
-                    rowHeight = 0
-                }
+                if x + size.width > maxWidth, x > 0 { x = 0; y += rowHeight + spacing; rowHeight = 0 }
                 frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
                 x += size.width + spacing
                 rowHeight = max(rowHeight, size.height)
             }
-            self.size = CGSize(width: maxWidth, height: y + rowHeight)
+            size = CGSize(width: maxWidth, height: y + rowHeight)
         }
     }
 }

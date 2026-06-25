@@ -1,9 +1,7 @@
 import SwiftUI
 
 // MARK: - ContentView
-// Tab-navigasjon: Scan | Humidor | Profil
-// Vises uavhengig av innloggingsstatus — Humidor-tab og lagring krever
-// innlogging, men det håndteres internt i HumidorView/CigarDetailView.
+// Tab-navigasjon: Scan | Min humidor | Journal | Venner | Profil
 
 struct ContentView: View {
 
@@ -13,26 +11,40 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
 
-            // Tab 1: Scan
+            // Tab 0: Scan
             ScanView()
                 .tabItem {
                     Label("Scan", systemImage: "camera.viewfinder")
                 }
                 .tag(0)
 
-            // Tab 2: Humidor
+            // Tab 1: Humidor
             HumidorView()
                 .tabItem {
                     Label("Min humidor", systemImage: "archivebox.fill")
                 }
                 .tag(1)
 
-            // Tab 3: Profil
+            // Tab 2: Journal (røykelogg)
+            JournalView()
+                .tabItem {
+                    Label("Journal", systemImage: "book.closed.fill")
+                }
+                .tag(2)
+
+            // Tab 3: Venner
+            VennerView()
+                .tabItem {
+                    Label("Venner", systemImage: "person.2.fill")
+                }
+                .tag(3)
+
+            // Tab 4: Profil
             ProfileView()
                 .tabItem {
                     Label("Profil", systemImage: "person.crop.circle")
                 }
-                .tag(2)
+                .tag(4)
         }
         .accentColor(Color("Accent"))
     }

@@ -5,9 +5,11 @@ import Foundation
 
 struct Cigar: Codable, Identifiable, Hashable {
     let id: UUID
-    let brand: String
+    let brand: String                // Brand family, f.eks. "Don Pepin Garcia"
+    let manufacturer: String?        // Produsenten/huset, f.eks. "My Father Cigars"
     let series: String?
     let vitola: String?
+    let commonFormat: String?        // Generisk vitola-kategori (Robusto/Toro/...), brukt i søk/OCR
     let wrapperCountry: String?
     let wrapperLeaf: String?
     let binder: String?
@@ -22,13 +24,19 @@ struct Cigar: Codable, Identifiable, Hashable {
     let avgRating: Double?
     let ringGauge: Int?
     let lengthInches: Double?
+    let shape: String?               // Parejo / Box-Pressed / Figurado
+    let bodyType: String?            // Figurado-undertype (Torpedo/Belicoso/Perfecto/Salomon), null for Parejo
+    let headType: String?            // f.eks. "Pointed" — null = standard/rundt
+    let footType: String?            // f.eks. "Closed"/"Tapered" — null = standard/åpen
     let createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
         case brand
+        case manufacturer
         case series
         case vitola
+        case commonFormat       = "common_format"
         case wrapperCountry     = "wrapper_country"
         case wrapperLeaf        = "wrapper_leaf"
         case binder
@@ -43,6 +51,10 @@ struct Cigar: Codable, Identifiable, Hashable {
         case avgRating          = "avg_rating"
         case ringGauge          = "ring_gauge"
         case lengthInches       = "length_inches"
+        case shape
+        case bodyType           = "body_type"
+        case headType           = "head_type"
+        case footType           = "foot_type"
         case createdAt          = "created_at"
     }
 

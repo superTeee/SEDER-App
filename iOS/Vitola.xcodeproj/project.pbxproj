@@ -7,59 +7,67 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		018C13BCF709ED8FE8563F63 /* PINUnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */; };
 		049C64C7CAE75A3F42357820 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038EFE70A641325AE1E1126B /* AuthService.swift */; };
 		11CD2586D2F7EEBC5DF601BA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */; };
+		177A7186F1630F0803865214 /* MailComposeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01E2818C7850701195E98C9 /* MailComposeView.swift */; };
 		1C6013B1827F341DD6399DC5 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1699BCF102E89578F9D6B763 /* ScanView.swift */; };
+		1CFA93F58EBCD08A3B967EF0 /* PINService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F123712707C6A8B25490C /* PINService.swift */; };
 		38EAE0227590945771B2C132 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DE84548D3017B15393EC79 /* ResultsView.swift */; };
+		4915774688B3426F3B1553D8 /* PINComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940D2F398ECEDA8C8B017BEF /* PINComponents.swift */; };
 		587CF733F8E275C6C93F8E94 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FA22E9CEDD719507D54C5C19 /* Assets.xcassets */; };
+		5D46BD1B60BFD1B7BD1FDF96 /* FriendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F456A8E60766707FEA12C6AB /* FriendService.swift */; };
+		6078259E0765EE39E8346EB9 /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */; };
 		6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4268E9B5C5FFA4E0654230A9 /* CigarService.swift */; };
 		6D9D07638987891501525A6A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */; };
+		810CF96C823CB1A8465D1947 /* VennerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DEE5F5271AB26DBC443EBCB /* VennerView.swift */; };
 		8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909149207DD9D2747DEE4727 /* ContentView.swift */; };
 		89F8550E1C3BCA13B41F03C5 /* ScanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 775627F695B6D8E09B10E267 /* ScanService.swift */; };
 		8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99853265E9A2AA623B941165 /* CigarAppApp.swift */; };
+		9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F387CE9EB627A94583C36905 /* CigarIcon.swift */; };
 		B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45A0F899263EDC54E49B8EA /* Cigar.swift */; };
+		B7A807ECE12F39CDF4092B48 /* PINSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6574A222EED0313457BD6D /* PINSetupView.swift */; };
 		BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 333232B66274F8E65263E2F7 /* Supabase */; };
 		C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831F95D91D3339D747199BE9 /* HumidorView.swift */; };
+		C997089A85720FBA25E6575D /* FriendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */; };
+		C9E028D726AD7AE3394F9E31 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED781FACD8808BE8540BBD9C /* ProfileView.swift */; };
 		E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */; };
 		F714AAB8F26FC2F201A749FB /* CigarDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D122C57181C85D5D43402807 /* CigarDetailView.swift */; };
+		F846567A1031B0255EEAD978 /* StarRatingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D90177D2555F69A2182BB66 /* StarRatingRow.swift */; };
 		FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB0B9043F2D93F6611FC592 /* UserModels.swift */; };
-		A1B2C3D4E5F60718293A4B5D /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* AgeGateView.swift */; };
-		A1B2C3D4E5F60718293A4B5F /* PINComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5E /* PINComponents.swift */; };
-		A1B2C3D4E5F60718293A4B61 /* PINSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B60 /* PINSetupView.swift */; };
-		A1B2C3D4E5F60718293A4B63 /* PINUnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B62 /* PINUnlockView.swift */; };
-		A1B2C3D4E5F60718293A4B65 /* PINService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B64 /* PINService.swift */; };
-		A1B2C3D4E5F60718293A4B67 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B66 /* ProfileView.swift */; };
-		A1B2C3D4E5F60718293A4B6A /* CigarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B69 /* CigarIcon.swift */; };
-		A1B2C3D4E5F60718293A4B6C /* MailComposeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B6B /* MailComposeView.swift */; };
-		A1B2C3D4E5F60718293A4B6E /* StarRatingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B6F /* StarRatingRow.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A7B8C9D0E1F2A3B4 /* JournalView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		038EFE70A641325AE1E1126B /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		1699BCF102E89578F9D6B763 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINUnlockView.swift; sourceTree = "<group>"; };
+		3D4F123712707C6A8B25490C /* PINService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINService.swift; sourceTree = "<group>"; };
 		4268E9B5C5FFA4E0654230A9 /* CigarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarService.swift; sourceTree = "<group>"; };
+		4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendModels.swift; sourceTree = "<group>"; };
 		5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		6D90177D2555F69A2182BB66 /* StarRatingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRatingRow.swift; sourceTree = "<group>"; };
+		6DEE5F5271AB26DBC443EBCB /* VennerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VennerView.swift; sourceTree = "<group>"; };
 		6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		775627F695B6D8E09B10E267 /* ScanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanService.swift; sourceTree = "<group>"; };
 		81DE84548D3017B15393EC79 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
 		831F95D91D3339D747199BE9 /* HumidorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorView.swift; sourceTree = "<group>"; };
 		8EB0B9043F2D93F6611FC592 /* UserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModels.swift; sourceTree = "<group>"; };
 		909149207DD9D2747DEE4727 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		940D2F398ECEDA8C8B017BEF /* PINComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINComponents.swift; sourceTree = "<group>"; };
 		99853265E9A2AA623B941165 /* CigarAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarAppApp.swift; sourceTree = "<group>"; };
 		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD6574A222EED0313457BD6D /* PINSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINSetupView.swift; sourceTree = "<group>"; };
 		D122C57181C85D5D43402807 /* CigarDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailView.swift; sourceTree = "<group>"; };
+		E01E2818C7850701195E98C9 /* MailComposeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposeView.swift; sourceTree = "<group>"; };
+		ED781FACD8808BE8540BBD9C /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		F387CE9EB627A94583C36905 /* CigarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarIcon.swift; sourceTree = "<group>"; };
+		F456A8E60766707FEA12C6AB /* FriendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendService.swift; sourceTree = "<group>"; };
 		F45A0F899263EDC54E49B8EA /* Cigar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cigar.swift; sourceTree = "<group>"; };
+		F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
 		FA22E9CEDD719507D54C5C19 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5C /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5E /* PINComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINComponents.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B60 /* PINSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINSetupView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B62 /* PINUnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINUnlockView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B64 /* PINService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINService.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B66 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B69 /* CigarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarIcon.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B6B /* MailComposeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposeView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B6F /* StarRatingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRatingRow.swift; sourceTree = "<group>"; };
+		C3D4E5F6A7B8C9D0E1F2A3B4 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,14 +90,22 @@
 			path = Humidor;
 			sourceTree = "<group>";
 		};
+		B4C5D6E7F8A9B0C1D2E3F4A5 /* Journal */ = {
+			isa = PBXGroup;
+			children = (
+				C3D4E5F6A7B8C9D0E1F2A3B4 /* JournalView.swift */,
+			);
+			path = Journal;
+			sourceTree = "<group>";
+		};
 		26D8711B8BF3A784CA8B36DF /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */,
 				6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */,
-				A1B2C3D4E5F60718293A4B5C /* AgeGateView.swift */,
-				A1B2C3D4E5F60718293A4B5E /* PINComponents.swift */,
-				A1B2C3D4E5F60718293A4B60 /* PINSetupView.swift */,
-				A1B2C3D4E5F60718293A4B62 /* PINUnlockView.swift */,
+				940D2F398ECEDA8C8B017BEF /* PINComponents.swift */,
+				BD6574A222EED0313457BD6D /* PINSetupView.swift */,
+				3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -107,9 +123,10 @@
 			children = (
 				038EFE70A641325AE1E1126B /* AuthService.swift */,
 				4268E9B5C5FFA4E0654230A9 /* CigarService.swift */,
+				F456A8E60766707FEA12C6AB /* FriendService.swift */,
+				3D4F123712707C6A8B25490C /* PINService.swift */,
 				775627F695B6D8E09B10E267 /* ScanService.swift */,
 				5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */,
-				A1B2C3D4E5F60718293A4B64 /* PINService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -131,6 +148,22 @@
 			path = Scan;
 			sourceTree = "<group>";
 		};
+		5F39B7182D38BC947EF1EA1C /* Friends */ = {
+			isa = PBXGroup;
+			children = (
+				6DEE5F5271AB26DBC443EBCB /* VennerView.swift */,
+			);
+			path = Friends;
+			sourceTree = "<group>";
+		};
+		713CF467FBC823796F4B9FC7 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				ED781FACD8808BE8540BBD9C /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
 		74FB52B4C2F775FFE89822E3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -143,9 +176,20 @@
 			isa = PBXGroup;
 			children = (
 				F45A0F899263EDC54E49B8EA /* Cigar.swift */,
+				4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */,
 				8EB0B9043F2D93F6611FC592 /* UserModels.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		85F5803D59AEA8A5B19AF42F /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				F387CE9EB627A94583C36905 /* CigarIcon.swift */,
+				E01E2818C7850701195E98C9 /* MailComposeView.swift */,
+				6D90177D2555F69A2182BB66 /* StarRatingRow.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		A33C09926E43D5FE9635B915 /* Preview Content */ = {
@@ -174,31 +218,15 @@
 			children = (
 				26D8711B8BF3A784CA8B36DF /* Auth */,
 				4E70DB050FBA5B17C4335964 /* Cigar */,
+				5F39B7182D38BC947EF1EA1C /* Friends */,
 				267D4DDCCB36A66B5803A328 /* Humidor */,
+				B4C5D6E7F8A9B0C1D2E3F4A5 /* Journal */,
+				713CF467FBC823796F4B9FC7 /* Profile */,
 				5A25E33360319C9EE1C977F4 /* Scan */,
-				A1B2C3D4E5F60718293A4B68 /* Profile */,
-				A1B2C3D4E5F60718293A4B6D /* Shared */,
+				85F5803D59AEA8A5B19AF42F /* Shared */,
 				909149207DD9D2747DEE4727 /* ContentView.swift */,
 			);
 			path = Views;
-			sourceTree = "<group>";
-		};
-		A1B2C3D4E5F60718293A4B68 /* Profile */ = {
-			isa = PBXGroup;
-			children = (
-				A1B2C3D4E5F60718293A4B66 /* ProfileView.swift */,
-			);
-			path = Profile;
-			sourceTree = "<group>";
-		};
-		A1B2C3D4E5F60718293A4B6D /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				A1B2C3D4E5F60718293A4B69 /* CigarIcon.swift */,
-				A1B2C3D4E5F60718293A4B6B /* MailComposeView.swift */,
-				A1B2C3D4E5F60718293A4B6F /* StarRatingRow.swift */,
-			);
-			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -272,28 +300,32 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6078259E0765EE39E8346EB9 /* AgeGateView.swift in Sources */,
 				049C64C7CAE75A3F42357820 /* AuthService.swift in Sources */,
 				6D9D07638987891501525A6A /* AuthView.swift in Sources */,
 				B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */,
 				8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */,
 				F714AAB8F26FC2F201A749FB /* CigarDetailView.swift in Sources */,
+				9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */,
 				6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */,
 				8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */,
+				C997089A85720FBA25E6575D /* FriendModels.swift in Sources */,
+				5D46BD1B60BFD1B7BD1FDF96 /* FriendService.swift in Sources */,
 				C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* JournalView.swift in Sources */,
+				177A7186F1630F0803865214 /* MailComposeView.swift in Sources */,
+				4915774688B3426F3B1553D8 /* PINComponents.swift in Sources */,
+				1CFA93F58EBCD08A3B967EF0 /* PINService.swift in Sources */,
+				B7A807ECE12F39CDF4092B48 /* PINSetupView.swift in Sources */,
+				018C13BCF709ED8FE8563F63 /* PINUnlockView.swift in Sources */,
+				C9E028D726AD7AE3394F9E31 /* ProfileView.swift in Sources */,
 				38EAE0227590945771B2C132 /* ResultsView.swift in Sources */,
 				89F8550E1C3BCA13B41F03C5 /* ScanService.swift in Sources */,
 				1C6013B1827F341DD6399DC5 /* ScanView.swift in Sources */,
+				F846567A1031B0255EEAD978 /* StarRatingRow.swift in Sources */,
 				E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */,
 				FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5D /* AgeGateView.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5F /* PINComponents.swift in Sources */,
-				A1B2C3D4E5F60718293A4B61 /* PINSetupView.swift in Sources */,
-				A1B2C3D4E5F60718293A4B63 /* PINUnlockView.swift in Sources */,
-				A1B2C3D4E5F60718293A4B65 /* PINService.swift in Sources */,
-				A1B2C3D4E5F60718293A4B67 /* ProfileView.swift in Sources */,
-				A1B2C3D4E5F60718293A4B6A /* CigarIcon.swift in Sources */,
-				A1B2C3D4E5F60718293A4B6C /* MailComposeView.swift in Sources */,
-				A1B2C3D4E5F60718293A4B6E /* StarRatingRow.swift in Sources */,
+				810CF96C823CB1A8465D1947 /* VennerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,7 +393,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Vitola bruker kameraet til å scanne sigarbandet";
@@ -386,7 +418,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Vitola bruker kameraet til å scanne sigarbandet";

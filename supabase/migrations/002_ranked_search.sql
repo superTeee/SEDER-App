@@ -35,6 +35,6 @@ begin
     order by
       ts_rank(c.search_vector, tsq) desc,
       c.avg_rating desc nulls last
-    limit 10;
+    limit 100;
 end;
 $$;

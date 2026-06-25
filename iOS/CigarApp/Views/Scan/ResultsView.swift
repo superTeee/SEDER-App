@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - ResultsView
-// Viser 3–5 mulige treff etter scanning
+// Viser scan-treff + manuelt søk-fallback
 
 struct ResultsView: View {
 
@@ -20,7 +20,7 @@ struct ResultsView: View {
         List {
             // Resultater fra scan
             if !results.isEmpty {
-                Section(header: Text("\(results.count) mulige treff")) {
+                Section {
                     ForEach(results) { result in
                         NavigationLink(destination: CigarDetailView(cigar: result.cigar)) {
                             ResultRow(result: result)
@@ -29,13 +29,13 @@ struct ResultsView: View {
                 }
             } else {
                 Section {
-                    Text("Fant ingen treff på bandet. Prøv å søke manuelt under, eller scan på nytt.")
+                    Text("Fant ingen treff på bandet. Søk manuelt under, eller scan på nytt.")
                         .font(.subheadline)
                         .foregroundColor(Color("TextSecondary"))
                 }
             }
 
-            // Manuelt søk
+            // Manuelt søk-fallback
             Section(header: Text("Finner du ikke riktig sigar?")) {
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -64,7 +64,7 @@ struct ResultsView: View {
 
                 ForEach(searchResults) { cigar in
                     NavigationLink(destination: CigarDetailView(cigar: cigar)) {
-                        ManualResultRow(cigar: cigar)
+                        CigarRow(cigar: cigar)
                     }
                 }
             }
@@ -103,102 +103,36 @@ struct ResultsView: View {
     }
 }
 
-// MARK: - Result Row
+// MARK: - Result Row (scan-treff)
 struct ResultRow: View {
 
     let result: ScanResult
 
     var body: some View {
-        HStack(spacing: 10) {
-            // Sigar-ikon — gjort mindre for å gi teksten mer plass
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color("Surface"))
-                    .frame(width: 40, height: 40)
-                CigarIcon(color: Color("TextPrimary"))
-                    .frame(width: 20, height: 20)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(result.cigar.brand)
-                    .font(.headline)
-                if let series = result.cigar.series {
-                    Text(series)
-                        .font(.subheadline)
-                        .foregroundColor(Color("TextSecondary"))
-                }
-                if let vitola = result.cigar.vitola {
-                    Text(vitola)
-                        .font(.caption)
-                        .foregroundColor(Color("TextSecondary"))
-                }
-            }
-
-            Spacer()
-
-            // Konfidens-badge
-            ConfidenceBadge(result: result)
-        }
-        .padding(.vertical, 4)
+        CigarRow(cigar: result.cigar)
     }
 }
 
-// MARK: - Manual Result Row
-struct ManualResultRow: View {
+// MARK: - Cigar Row (gjenbrukbar — brukes både for scan-treff og manuelt søk)
+struct CigarRow: View {
 
     let cigar: Cigar
 
     var body: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color("Surface"))
-                    .frame(width: 40, height: 40)
-                CigarIcon(color: Color("TextPrimary"))
-                    .frame(width: 20, height: 20)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(cigar.brand)
+                .font(.headline)
+            if let series = cigar.series {
+                Text(series)
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
             }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(cigar.brand)
-                    .font(.headline)
-                if let series = cigar.series {
-                    Text(series)
-                        .font(.subheadline)
-                        .foregroundColor(Color("TextSecondary"))
-                }
-                if let vitola = cigar.vitola {
-                    Text(vitola)
-                        .font(.caption)
-                        .foregroundColor(Color("TextSecondary"))
-                }
+            if let vitola = cigar.vitola {
+                Text(vitola)
+                    .font(.caption)
+                    .foregroundColor(Color("TextSecondary"))
             }
-
-            Spacer()
         }
         .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Confidence Badge
-struct ConfidenceBadge: View {
-
-    let result: ScanResult
-
-    var color: Color {
-        switch result.confidence {
-        case 0.8...: return .green
-        case 0.5..<0.8: return .orange
-        default: return .red
-        }
-    }
-
-    var body: some View {
-        Text(result.confidenceLabel)
-            .font(.caption.bold())
-            .foregroundColor(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(color.opacity(0.12))
-            .clipShape(Capsule())
     }
 }

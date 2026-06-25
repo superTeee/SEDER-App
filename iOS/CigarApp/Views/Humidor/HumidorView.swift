@@ -20,7 +20,6 @@ struct HumidorView: View {
     @State private var showManualAdd = false
     @State private var showAddMenu = false
     @State private var navigateToResults = false
-    @State private var navigateToDetail = false
 
     var body: some View {
         NavigationStack {
@@ -94,11 +93,6 @@ struct HumidorView: View {
             .navigationDestination(isPresented: $navigateToResults) {
                 ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText)
             }
-            .navigationDestination(isPresented: $navigateToDetail) {
-                if let cigar = scanService.autoSelectedCigar {
-                    CigarDetailView(cigar: cigar)
-                }
-            }
             .confirmationDialog("Legg til sigar", isPresented: $showAddMenu, titleVisibility: .visible) {
                 Button("Ta bilde") { showCameraPicker = true }
                 Button("Velg fra bibliotek") { showLibraryPicker = true }
@@ -107,11 +101,8 @@ struct HumidorView: View {
             }
             .onChange(of: scanService.scanResults) { _, results in
                 guard !results.isEmpty else { return }
-                if scanService.autoSelectedCigar != nil {
-                    navigateToDetail = true
-                } else {
-                    navigateToResults = true
-                }
+                // Alltid til ResultsView — beste treff øverst (sortert på konfidens).
+                navigateToResults = true
             }
             .alert("Feil", isPresented: .constant(scanService.errorMessage != nil)) {
                 Button("OK") { scanService.errorMessage = nil }
@@ -151,16 +142,7 @@ struct HumidorRow: View {
     let entry: HumidorEntry
 
     var body: some View {
-        HStack(spacing: 10) {
-            // Bilde
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color("Surface"))
-                    .frame(width: 40, height: 40)
-                CigarIcon(color: Color("TextPrimary"))
-                    .frame(width: 20, height: 20)
-            }
-
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.cigar?.brand ?? "Ukjent")
                     .font(.headline)
@@ -174,32 +156,19 @@ struct HumidorRow: View {
 
             Spacer()
 
-            // Score + antall — liten tekst (8pt) for å gi navn/serie mer plass
-            HStack(spacing: 10) {
-                if let total = entry.totalScore {
-                    HStack(spacing: 2) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 8))
-                            .foregroundColor(.orange)
-                        Text(String(format: "%.1f", total))
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(Color("TextPrimary"))
-                    }
-                }
-                HStack(spacing: 2) {
-                    Text("\(entry.quantity)")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(Color("TextPrimary"))
-                    Text("stk")
-                        .font(.system(size: 8))
-                        .foregroundColor(Color("TextSecondary"))
-                }
+            // Antall — tydelig størrelse
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("\(entry.quantity)")
+                    .font(.title3.bold())
+                    .foregroundColor(Color("TextPrimary"))
+                Text("stk")
+                    .font(.caption)
+                    .foregroundColor(Color("TextSecondary"))
             }
         }
         .padding(.vertical, 4)
     }
 
-    // Slår sammen serie og vitola til én sekundærlinje, f.eks. "Robusto · Churchill"
     private var subtitleText: String? {
         let parts = [entry.cigar?.series, entry.cigar?.vitola].compactMap { $0 }
         guard !parts.isEmpty else { return nil }
@@ -338,7 +307,7 @@ struct ManualAddSearchView: View {
 
                 ForEach(searchResults) { cigar in
                     NavigationLink(destination: CigarDetailView(cigar: cigar)) {
-                        ManualResultRow(cigar: cigar)
+                        CigarRow(cigar: cigar)
                     }
                 }
             }

@@ -11,7 +11,6 @@ struct ScanView: View {
     @State private var showLibraryPicker = false
     @State private var capturedImage: UIImage?
     @State private var navigateToResults = false
-    @State private var navigateToDetail = false
 
     var body: some View {
         NavigationStack {
@@ -114,19 +113,29 @@ struct ScanView: View {
             .navigationDestination(isPresented: $navigateToResults) {
                 ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText)
             }
-            .navigationDestination(isPresented: $navigateToDetail) {
-                if let cigar = scanService.autoSelectedCigar {
-                    CigarDetailView(cigar: cigar)
-                }
-            }
+            // Alltid til ResultsView — aldri direkte til detaljskjermen.
+            // Venter med navigasjon til eventuelle form-/wrapper-avklaringer er ferdige.
             .onChange(of: scanService.scanResults) { results in
-                guard !results.isEmpty else { return }
-                if scanService.autoSelectedCigar != nil {
-                    // Båndet sa noe om variant — gå rett til detaljskjermen
-                    navigateToDetail = true
-                } else {
-                    navigateToResults = true
-                }
+                guard !results.isEmpty,
+                      !scanService.needsShapePhoto,
+                      !scanService.needsWrapperPhoto else { return }
+                navigateToResults = true
+            }
+            .fullScreenCover(isPresented: $scanService.needsShapePhoto) {
+                ShapeConfirmView(scanService: scanService)
+            }
+            .onChange(of: scanService.needsShapePhoto) { needsPhoto in
+                // Form-avklaringen er ferdig (gikk fra true → false) — naviger nå.
+                guard !needsPhoto, !scanService.scanResults.isEmpty else { return }
+                navigateToResults = true
+            }
+            .fullScreenCover(isPresented: $scanService.needsWrapperPhoto) {
+                WrapperConfirmView(scanService: scanService)
+            }
+            .onChange(of: scanService.needsWrapperPhoto) { needsPhoto in
+                // Wrapper-avklaringen er ferdig (gikk fra true → false) — naviger nå.
+                guard !needsPhoto, !scanService.scanResults.isEmpty else { return }
+                navigateToResults = true
             }
             .alert("Feil", isPresented: .constant(scanService.errorMessage != nil)) {
                 Button("OK") { scanService.errorMessage = nil }
@@ -142,6 +151,149 @@ struct ScanView: View {
 
     private func openPhotoLibrary() {
         showLibraryPicker = true
+    }
+}
+
+// MARK: - Shape Confirm View
+// Vises når samme bånd matchet flere størrelser/former i databasen.
+// Funksjonell test-UI — visuell stil byttes ut når Toms eget design er klart.
+struct ShapeConfirmView: View {
+
+    @ObservedObject var scanService: ScanService
+    @State private var showCamera = false
+    @State private var shapeImage: UIImage?
+
+    var body: some View {
+        ZStack {
+            Color("Background").ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                Spacer()
+
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color("TextPrimary"))
+
+                VStack(spacing: 8) {
+                    Text("Fant flere størrelser")
+                        .font(.title2.bold())
+                    Text("Samme bånd brukes på flere varianter av denne sigaren.\nTa ett bilde av HELE sigaren, så ser vi formen og velger riktig variant.")
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+
+                Spacer()
+
+                VStack(spacing: 12) {
+                    Button(action: { showCamera = true }) {
+                        HStack {
+                            Image(systemName: "camera.fill")
+                            Text("Ta bilde av hele sigaren")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color("Accent"))
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    Button("Hopp over, vis alle treff") {
+                        scanService.needsShapePhoto = false
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
+            }
+
+            if scanService.isScanning {
+                ScanningOverlay()
+            }
+        }
+        .sheet(isPresented: $showCamera) {
+            ImagePicker(image: $shapeImage, sourceType: .camera) {
+                if let shapeImage {
+                    Task { await scanService.resolveShapeAmbiguity(with: shapeImage) }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Wrapper Confirm View
+// Vises når samme bånd/serie matchet flere wrapper-varianter i databasen
+// (f.eks. samme "Vintage 1999" i Connecticut vs. Maduro). Båndet viser
+// sjelden wrapper-fargen tydelig nok, så vi ber om ett bilde av hele
+// sigaren — samme mønster som ShapeConfirmView, men for wrapper-typen.
+// Funksjonell test-UI — visuell stil byttes ut når Toms eget design er klart.
+struct WrapperConfirmView: View {
+
+    @ObservedObject var scanService: ScanService
+    @State private var showCamera = false
+    @State private var wrapperImage: UIImage?
+
+    var body: some View {
+        ZStack {
+            Color("Background").ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                Spacer()
+
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color("TextPrimary"))
+
+                VStack(spacing: 8) {
+                    Text("Fant flere varianter")
+                        .font(.title2.bold())
+                    Text("Denne serien finnes med flere wrapper-typer.\nTa ett bilde av HELE sigaren, så ser vi fargen på bladet og velger riktig variant.")
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+
+                Spacer()
+
+                VStack(spacing: 12) {
+                    Button(action: { showCamera = true }) {
+                        HStack {
+                            Image(systemName: "camera.fill")
+                            Text("Ta bilde av hele sigaren")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color("Accent"))
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    Button("Hopp over, vis alle treff") {
+                        scanService.needsWrapperPhoto = false
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
+            }
+
+            if scanService.isScanning {
+                ScanningOverlay()
+            }
+        }
+        .sheet(isPresented: $showCamera) {
+            ImagePicker(image: $wrapperImage, sourceType: .camera) {
+                if let wrapperImage {
+                    Task { await scanService.resolveWrapperAmbiguity(with: wrapperImage) }
+                }
+            }
+        }
     }
 }
 

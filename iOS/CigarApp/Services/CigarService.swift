@@ -9,14 +9,28 @@ class CigarService: ObservableObject {
 
     // MARK: - Søk etter sigarer (tekst-matching fra OCR)
     func searchCigars(query: String) async throws -> [Cigar] {
-        // Bruker search_cigars_ranked() i Supabase (se migrations/002_ranked_search.sql)
-        // i stedet for å sortere på avg_rating — den sorterer på faktisk
-        // tekst-relevans (ts_rank), så et godt OCR-treff ikke kan bli
-        // overstyrt av en populær sigar som bare matcher løst på ett ord.
-        let tsQuery = query.lowercased().split(separator: " ").joined(separator: " | ")
+        // Bruker search_cigars_ranked() i Supabase (se migrations/002_ranked_search.sql,
+        // utvidet i 004_brand_hierarchy.sql) i stedet for å sortere på avg_rating —
+        // den sorterer på faktisk tekst-relevans (ts_rank), så et godt OCR-treff
+        // ikke kan bli overstyrt av en populær sigar som bare matcher løst på ett ord.
+        //
+        // "raw_text" sendes uendret (ikke tokenisert) slik at funksjonen også kan
+        // matche kjente alias (f.eks. "MF The Judge", "FDLA", "Blue Label") mot
+        // cigar_aliases-tabellen — disse er ofte forkortelser som ikke inneholder
+        // alle ordene i det offisielle serienavnet, og ville ellers ikke gitt treff.
+        // AND-basert søk: alle ord må finnes i samme rad, ikke bare ett.
+        // Dette hindrer at et deskriptivt ord på båndet (f.eks. "Cameroon")
+        // matcher et annet merkes serienavn (LFD Cameroon Cabinet) bare fordi
+        // det ene ordet finnes der. Merkenavnet (f.eks. "Aurora") er ikke
+        // i LFD-radene og eliminerer dem helt.
+        // Hvis AND-søket gir null treff, faller appen gjennom til AI-fallback.
+        let tsQuery = query.lowercased().split(separator: " ").joined(separator: " & ")
 
         let results: [Cigar] = try await supabase
-            .rpc("search_cigars_ranked", params: ["search_query": tsQuery])
+            .rpc("search_cigars_ranked", params: [
+                "search_query": tsQuery,
+                "raw_text": query
+            ])
             .execute()
             .value
 
@@ -61,6 +75,44 @@ class CigarService: ObservableObject {
 
         return results
     }
+
+    // MARK: - Hent ordliste for OCR-bias (Vision customWords)
+    // Sigarbånd bruker ofte sterkt stilisert kursiv/skrift-font for
+    // merke- og serienavn (f.eks. "Blue" på My Father-bånd). Apple Vision
+    // er trent på trykt tekst og kan da rett og slett la ordet falle bort
+    // fra resultatet i stedet for å gjette feil — det gir ikke nødvendigvis
+    // lav konfidens vi kan fange opp, ordet er bare borte fra teksten.
+    //
+    // Løsningen er VNRecognizeTextRequest.customWords: en liste Vision
+    // bruker til å "biase" gjetningene sine mot. Vi henter derfor ut alle
+    // unike ord fra brand/series i databasen (vårt eget, kjente vokabular
+    // av sigarmerker og serienavn) og bruker det som hint i ScanService.
+    func fetchOcrVocabulary() async throws -> [String] {
+        struct BrandSeriesRow: Decodable {
+            let brand: String
+            let series: String?
+        }
+
+        let rows: [BrandSeriesRow] = try await supabase
+            .from("cigars")
+            .select("brand, series")
+            .execute()
+            .value
+
+        var words = Set<String>()
+        for row in rows {
+            for part in row.brand.split(separator: " ") {
+                words.insert(String(part))
+            }
+            if let series = row.series {
+                for part in series.split(separator: " ") {
+                    words.insert(String(part))
+                }
+            }
+        }
+
+        return Array(words)
+    }
 }
 
 // MARK: - HumidorService
@@ -82,15 +134,22 @@ class HumidorService: ObservableObject {
         return results
     }
 
-    // Legg til sigar i humidoren — returnerer den nye raden (inkl. id)
-    // slik at UI kan tilby "Fjern fra humidor" umiddelbart uten ny navigasjon.
+    // Legg til sigar i humidoren med kjøpsdato, humidordato og antall.
+    // Returnerer den nye raden (inkl. id) slik at UI kan vise humidor-view umiddelbart.
     @discardableResult
-    func addToHumidor(cigarId: UUID, userId: UUID, quantity: Int = 1) async throws -> HumidorEntry {
+    func addToHumidor(
+        cigarId: UUID,
+        userId: UUID,
+        quantity: Int = 1,
+        purchasedAt: Date? = nil,
+        addedToHumidorAt: Date? = nil
+    ) async throws -> HumidorEntry {
         let entry = NewHumidorEntry(
             userId: userId,
             cigarId: cigarId,
             quantity: quantity,
-            purchaseDate: nil,
+            purchaseDate: purchasedAt,
+            addedToHumidorAt: addedToHumidorAt,
             purchasePrice: nil,
             storageNotes: nil
         )
@@ -124,25 +183,37 @@ class HumidorService: ObservableObject {
             .execute()
     }
 
-    // Oppdater stjerne-vurderinger (konstruksjon, trekk, aske, smak)
-    func updateScores(
-        entryId: UUID,
-        construction: Int?,
-        draw: Int?,
-        burn: Int?,
-        flavor: Int?
+    // Logg en røykesession: lagrer til tasting_logs OG dekrementerer antall i humidoren.
+    // Antall kan ikke gå under 0.
+    func logSmokingSession(
+        humidorEntry: HumidorEntry,
+        userId: UUID,
+        smokedAt: Date,
+        rating: Int?,
+        notes: String?
     ) async throws {
-        let update = HumidorScoreUpdate(
-            scoreConstruction: construction,
-            scoreDraw: draw,
-            scoreBurn: burn,
-            scoreFlavor: flavor
-        )
+        guard let cigar = humidorEntry.cigar else { return }
 
+        // 1. Lagre til tasting_logs
+        let log = NewTastingLog(
+            userId: userId,
+            cigarId: cigar.id,
+            humidorEntryId: humidorEntry.id,
+            smokedAt: smokedAt,
+            rating: rating,
+            personalNotes: notes?.isEmpty == false ? notes : nil
+        )
+        try await supabase
+            .from("tasting_logs")
+            .insert(log)
+            .execute()
+
+        // 2. Dekrementer antall (minst 0)
+        let newQuantity = max(0, humidorEntry.quantity - 1)
         try await supabase
             .from("humidor")
-            .update(update)
-            .eq("id", value: entryId.uuidString)
+            .update(["quantity": newQuantity])
+            .eq("id", value: humidorEntry.id.uuidString)
             .execute()
     }
 
@@ -188,12 +259,12 @@ class HumidorService: ObservableObject {
 }
 
 // MARK: - TastingService
-// Håndterer røykenotater og smaksvurderinger
+// Henter journal-data (røykelogg) for JournalView
 
 @MainActor
 class TastingService: ObservableObject {
 
-    // Hent alle smaksnotater for en bruker
+    // Hent alle røykeoppføringer for en bruker, nyest først
     func fetchLogs(userId: UUID) async throws -> [TastingLog] {
         let results: [TastingLog] = try await supabase
             .from("tasting_logs")
@@ -204,13 +275,5 @@ class TastingService: ObservableObject {
             .value
 
         return results
-    }
-
-    // Lagre ny smaksvurdering
-    func saveLog(_ log: NewTastingLog) async throws {
-        try await supabase
-            .from("tasting_logs")
-            .insert(log)
-            .execute()
     }
 }
