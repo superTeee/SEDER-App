@@ -7,6 +7,8 @@ struct ResultsView: View {
 
     let results: [ScanResult]
     let ocrText: String
+    // Valgfri "scan neste"-handling fra scan-flyten (pop til rot + åpne kamera).
+    var onScanNext: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var cigarService = CigarService()
@@ -22,7 +24,7 @@ struct ResultsView: View {
             if !results.isEmpty {
                 Section {
                     ForEach(results) { result in
-                        NavigationLink(destination: CigarDetailView(cigar: result.cigar)) {
+                        NavigationLink(destination: CigarDetailView(cigar: result.cigar, onScanNext: onScanNext)) {
                             ResultRow(result: result)
                         }
                     }
@@ -63,7 +65,7 @@ struct ResultsView: View {
                 }
 
                 ForEach(searchResults) { cigar in
-                    NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+                    NavigationLink(destination: CigarDetailView(cigar: cigar, onScanNext: onScanNext)) {
                         CigarRow(cigar: cigar)
                     }
                 }
@@ -71,7 +73,7 @@ struct ResultsView: View {
 
             // Scan på nytt
             Section {
-                Button(action: { dismiss() }) {
+                Button(action: { if let onScanNext { onScanNext() } else { dismiss() } }) {
                     Label("Scan på nytt", systemImage: "camera.fill")
                 }
             }

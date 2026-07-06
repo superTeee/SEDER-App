@@ -27,7 +27,7 @@ struct PINUnlockView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 72, height: 72)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 Text("Skriv inn koden din")
                     .font(.title3.bold())
 

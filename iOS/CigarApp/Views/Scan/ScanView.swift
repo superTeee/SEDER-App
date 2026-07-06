@@ -22,7 +22,7 @@ struct ScanView: View {
 
                     // Ikon/preview
                     ZStack {
-                        RoundedRectangle(cornerRadius: 24)
+                        RoundedRectangle(cornerRadius: 6)
                             .fill(Color("Surface"))
                             .frame(width: 300, height: 200)
                             .shadow(color: .black.opacity(0.08), radius: 12)
@@ -32,7 +32,7 @@ struct ScanView: View {
                                 .resizable()
                                 .scaledToFill()
                                 .frame(width: 300, height: 200)
-                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
                         } else {
                             VStack(spacing: 12) {
                                 Image(systemName: "camera.viewfinder")
@@ -43,6 +43,16 @@ struct ScanView: View {
                                     .foregroundColor(Color("TextSecondary"))
                             }
                         }
+                    }
+
+                    // Scanningstips — vises kun før bilde er tatt
+                    if capturedImage == nil {
+                        VStack(spacing: 6) {
+                            ScanTip(icon: "light.max", text: "God belysning — unngå skygger og reflekser")
+                            ScanTip(icon: "arrow.up.left.and.arrow.down.right", text: "Kom nær nok til at teksten er leselig")
+                            ScanTip(icon: "hand.raised", text: "Hold sigaren stille og bandet flatt mot deg")
+                        }
+                        .padding(.horizontal, 24)
                     }
 
                     // Instruksjon
@@ -69,7 +79,7 @@ struct ScanView: View {
                             .padding()
                             .background(Color("Accent"))
                             .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
 
                         Button(action: { openPhotoLibrary() }) {
@@ -82,7 +92,7 @@ struct ScanView: View {
                             .padding()
                             .background(Color("Surface"))
                             .foregroundColor(Color("Accent"))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
                     .padding(.horizontal, 24)
@@ -97,7 +107,7 @@ struct ScanView: View {
             .navigationTitle("Vitola")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showCameraPicker) {
-                ImagePicker(image: $capturedImage, sourceType: .camera) {
+                MacroCameraView(image: $capturedImage) {
                     if let image = capturedImage {
                         Task { await scanService.scanBandImage(image) }
                     }
@@ -197,7 +207,7 @@ struct ShapeConfirmView: View {
                         .padding()
                         .background(Color("Accent"))
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
 
                     Button("Hopp over, vis alle treff") {
@@ -214,8 +224,8 @@ struct ShapeConfirmView: View {
                 ScanningOverlay()
             }
         }
-        .sheet(isPresented: $showCamera) {
-            ImagePicker(image: $shapeImage, sourceType: .camera) {
+        .fullScreenCover(isPresented: $showCamera) {
+            MacroCameraView(image: $shapeImage) {
                 if let shapeImage {
                     Task { await scanService.resolveShapeAmbiguity(with: shapeImage) }
                 }
@@ -270,7 +280,7 @@ struct WrapperConfirmView: View {
                         .padding()
                         .background(Color("Accent"))
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
 
                     Button("Hopp over, vis alle treff") {
@@ -287,13 +297,36 @@ struct WrapperConfirmView: View {
                 ScanningOverlay()
             }
         }
-        .sheet(isPresented: $showCamera) {
-            ImagePicker(image: $wrapperImage, sourceType: .camera) {
+        .fullScreenCover(isPresented: $showCamera) {
+            MacroCameraView(image: $wrapperImage) {
                 if let wrapperImage {
                     Task { await scanService.resolveWrapperAmbiguity(with: wrapperImage) }
                 }
             }
         }
+    }
+}
+
+// MARK: - Scan Tip
+private struct ScanTip: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color("Accent"))
+                .frame(width: 20)
+            Text(text)
+                .font(.footnote)
+                .foregroundColor(Color("TextSecondary"))
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color("Surface"))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
 
@@ -312,7 +345,7 @@ struct ScanningOverlay: View {
             }
             .padding(32)
             .background(Color("Surface").opacity(0.9))
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 }

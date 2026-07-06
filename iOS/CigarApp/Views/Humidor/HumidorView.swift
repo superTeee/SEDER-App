@@ -1,16 +1,31 @@
 import SwiftUI
 
 // MARK: - HumidorView
-// Brukerens personlige sigarsamling — appens landingsside.
+// Brukerens personlige sigarsamling — med støtte for ønskeliste.
+
+enum HumidorTab { case humidor, wishlist }
 
 struct HumidorView: View {
 
     @EnvironmentObject var authService: AuthService
+
+    // Humidor-state
     @State private var entries: [HumidorEntry] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
     private let humidorService = HumidorService()
+
+    // Ønskeliste-state
+    @State private var wishlistCigars: [Cigar] = []
+    @State private var isLoadingWishlist = false
+    private let wishlistService = WishlistService()
+
+    // Tab-valg
+    @State private var selectedTab: HumidorTab = .humidor
+
+    // Badge-kontroll: slettes når bruker besøker humidor
+    @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
 
     // MARK: Legg til sigar (foto / bibliotek / manuelt)
     @StateObject private var scanService = ScanService()
@@ -18,55 +33,102 @@ struct HumidorView: View {
     @State private var showCameraPicker = false
     @State private var showLibraryPicker = false
     @State private var showManualAdd = false
-    @State private var showAddMenu = false
     @State private var navigateToResults = false
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                Group {
-                    if authService.userId == nil {
-                        LoggedOutHumidorView(onLogin: { showLoginSheet = true })
-                    } else if isLoading {
-                        ProgressView("Laster humidor...")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if entries.isEmpty {
-                        EmptyHumidorView(
-                            onCamera: { showCameraPicker = true },
-                            onLibrary: { showLibraryPicker = true },
-                            onManual: { showManualAdd = true }
-                        )
-                    } else {
-                        List {
-                            ForEach(entries) { entry in
-                                if let cigar = entry.cigar {
-                                    NavigationLink(destination: CigarDetailView(cigar: cigar, humidorEntry: entry)) {
-                                        HumidorRow(entry: entry)
-                                    }
-                                }
-                            }
-                            .onDelete(perform: deleteEntries)
+                VStack(spacing: 0) {
+                    // Segmentert picker (vises kun når innlogget)
+                    if authService.userId != nil {
+                        Picker("", selection: $selectedTab) {
+                            Text("Humidor").tag(HumidorTab.humidor)
+                            Text("Ønskeliste").tag(HumidorTab.wishlist)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color("Background"))
+                        .onChange(of: selectedTab) { _, tab in
+                            if tab == .wishlist { Task { await loadWishlist() } }
                         }
                     }
-                }
 
-                // FAB — kun når humidoren har innhold
-                if authService.userId != nil && !isLoading && !entries.isEmpty {
-                    Button(action: { showAddMenu = true }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(Color("Accent"))
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+                    // Innhold basert på valgt tab
+                    if selectedTab == .humidor {
+                        List {
+                            if authService.userId != nil && !isLoading {
+                                ForEach(entries.filter { $0.quantity > 0 }) { entry in
+                                    if let cigar = entry.cigar {
+                                        NavigationLink(destination: CigarDetailView(cigar: cigar, humidorEntry: entry)) {
+                                            HumidorRow(entry: entry)
+                                        }
+                                        .listRowBackground(Color("Card"))
+                                    }
+                                }
+                                .onDelete(perform: deleteEntries)
+                            }
+                        }
+                        .scrollContentBackground(.hidden)
+                        .background(Color("Background"))
+                        .overlay {
+                            if authService.userId == nil {
+                                LoggedOutHumidorView(onLogin: { showLoginSheet = true })
+                                    .background(Color("Background"))
+                            } else if isLoading {
+                                ProgressView("Laster humidor...")
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .background(Color("Background"))
+                            } else if entries.isEmpty {
+                                EmptyHumidorView(
+                                    onCamera: { showCameraPicker = true },
+                                    onLibrary: { showLibraryPicker = true },
+                                    onManual: { showManualAdd = true }
+                                )
+                                .background(Color("Background"))
+                            }
+                        }
+                        .refreshable { await loadHumidor() }
+                    } else {
+                        // Ønskeliste
+                        List {
+                            if !isLoadingWishlist && !wishlistCigars.isEmpty {
+                                Section(header: Text("Ønskeliste (\(wishlistCigars.count))").textCase(.none).font(.headline.bold()).foregroundColor(Color("TextPrimary"))) {
+                                    ForEach(wishlistCigars) { cigar in
+                                        NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+                                            WishlistRow(cigar: cigar)
+                                        }
+                                        .listRowBackground(Color("Card"))
+                                    }
+                                    .onDelete(perform: deleteWishlistItems)
+                                }
+                            } else if !isLoadingWishlist {
+                                EmptyView()
+                            }
+                        }
+                        .scrollContentBackground(.hidden)
+                        .background(Color("Background"))
+                        .overlay {
+                            if isLoadingWishlist {
+                                ProgressView("Laster ønskeliste...")
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .background(Color("Background"))
+                            } else if wishlistCigars.isEmpty {
+                                EmptyWishlistView()
+                                    .background(Color("Background"))
+                            }
+                        }
+                        .refreshable { await loadWishlist() }
                     }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Min Humidor")
-            .onAppear { Task { await loadHumidor() } }
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(Color("Background"), for: .navigationBar)
+            .onAppear {
+                humidorHasNew = false  // Fjern badge når bruker ser humidor-siden
+                Task { await loadHumidor() }
+            }
             .refreshable { await loadHumidor() }
             .sheet(isPresented: $showLoginSheet) {
                 AuthView(onSuccess: { Task { await loadHumidor() } })
@@ -92,12 +154,6 @@ struct HumidorView: View {
             }
             .navigationDestination(isPresented: $navigateToResults) {
                 ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText)
-            }
-            .confirmationDialog("Legg til sigar", isPresented: $showAddMenu, titleVisibility: .visible) {
-                Button("Ta bilde") { showCameraPicker = true }
-                Button("Velg fra bibliotek") { showLibraryPicker = true }
-                Button("Legg til manuelt") { showManualAdd = true }
-                Button("Avbryt", role: .cancel) {}
             }
             .onChange(of: scanService.scanResults) { _, results in
                 guard !results.isEmpty else { return }
@@ -134,6 +190,69 @@ struct HumidorView: View {
             await loadHumidor()
         }
     }
+
+    private func loadWishlist() async {
+        guard let userId = authService.userId else { return }
+        isLoadingWishlist = true
+        wishlistCigars = (try? await wishlistService.fetchWishlist(userId: userId)) ?? []
+        isLoadingWishlist = false
+    }
+
+    private func deleteWishlistItems(at offsets: IndexSet) {
+        guard let userId = authService.userId else { return }
+        Task {
+            for index in offsets {
+                try? await wishlistService.removeFromWishlist(userId: userId, cigarId: wishlistCigars[index].id)
+            }
+            await loadWishlist()
+        }
+    }
+}
+
+// MARK: - Wishlist Row
+struct WishlistRow: View {
+    let cigar: Cigar
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(cigar.brand)
+                .font(.headline)
+            if let subtitle = subtitleText {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var subtitleText: String? {
+        let parts = [cigar.series, cigar.vitola].compactMap { $0 }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " · ")
+    }
+}
+
+// MARK: - Tom ønskeliste
+struct EmptyWishlistView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "bookmark")
+                .font(.system(size: 60))
+                .foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Ønskelisten er tom")
+                .font(.title3.bold())
+            Text("Finn sigarer i Utforsk og trykk\n«Legg i ønskeliste» for å lagre dem her")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
+    }
 }
 
 // MARK: - Humidor Row
@@ -152,21 +271,29 @@ struct HumidorRow: View {
                         .foregroundColor(Color("TextSecondary"))
                         .lineLimit(1)
                 }
+                if let days = daysInHumidor {
+                    Text("I humidoren · \(days) dager")
+                        .font(.caption2)
+                        .foregroundColor(Color("TextSecondary").opacity(0.7))
+                        .padding(.top, 2)
+                }
             }
 
             Spacer()
 
-            // Antall — tydelig størrelse
-            VStack(alignment: .trailing, spacing: 0) {
-                Text("\(entry.quantity)")
-                    .font(.title3.bold())
+            // Antall
+            VStack(spacing: 0) {
+                Text("\(entry.quantity) stk")
+                    .font(.callout.bold())
                     .foregroundColor(Color("TextPrimary"))
-                Text("stk")
-                    .font(.caption)
-                    .foregroundColor(Color("TextSecondary"))
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private var daysInHumidor: Int? {
+        guard let date = entry.addedToHumidorAt else { return nil }
+        return Calendar.current.dateComponents([.day], from: date, to: Date()).day
     }
 
     private var subtitleText: String? {
@@ -200,7 +327,7 @@ struct LoggedOutHumidorView: View {
                     .padding()
                     .background(Color("Accent"))
                     .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
             }
             .padding(.top, 8)
         }
@@ -263,7 +390,7 @@ struct AddOptionButton: View {
             .padding()
             .background(style == .filled ? Color("Accent") : Color("Surface"))
             .foregroundColor(style == .filled ? .white : Color("Accent"))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 }

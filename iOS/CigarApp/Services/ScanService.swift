@@ -336,12 +336,21 @@ class ScanService: ObservableObject {
         // "HABANA" og "CUBA" strippes — geografiske betegnelser som aldri er serienavn.
         let phrasesToStrip: [String] = [
             "REPUBLICA DOMINICANA", "REPÚBLICA DOMINICANA",
-            "HECHO A MANO", "HECHO EN NICARAGUA", "HECHO EN HONDURAS",
-            "HECHO EN CUBA", "HECHO EN DOMINICANA", "HECHO EN",
+            "HECHO A MANO", "HECHO EN COSTA RICA", "HECHO EN NICARAGUA",
+            "HECHO EN HONDURAS", "HECHO EN CUBA", "HECHO EN DOMINICANA", "HECHO EN",
             "MADE BY HAND", "HAND MADE", "HANDMADE", "HANDROLLED", "HAND ROLLED",
-            "MADE IN USA", "MADE IN NICARAGUA", "MADE IN HONDURAS",
+            "MADE IN USA", "MADE IN COSTA RICA", "MADE IN NICARAGUA", "MADE IN HONDURAS",
             "HABANA · CUBA", "HABANA-CUBA", "HABANA CUBA",
             "HABANA", "CUBA",
+            "COSTA RICA", "COSTA-RICA",
+            "NICARAGUA", "HONDURAS", "PANAMA", "ECUADOR",
+            "DOMINICAN REPUBLIC", "DOMINICANA",
+            "JALAPA", "ESTELÍ", "ESTELI", "JALAPA NICARAGUA",
+            "SANTIAGO", "SANTIAGO DE LOS CABALLEROS",
+            "DANLI", "DANLÍ", "TAMBORIL",
+            "NAVARETTE", "VILLA GONZALEZ",
+            "PREMIUM", "HANDCRAFTED", "HAND CRAFTED",
+            "SINCE", "FOUNDED",
             "Desde", "DESDE",
         ]
         var cleaned = rawText
@@ -351,9 +360,17 @@ class ScanService: ObservableObject {
                 options: [.caseInsensitive, .diacriticInsensitive]
             )
         }
-        return cleaned
+        // Fjern rene tall-tokens (ringmål, lengde) — f.eks. "52", "5.0", "6½"
+        // blokkerer AND-søket fordi tall aldri er indexert i search_vector.
+        let tokens = cleaned
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
+            .filter { token in
+                // Behold token hvis det IKKE er rent numerisk (inkl. desimal og brøkstreker)
+                let stripped = token.trimmingCharacters(in: CharacterSet(charactersIn: "0123456789.,½¼¾×x\"'"))
+                return !stripped.isEmpty
+            }
+        return tokens
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespaces)
     }

@@ -23,7 +23,7 @@ struct AgeGateView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 96, height: 96)
-                        .clipShape(RoundedRectangle(cornerRadius: 22))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     Text("Vitola")
                         .font(.largeTitle.bold())
                         .foregroundColor(Color("TextPrimary"))
@@ -97,7 +97,7 @@ struct AgeVerificationView: View {
                     .padding()
                     .background(Color("Accent"))
                     .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
         .padding(.horizontal, 24)

@@ -1,9 +1,8 @@
 import SwiftUI
 
 // MARK: - VennerView
-// Venner-fanen: din egen delbare kode, legg-til-venn, innkommende
-// forespørsler, venneliste, og en plassholder for delte humidorer
-// (kommer når Min samling støtter flere/delbare humidorer).
+// Venner-fanen: din kode, søk etter brukere, innkommende
+// forespørsler og venneliste. Tab-meny skiller "Venner" og "Forespørsler".
 
 struct VennerView: View {
 
@@ -16,7 +15,16 @@ struct VennerView: View {
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
 
-    @State private var codeInput = ""
+    // Faner
+    @State private var selectedTab = 0
+
+    // Søk
+    @State private var searchQuery = ""
+    @State private var searchResults: [UserSearchResult] = []
+    @State private var isSearching = false
+    @State private var searchTask: Task<Void, Never>?
+
+    // Send-status
     @State private var isSubmitting = false
     @State private var submitError: String?
     @State private var submitSuccess: String?
@@ -30,61 +38,57 @@ struct VennerView: View {
     private var friends: [FriendEntry] {
         entries.filter { $0.isAccepted }
     }
+    private var pendingCount: Int { incomingRequests.count + outgoingRequests.count }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if authService.userId == nil {
-                    LoggedOutVennerView(onLogin: { showLoginSheet = true })
-                } else if isLoading {
-                    ProgressView("Laster venner...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
+            List {
+                if authService.userId != nil && !isLoading {
+                    if !searchQuery.isEmpty {
+                        // Søkeresultater — vises uavhengig av valgt fane
+                        searchSection
+                    } else {
+                        // "Din kode" er alltid øverst
                         myCodeSection
-                        addFriendSection
 
-                        if !incomingRequests.isEmpty {
-                            Section("Venneforespørsler") {
-                                ForEach(incomingRequests) { entry in
-                                    IncomingRequestRow(
-                                        entry: entry,
-                                        onAccept: { respond(entry, accept: true) },
-                                        onDecline: { respond(entry, accept: false) }
-                                    )
-                                }
-                            }
+                        // Tab-velger under "Din kode"
+                        Section {
+                            tabPicker
                         }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+                        .listRowBackground(Color("Background"))
 
-                        Section("Venner (\(friends.count))") {
-                            if friends.isEmpty {
-                                Text("Ingen venner enda. Del koden din, eller lim inn en venns kode ovenfor.")
-                                    .font(.subheadline)
-                                    .foregroundColor(Color("TextSecondary"))
-                            } else {
-                                ForEach(friends) { entry in
-                                    FriendRow(entry: entry, onRemove: { remove(entry) })
-                                }
-                            }
-                        }
-
-                        if !outgoingRequests.isEmpty {
-                            Section("Sendt, venter på svar") {
-                                ForEach(outgoingRequests) { entry in
-                                    OutgoingRequestRow(entry: entry, onCancel: { remove(entry) })
-                                }
-                            }
-                        }
-
-                        Section("Delte humidorer") {
-                            Text("Kommer snart — når Min samling støtter flere humidorer, kan venner dele en humidor med deg her.")
-                                .font(.subheadline)
-                                .foregroundColor(Color("TextSecondary"))
+                        if selectedTab == 0 {
+                            friendsOnlySection
+                        } else {
+                            forespørslerSection
                         }
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color("Background"))
+            .searchable(text: $searchQuery,
+                        placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "Søk på navn eller kode")
+            .onChange(of: searchQuery) { _, newValue in
+                submitError = nil
+                submitSuccess = nil
+                scheduleSearch(query: newValue)
+            }
+            .overlay {
+                if authService.userId == nil {
+                    LoggedOutVennerView(onLogin: { showLoginSheet = true })
+                        .background(Color("Background"))
+                } else if isLoading {
+                    ProgressView("Laster venner...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color("Background"))
+                }
+            }
             .navigationTitle("Venner")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(Color("Background"), for: .navigationBar)
             .onAppear { Task { await loadAll() } }
             .refreshable { await loadAll() }
             .sheet(isPresented: $showLoginSheet) {
@@ -94,6 +98,149 @@ struct VennerView: View {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    // MARK: - Tab-velger
+
+    private var tabPicker: some View {
+        HStack(spacing: 0) {
+            tabButton(title: "Venner", count: nil, index: 0)
+            tabButton(title: "Forespørsler", count: pendingCount > 0 ? pendingCount : nil, index: 1)
+        }
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func tabButton(title: String, count: Int?, index: Int) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { selectedTab = index }
+        } label: {
+            HStack(spacing: 5) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                if let count {
+                    Text("\(count)")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red)
+                        .clipShape(Capsule())
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background(selectedTab == index ? Color("Background") : Color.clear)
+            .foregroundColor(selectedTab == index ? Color("TextPrimary") : Color("TextSecondary"))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .padding(3)
+    }
+
+    // MARK: - Venner-fane (uten "Din kode" — den vises alltid øverst)
+
+    @ViewBuilder
+    private var friendsOnlySection: some View {
+        Section("Venner (\(friends.count))") {
+            if friends.isEmpty {
+                Text("Ingen venner enda. Søk etter en venn i søkefeltet.")
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+                    .listRowBackground(Color("Card"))
+            } else {
+                ForEach(friends) { entry in
+                    NavigationLink {
+                        UserProfileView(userId: entry.otherUserId, isOwnProfile: false)
+                            .environmentObject(authService)
+                    } label: {
+                        FriendRow(entry: entry, onRemove: { remove(entry) })
+                    }
+                    .listRowBackground(Color("Card"))
+                }
+            }
+        }
+    }
+
+    // MARK: - Forespørsler-fane
+
+    @ViewBuilder
+    private var forespørslerSection: some View {
+        if incomingRequests.isEmpty && outgoingRequests.isEmpty {
+            Section {
+                Text("Ingen forespørsler for øyeblikket.")
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+                    .listRowBackground(Color("Card"))
+            }
+        }
+
+        if !incomingRequests.isEmpty {
+            Section("Innkommende") {
+                ForEach(incomingRequests) { entry in
+                    IncomingRequestRow(
+                        entry: entry,
+                        onAccept: { respond(entry, accept: true) },
+                        onDecline: { respond(entry, accept: false) }
+                    )
+                    .listRowBackground(Color("Card"))
+                }
+            }
+        }
+
+        if !outgoingRequests.isEmpty {
+            Section("Sendt, venter på svar") {
+                ForEach(outgoingRequests) { entry in
+                    OutgoingRequestRow(entry: entry, onCancel: { remove(entry) })
+                        .listRowBackground(Color("Card"))
+                }
+            }
+        }
+    }
+
+    // MARK: - Søkeresultater
+
+    @ViewBuilder
+    private var searchSection: some View {
+        Section {
+            if let submitError {
+                Text(submitError)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .listRowBackground(Color("Card"))
+            }
+            if let submitSuccess {
+                Text(submitSuccess)
+                    .font(.caption)
+                    .foregroundColor(.green)
+                    .listRowBackground(Color("Card"))
+            }
+
+            if isSearching {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .listRowBackground(Color("Card"))
+            } else if searchResults.isEmpty {
+                if searchQuery.count >= 2 {
+                    Text("Ingen brukere funnet")
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
+                        .listRowBackground(Color("Card"))
+                }
+            } else {
+                ForEach(searchResults) { result in
+                    SearchResultRow(
+                        result: result,
+                        isSubmitting: isSubmitting,
+                        onSend: { sendFromSearch(result) }
+                    )
+                    .listRowBackground(Color("Card"))
+                }
             }
         }
     }
@@ -124,39 +271,6 @@ struct VennerView: View {
         }
     }
 
-    // MARK: - Legg til venn
-
-    private var addFriendSection: some View {
-        Section("Legg til venn") {
-            HStack {
-                TextField("Lim inn venns kode", text: $codeInput)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-                    .submitLabel(.send)
-                    .onSubmit { submitCode() }
-
-                if isSubmitting {
-                    ProgressView()
-                } else {
-                    Button("Send") { submitCode() }
-                        .fontWeight(.semibold)
-                        .disabled(codeInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-
-            if let submitError {
-                Text(submitError)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-            if let submitSuccess {
-                Text(submitSuccess)
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
-        }
-    }
-
     // MARK: - Actions
 
     private func loadAll() async {
@@ -174,17 +288,37 @@ struct VennerView: View {
         isLoading = false
     }
 
-    private func submitCode() {
-        let code = codeInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !code.isEmpty else { return }
+    private func scheduleSearch(query: String) {
+        searchTask?.cancel()
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard trimmed.count >= 2 else {
+            searchResults = []
+            return
+        }
+        searchTask = Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            isSearching = true
+            do {
+                searchResults = try await friendService.searchUsers(query: trimmed)
+            } catch {
+                searchResults = []
+            }
+            isSearching = false
+        }
+    }
+
+    private func sendFromSearch(_ result: UserSearchResult) {
+        guard !isSubmitting else { return }
         isSubmitting = true
         submitError = nil
         submitSuccess = nil
         Task {
             do {
-                try await friendService.sendFriendRequest(code: code)
-                codeInput = ""
-                submitSuccess = "Forespørsel sendt!"
+                try await friendService.sendFriendRequest(code: result.friendCode)
+                submitSuccess = "Forespørsel sendt til \(result.displayName)!"
+                searchResults = []
+                searchQuery = ""
                 await loadAll()
             } catch {
                 submitError = error.localizedDescription
@@ -216,6 +350,41 @@ struct VennerView: View {
     }
 }
 
+// MARK: - SearchResultRow
+
+struct SearchResultRow: View {
+    let result: UserSearchResult
+    let isSubmitting: Bool
+    var onSend: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            AvatarView(url: result.avatarUrl, name: result.displayName, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(result.displayName)
+                    .font(.headline)
+                Text(result.friendCode)
+                    .font(.caption)
+                    .foregroundColor(Color("TextSecondary"))
+                    .fontDesign(.monospaced)
+            }
+            Spacer()
+            Button(action: onSend) {
+                Text("Legg til")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color("Accent"))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(isSubmitting)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 // MARK: - Rows
 
 struct IncomingRequestRow: View {
@@ -224,22 +393,33 @@ struct IncomingRequestRow: View {
     var onDecline: () -> Void
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            AvatarView(url: entry.otherAvatarUrl, name: entry.displayName, size: 36)
             Text(entry.displayName)
                 .font(.headline)
+                .foregroundColor(Color("TextPrimary"))
+
             Spacer()
+
             Button(action: onDecline) {
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: "trash")
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Color("TextSecondary"))
             }
             .buttonStyle(.plain)
+
             Button(action: onAccept) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
+                Text("Godkjenn")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(.green)
+                    .clipShape(Capsule())
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
     }
 }
 
@@ -265,13 +445,7 @@ struct FriendRow: View {
 
     var body: some View {
         HStack {
-            ZStack {
-                Circle()
-                    .fill(Color("Surface"))
-                    .frame(width: 36, height: 36)
-                Image(systemName: "person.fill")
-                    .foregroundColor(Color("TextPrimary"))
-            }
+            AvatarView(url: entry.otherAvatarUrl, name: entry.displayName, size: 36)
             Text(entry.displayName)
                 .font(.headline)
             Spacer()
@@ -307,7 +481,7 @@ struct LoggedOutVennerView: View {
                     .padding()
                     .background(Color("Accent"))
                     .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
             }
             .padding(.top, 8)
         }

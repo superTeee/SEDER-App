@@ -1,0 +1,5 @@
+/Users/tomerikheggedal/Documents/My Projects/Cigar App/iOS/CigarApp/Services/WishlistService.swift:26:60: error: type 'SupabaseConfig' has no member 'client'
+/Users/tomerikheggedal/Documents/My Projects/Cigar App/iOS/CigarApp/Services/WishlistService.swift:50:34: error: type 'SupabaseConfig' has no member 'client'
+/Users/tomerikheggedal/Documents/My Projects/Cigar App/iOS/CigarApp/Services/WishlistService.swift:59:34: error: type 'SupabaseConfig' has no member 'client'
+/Users/tomerikheggedal/Documents/My Projects/Cigar App/iOS/CigarApp/Services/WishlistService.swift:71:56: error: type 'SupabaseConfig' has no member 'client'
+(3 failures)

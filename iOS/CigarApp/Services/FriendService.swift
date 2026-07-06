@@ -57,6 +57,15 @@ class FriendService: ObservableObject {
             .execute()
     }
 
+    // Søk etter brukere via display_name (ILIKE) eller eksakt kode-treff
+    func searchUsers(query: String) async throws -> [UserSearchResult] {
+        let results: [UserSearchResult] = try await supabase
+            .rpc("search_users", params: SearchQueryParam(pQuery: query))
+            .execute()
+            .value
+        return results
+    }
+
     // Fjern en venn, eller avbryt en forespørsel du selv har sendt
     func removeFriendship(friendshipId: UUID) async throws {
         try await supabase

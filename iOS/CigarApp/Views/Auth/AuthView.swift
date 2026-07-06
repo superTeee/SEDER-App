@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices  // For ASAuthorizationError.canceled
 
 // MARK: - AuthView
 // Innlogging — presenteres som sheet når brukeren faktisk trenger en konto
@@ -17,6 +18,9 @@ struct AuthView: View {
     @State private var password = ""
     @State private var showEmailLogin = false
 
+    // Vises kun når en NY bruker registrerer seg med e-post
+    @State private var showCompleteProfile = false
+
     /// Kalles i tillegg til at sheet-en lukkes, slik at f.eks. CigarDetailView
     /// kan fortsette en avbrutt "legg i humidor"-handling rett etter innlogging.
     var onSuccess: (() -> Void)? = nil
@@ -34,7 +38,7 @@ struct AuthView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     Text("Logg inn")
                         .font(.title.bold())
                         .foregroundColor(Color("TextPrimary"))
@@ -60,18 +64,13 @@ struct AuthView: View {
             }
             .padding(.top, 24)
         }
-    }
-
-    private func signInWithApple() {
-        isSigningIn = true
-        Task {
-            do {
-                try await authService.signInWithApple()
-                handleSuccess()
-            } catch {
-                errorMessage = "Apple-innlogging feilet: \(error.localizedDescription)"
+        .fullScreenCover(isPresented: $showCompleteProfile) {
+            if let uid = authService.userId {
+                CompleteProfileView(email: email, userId: uid) {
+                    showCompleteProfile = false
+                    handleSuccess()
+                }
             }
-            isSigningIn = false
         }
     }
 
@@ -82,7 +81,28 @@ struct AuthView: View {
                 try await authService.signInWithGoogle()
                 handleSuccess()
             } catch {
-                errorMessage = "Google-innlogging feilet: \(error.localizedDescription)"
+                let nsError = error as NSError
+                // Kode 1 = brukeren avbrøt Google Sign-In
+                if nsError.code != 1 || nsError.domain != "com.google.GIDSignIn" {
+                    errorMessage = "Google-innlogging feilet: \(error.localizedDescription)"
+                }
+            }
+            isSigningIn = false
+        }
+    }
+
+    private func signInWithApple() {
+        isSigningIn = true
+        Task {
+            do {
+                try await authService.signInWithApple()
+                handleSuccess()
+            } catch {
+                // Brukeren avbrøt = ikke vis feil
+                let nsError = error as NSError
+                if nsError.code != ASAuthorizationError.canceled.rawValue {
+                    errorMessage = "Apple-innlogging feilet: \(error.localizedDescription)"
+                }
             }
             isSigningIn = false
         }
@@ -95,10 +115,10 @@ struct AuthView: View {
                 try await authService.signIn(email: email, password: password)
                 handleSuccess()
             } catch {
-                // Prøv å registrere ny bruker
+                // Prøv å registrere ny bruker → vis "Fullfør profil"-skjermen
                 do {
                     try await authService.signUp(email: email, password: password)
-                    handleSuccess()
+                    showCompleteProfile = true
                 } catch {
                     errorMessage = "Innlogging feilet: \(error.localizedDescription)"
                 }
@@ -124,39 +144,55 @@ struct LoginOptionsView: View {
     var onGoogleSignIn: () -> Void
     var onEmailSignIn: () -> Void
 
+    @State private var showPassword = false
+
     var body: some View {
         VStack(spacing: 12) {
-            // Apple Sign In
+            // Sign In with Apple
             Button(action: onAppleSignIn) {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: "applelogo")
+                        .font(.body)
                     Text("Fortsett med Apple")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.primary)
-                .foregroundColor(Color(UIColor.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .frame(height: 50)
+                .background(Color("Card"))
+                .foregroundColor(Color("TextPrimary"))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color("TextSecondary").opacity(0.25), lineWidth: 0.5)
+                )
             }
+            .disabled(isSigningIn)
 
-            // Google Sign In
+            // Sign In with Google
             Button(action: onGoogleSignIn) {
-                HStack {
-                    Image(systemName: "globe")
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 22, height: 22)
+                        Text("G")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Color(red: 0.26, green: 0.52, blue: 0.96))
+                    }
                     Text("Fortsett med Google")
                         .fontWeight(.semibold)
+                        .foregroundColor(Color("TextPrimary"))
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color("Surface"))
-                .foregroundColor(Color("TextPrimary"))
+                .frame(height: 50)
+                .background(Color("Card"))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color("TextSecondary").opacity(0.3), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color("TextSecondary").opacity(0.25), lineWidth: 0.5)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .disabled(isSigningIn)
 
             // E-post alternativ (testing/beta)
             if showEmailLogin {
@@ -165,8 +201,27 @@ struct LoginOptionsView: View {
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
-                    SecureField("Passord", text: $password)
-                        .textFieldStyle(.roundedBorder)
+                    HStack {
+                        Group {
+                            if showPassword {
+                                TextField("Passord", text: $password)
+                            } else {
+                                SecureField("Passord", text: $password)
+                            }
+                        }
+                        .autocapitalization(.none)
+                        Button(action: { showPassword.toggle() }) {
+                            Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 7)
+                    .background(Color("Card"))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(.systemGray4), lineWidth: 1)
+                    )
 
                     Button(action: onEmailSignIn) {
                         Text(isSigningIn ? "Logger inn..." : "Logg inn / Registrer")
@@ -175,7 +230,7 @@ struct LoginOptionsView: View {
                             .padding()
                             .background(Color("Accent"))
                             .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                     .disabled(isSigningIn)
                 }
@@ -195,5 +250,119 @@ struct LoginOptionsView: View {
             }
         }
         .padding(.horizontal, 24)
+    }
+}
+
+// MARK: - CompleteProfileView
+// Vises kun ved NY e-post-registrering. Brukeren fyller inn fornavn,
+// etternavn og land (alt påkrevd). E-posten er allerede kjent og vises låst.
+// Fornavn + etternavn lagres i display_name; land i country.
+struct CompleteProfileView: View {
+
+    let email: String
+    let userId: UUID
+    var onComplete: () -> Void
+
+    @State private var firstName = ""
+    @State private var lastName = ""
+    @State private var country = "Norge"
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private let profileService = ProfileService()
+
+    // Alfabetisk liste over land (norske navn), generert fra systemet.
+    private static let countries: [String] = {
+        let locale = Locale(identifier: "nb_NO")
+        let names = Locale.Region.isoRegions
+            .filter { $0.subRegions.isEmpty }            // faktiske land, ikke kontinenter
+            .compactMap { locale.localizedString(forRegionCode: $0.identifier) }
+        return Array(Set(names)).sorted()
+    }()
+
+    private var canSubmit: Bool {
+        !firstName.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !lastName.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !country.isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Image(systemName: "envelope.fill")
+                            .foregroundColor(Color("TextSecondary"))
+                        Text(email)
+                            .foregroundColor(Color("TextSecondary"))
+                        Spacer()
+                        Image(systemName: "lock.fill")
+                            .font(.caption)
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                } header: {
+                    Text("E-post")
+                } footer: {
+                    Text("Fyll inn navnet ditt så vennene dine finner deg.")
+                }
+
+                Section("Navn") {
+                    TextField("Fornavn", text: $firstName)
+                        .textContentType(.givenName)
+                    TextField("Etternavn", text: $lastName)
+                        .textContentType(.familyName)
+                }
+
+                Section("Land") {
+                    Picker("Land", selection: $country) {
+                        ForEach(Self.countries, id: \.self) { Text($0).tag($0) }
+                    }
+                    .pickerStyle(.navigationLink)
+                }
+
+                if let errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+
+                Section {
+                    Button(action: save) {
+                        HStack {
+                            Spacer()
+                            if isSaving {
+                                ProgressView().tint(.white)
+                            } else {
+                                Text("Fullfør").fontWeight(.semibold)
+                            }
+                            Spacer()
+                        }
+                    }
+                    .listRowBackground(canSubmit ? Color("Accent") : Color("Accent").opacity(0.4))
+                    .foregroundColor(.white)
+                    .disabled(!canSubmit || isSaving)
+                }
+            }
+            .navigationTitle("Fullfør profilen")
+            .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(true)
+        }
+    }
+
+    private func save() {
+        isSaving = true
+        errorMessage = nil
+        Task {
+            do {
+                let name = "\(firstName.trimmingCharacters(in: .whitespaces)) \(lastName.trimmingCharacters(in: .whitespaces))"
+                try await profileService.updateProfile(userId: userId, displayName: name, city: nil, country: country)
+                onComplete()
+            } catch {
+                errorMessage = "Kunne ikke lagre profilen. Prøv igjen."
+            }
+            isSaving = false
+        }
     }
 }
