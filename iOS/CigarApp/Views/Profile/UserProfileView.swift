@@ -536,7 +536,7 @@ struct UserProfileView: View {
                             smokeIconBox
                         }
 
-                        // Info — brand, series, notat
+                        // Info — brand, series
                         VStack(alignment: .leading, spacing: 4) {
                             Text(cigar.brand)
                                 .font(.subheadline.bold())
@@ -547,12 +547,6 @@ struct UserProfileView: View {
                                     .font(.caption)
                                     .foregroundColor(Color("TextSecondary"))
                                     .lineLimit(1)
-                            }
-                            if let notes = log.personalNotes, !notes.isEmpty {
-                                Text(notes)
-                                    .font(.caption)
-                                    .foregroundColor(Color("TextSecondary").opacity(0.75))
-                                    .lineLimit(2)
                             }
                         }
 
@@ -570,8 +564,8 @@ struct UserProfileView: View {
                         }
                     }
 
-                    // Dato — alltid nederst
-                    Text(log.smokedAt, format: .relative(presentation: .named))
+                    // Tidspunkt for røkt — alltid nederst
+                    Text(log.smokedAt, format: .dateTime.day().month(.wide).year().hour().minute())
                         .font(.caption)
                         .foregroundColor(Color("TextSecondary").opacity(0.55))
                         .frame(maxWidth: .infinity, alignment: .trailing)

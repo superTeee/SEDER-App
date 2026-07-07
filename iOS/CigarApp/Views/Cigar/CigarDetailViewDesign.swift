@@ -310,15 +310,19 @@ struct CigarDetailViewDesign: View {
     private var contentBody: some View {
         VStack(alignment: .leading, spacing: 36) {
             infoSection
+                .padding(.horizontal, 6)
             mainNotesCard
             constructionSection
+                .padding(.horizontal, 6)
             ratingsSection
+                .padding(.horizontal, 6)
             if let description = cigar.description, !description.isEmpty {
                 Text(description)
                     .font(.system(size: 15))
                     .foregroundColor(textSecondary)
                     .lineSpacing(5)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 6)
             }
 
             // Action-knapp
@@ -402,15 +406,13 @@ struct CigarDetailViewDesign: View {
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                if let purchased = entry?.purchaseDate {
-                    infoRow(icon: "cart.fill",
-                            text: purchased.formatted(.dateTime.day().month(.wide).year()))
+                if let origin = cigar.countryOrigin {
+                    infoRow(icon: "mappin", text: origin)
                 }
-                if let added = entry?.addedToHumidorAt {
-                    infoRow(icon: "archivebox.fill",
-                            text: added.formatted(.dateTime.day().month(.wide).year()))
-                }
-                if let vitola = cigar.vitola {
+                let hasSize = cigar.ringGauge != nil && cigar.lengthInches != nil
+                // Vis frittstående vitola kun når størrelse-raden ikke vises —
+                // størrelse-raden inneholder allerede vitola-navnet + målene.
+                if let vitola = cigar.vitola, !hasSize {
                     infoRow(icon: "oval", text: vitola)
                 }
                 if let gauge = cigar.ringGauge, let length = cigar.lengthInches {
@@ -421,8 +423,13 @@ struct CigarDetailViewDesign: View {
                     infoRow(icon: "arrow.up.left.and.arrow.down.right",
                             text: "\(sizeLabel) (\(lenStr)\" × \(gauge))")
                 }
-                if let origin = cigar.countryOrigin {
-                    infoRow(icon: "mappin", text: origin)
+                if let purchased = entry?.purchaseDate {
+                    infoRow(icon: "cart.fill",
+                            text: purchased.formatted(.dateTime.day().month(.wide).year()))
+                }
+                if let added = entry?.addedToHumidorAt {
+                    infoRow(icon: "archivebox.fill",
+                            text: added.formatted(.dateTime.day().month(.wide).year()))
                 }
             }
         }
@@ -432,11 +439,12 @@ struct CigarDetailViewDesign: View {
     private func infoRow(icon: String, text: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 15))
+                .font(.system(size: 17))
                 .foregroundColor(textPrimary)
                 .frame(width: 20, alignment: .center)
             Text(text)
-                .font(.system(size: 16))
+                // 2px større enn konstruksjons-radene (wrapper/binder) — dette er viktigere info.
+                .font(.system(size: 18))
                 .foregroundColor(textPrimary)
                 .tracking(-0.32)
         }
@@ -468,10 +476,10 @@ struct CigarDetailViewDesign: View {
                             .renderingMode(.template)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 30, height: 30)
+                            .frame(width: 40, height: 40)
                             .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : Color("Accent"))
                         Text(pair.label)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
@@ -480,7 +488,7 @@ struct CigarDetailViewDesign: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.bottom, 18)
+            .padding(.bottom, 22)
         }
         .background(surfacePrimary)
         .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -533,7 +541,7 @@ struct CigarDetailViewDesign: View {
                 .foregroundColor(textSubtle)
                 .tracking(0.5)
                 .lineLimit(1)
-            HStack(spacing: 5) {
+            HStack(spacing: 9) {
                 ForEach(1...5, id: \.self) { i in
                     Capsule()
                         .fill(Double(i) <= value ? action : surfacePrimary)

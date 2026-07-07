@@ -35,6 +35,18 @@ struct HumidorView: View {
     @State private var showManualAdd = false
     @State private var navigateToResults = false
 
+    // Styl den native segmented-controlleren så den matcher paletten (varme kort-toner
+    // i stedet for Apples kalde system-grå).
+    init() {
+        let seg = UISegmentedControl.appearance()
+        // Valgt segment bruker en tydelig lysere, varm tone (SegmentActive) enn track-en
+        // (Background) — paletten er ellers så mørk-tett at Card ikke ga nok kontrast.
+        seg.selectedSegmentTintColor = UIColor(named: "SegmentActive")
+        seg.backgroundColor = UIColor(named: "Background")
+        seg.setTitleTextAttributes([.foregroundColor: UIColor(named: "TextPrimary") ?? .white], for: .selected)
+        seg.setTitleTextAttributes([.foregroundColor: UIColor(named: "TextSecondary") ?? .gray], for: .normal)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {

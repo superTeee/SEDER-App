@@ -1407,9 +1407,13 @@ struct BrandCigarRow: View {
                         .foregroundColor(Color(.secondaryLabel))
                 }
                 if let wrapper = cigar.wrapperCountry {
-                    Text("·")
-                        .font(.caption)
-                        .foregroundColor(Color(.tertiaryLabel))
+                    // Skilletegn kun når det finnes et format foran — ellers
+                    // blir "·" stående alene foran wrapper/origin.
+                    if cigar.commonFormat != nil {
+                        Text("·")
+                            .font(.caption)
+                            .foregroundColor(Color(.tertiaryLabel))
+                    }
                     Text(wrapper)
                         .font(.caption)
                         .foregroundColor(Color(.secondaryLabel))

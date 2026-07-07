@@ -92,6 +92,17 @@ struct FeedView: View {
                         .environmentObject(authService)
                     }
                     .buttonStyle(.plain)
+                    .overlay(alignment: .topTrailing) {
+                        PostMenuButton(
+                            post: post,
+                            currentUserId: authService.userId,
+                            onDelete: { await deletePost(post) },
+                            onReport: { reason in await reportPost(post, reason: reason) },
+                            onBlock: { await blockUser(post) }
+                        )
+                        .padding(.top, 14)
+                        .padding(.trailing, 14)
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -178,6 +189,120 @@ struct FeedView: View {
             errorMessage = error.localizedDescription
         }
     }
+
+    private func deletePost(_ post: FeedPost) async {
+        do {
+            try await feedService.deletePost(postId: post.id)
+            posts.removeAll { $0.id == post.id }   // fjern lokalt med en gang
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func reportPost(_ post: FeedPost, reason: String) async {
+        do {
+            try await feedService.reportPost(postId: post.id, reason: reason)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func blockUser(_ post: FeedPost) async {
+        do {
+            try await feedService.blockUser(userId: post.userId)
+            posts.removeAll { $0.userId == post.userId }   // skjul alle deres innlegg
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MARK: PostMenuButton — 3-dot kontekstmeny på et innlegg
+// ═══════════════════════════════════════════════════════════
+
+private struct PostMenuButton: View {
+    let post: FeedPost
+    let currentUserId: UUID?
+    let onDelete: () async -> Void
+    let onReport: (String) async -> Void
+    let onBlock: () async -> Void
+
+    @State private var showDeleteConfirm = false
+    @State private var showReportReasons = false
+    @State private var showBlockConfirm = false
+    @State private var showReportDone = false
+
+    private var isOwner: Bool {
+        currentUserId != nil && post.userId == currentUserId
+    }
+
+    var body: some View {
+        Menu {
+            if isOwner {
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label("Slett innlegg", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    showReportReasons = true
+                } label: {
+                    Label("Rapporter innlegg", systemImage: "flag")
+                }
+                Button(role: .destructive) {
+                    showBlockConfirm = true
+                } label: {
+                    Label("Blokker \(post.authorName)", systemImage: "hand.raised")
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 14))
+                .foregroundColor(Color("TextSecondary"))
+                .frame(width: 30, height: 24)
+                .contentShape(Rectangle())
+        }
+        // Slett (eier)
+        .confirmationDialog("Slett innlegg?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Slett innlegg", role: .destructive) { Task { await onDelete() } }
+            Button("Avbryt", role: .cancel) {}
+        } message: {
+            Text("Dette fjerner innlegget permanent. Handlingen kan ikke angres.")
+        }
+        // Rapporter — velg grunn
+        .confirmationDialog("Rapporter innlegg", isPresented: $showReportReasons, titleVisibility: .visible) {
+            Button("Spam eller villedende") { report("spam") }
+            Button("Upassende innhold") { report("inappropriate") }
+            Button("Trakassering eller hat", role: .destructive) { report("harassment") }
+            Button("Annet") { report("other") }
+            Button("Avbryt", role: .cancel) {}
+        } message: {
+            Text("Hvorfor rapporterer du dette innlegget?")
+        }
+        // Blokker bruker
+        .confirmationDialog("Blokker \(post.authorName)?", isPresented: $showBlockConfirm, titleVisibility: .visible) {
+            Button("Blokker", role: .destructive) { Task { await onBlock() } }
+            Button("Avbryt", role: .cancel) {}
+        } message: {
+            Text("Du vil ikke lenger se innlegg eller kommentarer fra \(post.authorName), og dere fjernes som venner.")
+        }
+        // Kvittering på rapport
+        .alert("Takk for rapporten", isPresented: $showReportDone) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Vi ser på innlegget.")
+        }
+    }
+
+    private func report(_ reason: String) {
+        Task {
+            await onReport(reason)
+            try? await Task.sleep(nanoseconds: 400_000_000)  // la dialogen lukkes først
+            showReportDone = true
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -207,9 +332,10 @@ struct FeedPostCard: View {
                         .foregroundColor(Color("TextSecondary"))
                 }
                 Spacer()
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color("TextSecondary"))
+                // 3-dot-menyen tegnes som overlay i FeedView (utenfor NavigationLink),
+                // slik at trykk åpner en kontekstmeny i stedet for å navigere.
+                // Reserver plass her så forfatter-teksten ikke går under menyen.
+                Color.clear.frame(width: 30, height: 24)
             }
             .padding(.horizontal, 14)
             .padding(.top, 14)
@@ -259,11 +385,12 @@ struct FeedPostCard: View {
             // ── Tekst ─────────────────────────────────────────
             if let text = post.content, !text.isEmpty {
                 Text(text)
-                    .font(.body)
+                    .font(.system(size: 15))
                     .foregroundColor(Color("TextPrimary"))
                     .lineLimit(5)
                     .padding(.horizontal, 14)
-                    .padding(.bottom, 10)
+                    .padding(.top, 4)
+                    .padding(.bottom, 14)
             }
 
             Divider().padding(.horizontal, 14)

@@ -154,6 +154,32 @@ class FeedService {
             .execute()
     }
 
+    // MARK: - Moderering (rapporter / blokker)
+
+    /// Rapporterer et innlegg med en oppgitt grunn.
+    func reportPost(postId: UUID, reason: String) async throws {
+        try await supabase
+            .rpc("report_post", params: [
+                "p_post_id": postId.uuidString,
+                "p_reason":  reason
+            ])
+            .execute()
+    }
+
+    /// Blokkerer en bruker — skjuler innhold begge veier og fjerner evt. vennskap.
+    func blockUser(userId: UUID) async throws {
+        try await supabase
+            .rpc("block_user", params: ["p_blocked_id": userId.uuidString])
+            .execute()
+    }
+
+    /// Opphever blokkering av en bruker.
+    func unblockUser(userId: UUID) async throws {
+        try await supabase
+            .rpc("unblock_user", params: ["p_blocked_id": userId.uuidString])
+            .execute()
+    }
+
     // MARK: - Helpers
 
     private func compressImage(_ data: Data, maxWidth: CGFloat) -> Data {
