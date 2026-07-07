@@ -24,7 +24,7 @@ struct ResultsView: View {
             if !results.isEmpty {
                 Section {
                     ForEach(results) { result in
-                        NavigationLink(destination: CigarDetailView(cigar: result.cigar, onScanNext: onScanNext)) {
+                        NavigationLink(destination: CigarDetailViewDesign(cigar: result.cigar, onScanNext: onScanNext)) {
                             ResultRow(result: result)
                         }
                     }
@@ -65,7 +65,7 @@ struct ResultsView: View {
                 }
 
                 ForEach(searchResults) { cigar in
-                    NavigationLink(destination: CigarDetailView(cigar: cigar, onScanNext: onScanNext)) {
+                    NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext)) {
                         CigarRow(cigar: cigar)
                     }
                 }

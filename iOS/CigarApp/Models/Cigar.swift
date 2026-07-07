@@ -109,3 +109,112 @@ struct ScanResult: Identifiable, Equatable {
         }
     }
 }
+
+// MARK: - FlavorIcon (note → ikon-asset)
+// Generert fra smaksnote-databasen. Slår opp en smaksnote til et av
+// FlavorIcons-assetene (template, tintes til Accent i UI). Case-insensitivt.
+enum FlavorIcon {
+    static let map: [String: String] = [
+        "almond": "nuts",
+        "almonds": "nuts",
+        "anise": "cinnamon",
+        "black pepper": "pepper",
+        "butter": "cream",
+        "caramel": "honey",
+        "cardamom": "cinnamon",
+        "cedar": "cedar",
+        "chocolate": "cocoa",
+        "cinnamon": "cinnamon",
+        "citrus": "citrus",
+        "cocoa": "cocoa",
+        "coffee": "coffee",
+        "cream": "cream",
+        "dark chocolate": "cocoa",
+        "dark cocoa": "cocoa",
+        "dark earth": "earth",
+        "dark fruit": "fruit",
+        "dark roasted coffee": "coffee",
+        "dark spice": "spice",
+        "dark tobacco": "tobacco",
+        "dried fruit": "fruit",
+        "earth": "earth",
+        "espresso": "coffee",
+        "floral": "floral",
+        "fruit": "fruit",
+        "gentle earth": "earth",
+        "gentle floral": "floral",
+        "gentle pepper": "pepper",
+        "gentle spice": "spice",
+        "grass": "hay",
+        "hay": "hay",
+        "honey": "honey",
+        "kremete": "cream",
+        "leather": "leather",
+        "light earth": "earth",
+        "light floral": "floral",
+        "light pepper": "pepper",
+        "light spice": "spice",
+        "light wood": "wood",
+        "maple": "honey",
+        "mild coffee": "coffee",
+        "mild cream": "cream",
+        "mild earth": "earth",
+        "mild krydder": "spice",
+        "mild pepper": "pepper",
+        "mild spice": "spice",
+        "mineral": "mineral",
+        "molasses": "honey",
+        "natural sweetness": "honey",
+        "nougat": "nuts",
+        "nut": "nuts",
+        "nuts": "nuts",
+        "nøtter": "nuts",
+        "oak": "wood",
+        "paprika": "pepper",
+        "pepper": "pepper",
+        "roasted almonds": "nuts",
+        "roasted aromas": "coffee",
+        "roasted cashews": "nuts",
+        "roasted coffee": "coffee",
+        "roasted espresso": "coffee",
+        "roasted nuts": "nuts",
+        "sedertre": "cedar",
+        "smoky wood": "wood",
+        "soft spice": "spice",
+        "spice": "spice",
+        "sweet cream": "cream",
+        "sweet earth": "earth",
+        "sweet spice": "spice",
+        "sweet spices": "spice",
+        "toast": "toast",
+        "toasted bread": "toast",
+        "toasted cream": "cream",
+        "toasted nuts": "nuts",
+        "toasted wood": "wood",
+        "tobacco": "tobacco",
+        "vanilla": "vanilla",
+        "whiskey": "whisky",
+        "white pepper": "pepper",
+        "wood": "wood",
+    ]
+
+    /// Returnerer ikon-navn for en smaksnote, eller nil hvis ukjent.
+    static func name(for note: String) -> String? {
+        map[note.lowercased().trimmingCharacters(in: .whitespaces)]
+    }
+
+    /// Norsk etikett per ikon-familie (appen er på norsk).
+    static let label: [String: String] = [
+        "cedar": "Sedertre", "cocoa": "Kakao", "leather": "Skinn", "tobacco": "Tobakk",
+        "cinnamon": "Kanel", "minerals": "Mineral", "whisky": "Whisky", "citrus": "Sitrus",
+        "wood": "Tre", "pepper": "Pepper", "nuts": "Nøtter", "vanilla": "Vanilje",
+        "earth": "Jord", "fruit": "Frukt", "floral": "Blomst", "hay": "Høy",
+        "coffee": "Kaffe", "honey": "Honning", "toast": "Toast", "cream": "Kremete",
+        "spice": "Krydder"
+    ]
+
+    /// Norsk visningsetikett for et ikon-navn.
+    static func displayLabel(for icon: String) -> String {
+        label[icon] ?? icon.capitalized
+    }
+}

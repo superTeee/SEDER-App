@@ -106,6 +106,91 @@ class CigarService: ObservableObject {
         return all
     }
 
+    // MARK: - Dagens utvalgte (smakstilpasset)
+    // Velger en sigar som ligner brukerens smak (utledet fra journalen), men
+    // som brukeren IKKE allerede har logget. Smaksvektoren vektes av brukerens
+    // egen score, så høyt ratede sigarer former smaken mest. Blant topp-treffene
+    // velges én deterministisk per dag (stabil hele dagen, roterer over tid).
+    // Returnerer nil hvis vi mangler nok data — da faller kalleren tilbake til
+    // den gamle rating-baserte logikken (ny bruker med tom journal).
+    func fetchTasteFeaturedCigar() async throws -> Cigar? {
+        // 1. Hent brukerens logger med full sigar-data
+        let userId = try await supabase.auth.session.user.id
+        let logs: [TastingLog] = try await supabase
+            .from("tasting_logs")
+            .select("*, cigars(*)")
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+            .value
+
+        // Trenger minst én logget sigar med data for å bygge en smaksprofil
+        guard logs.contains(where: { $0.cigar != nil }) else { return nil }
+        let loggedIds = Set(logs.map { $0.cigarId })
+
+        // 2. Bygg smaks-vektor, vektet av brukerens egen score (0–100)
+        var strengthSum = 0.0, strengthW = 0.0
+        var bodySum     = 0.0, bodyW     = 0.0
+        var sweetSum    = 0.0, sweetW    = 0.0
+        var flavorSum   = 0.0, flavorW   = 0.0
+        var countryCounts: [String: Double] = [:]
+        var leafCounts:    [String: Double] = [:]
+        var noteCounts:    [String: Double] = [:]
+
+        for log in logs {
+            guard let c = log.cigar else { continue }
+            // Ulogget score → nøytral 60 så sigaren fortsatt teller litt
+            let weight = Double(max(1, log.rating ?? 60))
+            if let s  = c.strength        { strengthSum += s  * weight; strengthW += weight }
+            if let b  = c.body            { bodySum     += b  * weight; bodyW     += weight }
+            if let sw = c.sweetness       { sweetSum    += sw * weight; sweetW    += weight }
+            if let f  = c.flavorIntensity { flavorSum   += f  * weight; flavorW   += weight }
+            if let co = c.wrapperCountry  { countryCounts[co, default: 0] += weight }
+            if let wl = c.wrapperLeaf     { leafCounts[wl, default: 0]    += weight }
+            for note in c.flavorNotes ?? [] { noteCounts[note, default: 0] += weight }
+        }
+
+        let tStrength = strengthW > 0 ? strengthSum / strengthW : nil
+        let tBody     = bodyW     > 0 ? bodySum     / bodyW     : nil
+        let tSweet    = sweetW    > 0 ? sweetSum    / sweetW    : nil
+        let tFlavor   = flavorW   > 0 ? flavorSum   / flavorW   : nil
+        let topCountry = countryCounts.max { $0.value < $1.value }?.key
+        let topLeaf    = leafCounts.max    { $0.value < $1.value }?.key
+        let topNotes   = Set(noteCounts.sorted { $0.value > $1.value }.prefix(5).map { $0.key })
+
+        // 3. Kandidater: rated sigarer, minus de brukeren alt har logget
+        let candidates = try await fetchAboveAverageCigars()
+            .filter { !loggedIds.contains($0.id) }
+        guard !candidates.isEmpty else { return nil }
+
+        // 4. Scoring: numerisk nærhet på styrke/fylde/sødme/smaksintensitet,
+        //    pluss bonus for samme wrapper-land, wrapper-blad og delte smaksnoter
+        func score(_ c: Cigar) -> Double {
+            var parts: [Double] = []
+            if let t = tStrength, let v = c.strength        { parts.append(1 - abs(v - t) / 4.5) }
+            if let t = tBody,     let v = c.body            { parts.append(1 - abs(v - t) / 5.0) }
+            if let t = tSweet,    let v = c.sweetness       { parts.append(1 - abs(v - t) / 5.0) }
+            if let t = tFlavor,   let v = c.flavorIntensity { parts.append(1 - abs(v - t) / 5.0) }
+            var s = parts.isEmpty ? 0.5 : parts.reduce(0, +) / Double(parts.count)
+            if let co = c.wrapperCountry, co == topCountry { s += 0.15 }
+            if let wl = c.wrapperLeaf,    wl == topLeaf    { s += 0.10 }
+            let shared = Set(c.flavorNotes ?? []).intersection(topNotes).count
+            s += 0.05 * Double(min(shared, 3))
+            return s
+        }
+
+        // 5. Deterministisk daglig valg blant topp-treffene
+        let ranked = candidates
+            .map { (cigar: $0, s: score($0)) }
+            .sorted {
+                $0.s != $1.s ? $0.s > $1.s
+                             : ($0.cigar.avgRating ?? 0) > ($1.cigar.avgRating ?? 0)
+            }
+        let topK = min(7, ranked.count)
+        let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
+        let index = (dayOfYear - 1) % topK
+        return ranked[index].cigar
+    }
+
     // MARK: - Hent alle unike merkenavn (for Explore-siden)
     func fetchDistinctBrands() async throws -> [String] {
         struct BrandRow: Decodable { let brand: String }

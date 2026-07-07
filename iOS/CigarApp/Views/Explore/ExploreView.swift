@@ -184,7 +184,7 @@ struct ExploreView: View {
             }
             .navigationDestination(isPresented: $navigateToBarcode) {
                 if let cigar = barcodeFoundCigar {
-                    CigarDetailView(cigar: cigar)
+                    CigarDetailViewDesign(cigar: cigar)
                 }
             }
             .fullScreenCover(isPresented: $showBarcodeScan) {
@@ -357,7 +357,7 @@ struct ExploreView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(topCigars.enumerated()), id: \.element.id) { index, cigar in
-                        NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+                        NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
                             TopCigarRow(rank: index + 1, cigar: cigar)
                         }
                         .buttonStyle(.plain)
@@ -380,7 +380,7 @@ struct ExploreView: View {
     private var featuredSection: some View {
         if let cigar = featuredCigar {
             sectionHeader("Dagens utvalgte")
-            NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+            NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
                 featuredCard(cigar: cigar)
             }
             .buttonStyle(.plain)
@@ -403,10 +403,6 @@ struct ExploreView: View {
 
             // Info
             VStack(alignment: .leading, spacing: 3) {
-                Text("DAGENS UTVALGTE")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(Color("Accent"))
-                    .tracking(0.5)
                 Text(cigar.brand)
                     .font(.subheadline.bold())
                     .foregroundColor(Color(.label))
@@ -590,7 +586,7 @@ struct ExploreView: View {
 
             VStack(spacing: 0) {
                 ForEach(results) { cigar in
-                    NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+                    NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
                         ExploreResultRow(cigar: cigar)
                     }
                     if cigar.id != results.last?.id {
@@ -641,6 +637,12 @@ struct ExploreView: View {
         isLoadingFeatured = true
         defer { isLoadingFeatured = false }
         do {
+            // Prøv smakstilpasset valg først (ligner journalen, men ikke logget før)
+            if let matched = try await cigarService.fetchTasteFeaturedCigar() {
+                featuredCigar = matched
+                return
+            }
+            // Fallback: deterministisk rating-valg (ny bruker / for lite loggdata)
             let candidates = try await cigarService.fetchAboveAverageCigars()
             guard !candidates.isEmpty else { return }
             // Deterministisk valg: samme sigar hele dagen, ny sigar neste dag
@@ -1293,7 +1295,7 @@ struct BrandCigarsView: View {
                     ForEach(groupedBySeries, id: \.series) { group in
                         Section(group.series) {
                             ForEach(group.cigars) { cigar in
-                                NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+                                NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
                                     BrandCigarRow(cigar: cigar)
                                 }
                                 .listRowBackground(Color("Card"))

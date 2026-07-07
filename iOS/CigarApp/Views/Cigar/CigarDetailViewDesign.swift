@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 // MARK: - CigarDetailViewDesign
 // Pixel-perfect implementasjon fra Figma-design (node 184:197)
@@ -8,7 +9,8 @@ import PhotosUI
 struct CigarDetailViewDesign: View {
 
     let cigar: Cigar
-    var entry: HumidorEntry?
+    @State private var entry: HumidorEntry?
+    let onScanNext: (() -> Void)?
 
     @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) private var dismiss
@@ -21,22 +23,29 @@ struct CigarDetailViewDesign: View {
     @State private var isSaving = false
     @State private var showAddToHumidorSheet = false
     @State private var isInWishlist = false
+    @State private var isWishlistLoading = false
+    @State private var showLogSmokedSheet = false
+    @State private var showLoginSheet = false
+    @State private var showLoggedToast = false
+    @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
 
     private let humidorService = HumidorService()
     private let wishlistService = WishlistService()
 
     // ── Design-tokens fra Figma ─────────────────────────────────────────────
-    private let pageBg        = Color(red: 0.075, green: 0.071, blue: 0.067) // #131211
-    private let surfacePrimary = Color(red: 0.141, green: 0.133, blue: 0.118) // #24221e
-    private let action        = Color(red: 0.655, green: 0.569, blue: 0.392) // #a79164
-    private let textPrimary   = Color(red: 0.925, green: 0.922, blue: 0.918) // #ecebea
-    private let textSecondary = Color(red: 0.855, green: 0.847, blue: 0.831) // #dad8d4
-    private let textSubtle    = Color(red: 0.706, green: 0.694, blue: 0.667) // #b4b1aa
+    // Adaptive farger — følger lys/mørk modus via asset-katalogen
+    private let pageBg        = Color("Background")
+    private let surfacePrimary = Color("Surface")
+    private let action        = Color("Accent")
+    private let textPrimary   = Color("TextPrimary")
+    private let textSecondary = Color("TextSecondary")
+    private let textSubtle    = Color("TextSecondary")
 
-    init(cigar: Cigar, entry: HumidorEntry? = nil) {
+    init(cigar: Cigar, humidorEntry: HumidorEntry? = nil, onScanNext: (() -> Void)? = nil) {
         self.cigar = cigar
-        self.entry = entry
-        _quantity = State(initialValue: entry?.quantity ?? 1)
+        self.onScanNext = onScanNext
+        _entry = State(initialValue: humidorEntry)
+        _quantity = State(initialValue: humidorEntry?.quantity ?? 1)
     }
 
     // ── Body ────────────────────────────────────────────────────────────────
@@ -46,7 +55,7 @@ struct CigarDetailViewDesign: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    heroImage
+                    if entry != nil { heroImage }
                     contentBody
                 }
             }
@@ -55,7 +64,6 @@ struct CigarDetailViewDesign: View {
         .navigationTitle(cigar.brand)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { dismiss() } label: {
@@ -97,10 +105,65 @@ struct CigarDetailViewDesign: View {
                                 let ts = TastingService()
                                 try? await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
                             }
+                            await MainActor.run { confirmLogged() }
                         } catch { print("Røyke-logg feil: \(error)") }
                         quantity = max(0, quantity - 1)
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showAddToHumidorSheet) {
+            AddToHumidorSheet(cigar: cigar) { purchasedAt, addedAt, qty in
+                guard let userId = authService.userId else { return }
+                isSaving = true
+                Task {
+                    do {
+                        let newEntry = try await humidorService.addToHumidor(
+                            cigarId: cigar.id, userId: userId, quantity: qty,
+                            purchasedAt: purchasedAt, addedToHumidorAt: addedAt)
+                        self.entry = newEntry
+                        self.quantity = newEntry.quantity
+                        humidorHasNew = true
+                    } catch { print("Feil ved lagring: \(error)") }
+                    isSaving = false
+                }
+            }
+        }
+        .sheet(isPresented: $showLogSmokedSheet) {
+            SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType in
+                guard let userId = authService.userId else { return }
+                Task {
+                    do {
+                        let logId = try await humidorService.logTastingForCigar(
+                            cigarId: cigar.id, userId: userId, smokedAt: smokedAt,
+                            rating: rating, smokeAgain: smokeAgain, drawRating: draw,
+                            burnRating: burn, flavorRating: flavor, notes: notes, cutType: cutType)
+                        if let data = photoData {
+                            let ts = TastingService()
+                            try? await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                        }
+                        await MainActor.run { confirmLogged() }
+                    } catch { print("Treff-logg feil: \(error)") }
+                }
+            }
+        }
+        .sheet(isPresented: $showLoginSheet) {
+            AuthView(onSuccess: { showAddToHumidorSheet = true })
+        }
+        .overlay(alignment: .bottom) {
+            if showLoggedToast {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Logget i journalen").fontWeight(.semibold)
+                }
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .padding(.horizontal, 18).padding(.vertical, 12)
+                .background(Color("Accent"))
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
+                .padding(.bottom, 28)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
@@ -179,13 +242,12 @@ struct CigarDetailViewDesign: View {
                 .clipShape(Capsule())
             }
             .padding(.leading, 20)
-            .padding(.top, 66) // ← under navigasjonsbaren
+            .padding(.top, 16) // nær toppen av bildet
         }
-        // Quantity-pill flytende i nederkant av bildet
+        // Quantity-pill flytende i nederkant av bildet (50% overlapp)
         .overlay(alignment: .bottom) {
             quantityPill
                 .offset(y: 28)
-                .padding(.bottom, -28)
         }
     }
 
@@ -249,6 +311,8 @@ struct CigarDetailViewDesign: View {
         VStack(alignment: .leading, spacing: 36) {
             infoSection
             mainNotesCard
+            constructionSection
+            ratingsSection
             if let description = cigar.description, !description.isEmpty {
                 Text(description)
                     .font(.system(size: 15))
@@ -256,9 +320,6 @@ struct CigarDetailViewDesign: View {
                     .lineSpacing(5)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            ratingsSection
-            constructionSection
-            priceSection
 
             // Action-knapp
             if entry != nil {
@@ -274,23 +335,58 @@ struct CigarDetailViewDesign: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
             } else {
-                Button {
-                    showAddToHumidorSheet = true
-                } label: {
-                    HStack {
-                        Image(systemName: "archivebox.fill")
-                        Text("Legg i humidor").fontWeight(.semibold)
+                VStack(spacing: 12) {
+                    Button {
+                        guard authService.userId != nil else { showLoginSheet = true; return }
+                        showAddToHumidorSheet = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "archivebox.fill")
+                            Text("Legg i humidor").fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(action).foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(action)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    Button {
+                        guard authService.userId != nil else { showLoginSheet = true; return }
+                        showLogSmokedSheet = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "flame.fill")
+                            Text("Marker som røkt").fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(surfacePrimary).foregroundColor(action)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    Button { toggleWishlist() } label: {
+                        HStack {
+                            if isWishlistLoading { ProgressView().tint(action) }
+                            else { Image(systemName: isInWishlist ? "bookmark.fill" : "bookmark") }
+                            Text(isInWishlist ? "I ønskelisten" : "Legg i ønskeliste").fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(surfacePrimary).foregroundColor(action)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .disabled(isWishlistLoading)
+                    if let onScanNext {
+                        Button { onScanNext() } label: {
+                            HStack {
+                                Image(systemName: "camera.viewfinder")
+                                Text("Scan neste sigar").fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity).padding(.vertical, 16)
+                            .background(surfacePrimary).foregroundColor(action)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                    }
                 }
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 48) // plass til quantity-pill som overlapper
+        .padding(.top, entry != nil ? 48 : 20) // plass til quantity-pill kun i humidor
         .padding(.bottom, 100)
     }
 
@@ -352,31 +448,28 @@ struct CigarDetailViewDesign: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header-rad
             HStack {
-                Text("MAIN NOTES")
+                Text("SMAKSNOTER")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(textSubtle)
                     .tracking(0.6)
                 Spacer()
-                Button {} label: {
-                    Text("Edit notes  +")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(action)
-                }
             }
             .padding(.horizontal, 19)
             .padding(.top, 17)
             .padding(.bottom, 20)
 
             // Smaksikoner
-            HStack(spacing: 0) {
-                let notes = cigar.flavorNotes ?? []
-                let icons = notesWithIcons(notes)
-                ForEach(Array(icons.prefix(4).enumerated()), id: \.offset) { _, pair in
-                    VStack(spacing: 9) {
-                        Image(systemName: pair.icon)
-                            .font(.system(size: 22))
-                            .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : textPrimary)
-                            .frame(width: 26, height: 26)
+            let notes = cigar.flavorNotes ?? []
+            let icons = notesWithIcons(notes)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 4), spacing: 18) {
+                ForEach(Array(icons.enumerated()), id: \.offset) { _, pair in
+                    VStack(spacing: 5) {
+                        Image(pair.icon)
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : Color("Accent"))
                         Text(pair.label)
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : textPrimary)
@@ -402,29 +495,23 @@ struct CigarDetailViewDesign: View {
     }
 
     private func notesWithIcons(_ notes: [String]) -> [NoteIcon] {
-        let placeholders: [(String, String)] = [
-            ("Kakao", "cup.and.saucer.fill"),
-            ("Tre", "tree.fill"),
-            ("Seder", "leaf.fill"),
-            ("Kanel", "flame.fill")
-        ]
-        if notes.isEmpty {
-            return placeholders.map { NoteIcon(label: $0.0, icon: $0.1, isEmpty: true) }
+        // Tom-tilstand: vis noen representative ikoner dempet
+        let placeholders = ["cocoa", "cedar", "leather", "pepper"]
+        func empty() -> [NoteIcon] {
+            placeholders.map { NoteIcon(label: FlavorIcon.displayLabel(for: $0), icon: $0, isEmpty: true) }
         }
-        return notes.prefix(4).map { note -> NoteIcon in
-            let l = note.lowercased()
-            let icon: String
-            if l.contains("cocoa") || l.contains("chocolate") || l.contains("kakao") { icon = "cup.and.saucer.fill" }
-            else if l.contains("wood") || l.contains("cedar") || l.contains("tre") || l.contains("seder") { icon = "tree.fill" }
-            else if l.contains("coffee") || l.contains("espresso") || l.contains("kaffe") { icon = "cup.and.saucer.fill" }
-            else if l.contains("spice") || l.contains("cinnamon") || l.contains("pepper") || l.contains("kanel") { icon = "flame.fill" }
-            else if l.contains("earth") || l.contains("leather") || l.contains("jord") { icon = "globe.europe.africa.fill" }
-            else if l.contains("fruit") || l.contains("cherry") || l.contains("frukt") { icon = "leaf.fill" }
-            else if l.contains("cream") || l.contains("vanilla") { icon = "drop.fill" }
-            else if l.contains("nut") || l.contains("almond") { icon = "leaf.circle.fill" }
-            else { icon = "circle.fill" }
-            return NoteIcon(label: note, icon: icon, isEmpty: false)
+        if notes.isEmpty { return empty() }
+
+        // Map til ikon, deduper på ikon-familie, maks 5, norske etiketter
+        var seen = Set<String>()
+        var result: [NoteIcon] = []
+        for note in notes {
+            guard let icon = FlavorIcon.name(for: note), !seen.contains(icon) else { continue }
+            seen.insert(icon)
+            result.append(NoteIcon(label: FlavorIcon.displayLabel(for: icon), icon: icon, isEmpty: false))
+            if result.count == 8 { break }
         }
+        return result.isEmpty ? empty() : result
     }
 
     // ── Ratings section ─────────────────────────────────────────────────────
@@ -440,13 +527,12 @@ struct CigarDetailViewDesign: View {
 
     @ViewBuilder
     private func ratingBar(label: String, value: Double) -> some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(textSubtle)
                 .tracking(0.5)
                 .lineLimit(1)
-                .frame(width: 110, alignment: .leading)
             HStack(spacing: 5) {
                 ForEach(1...5, id: \.self) { i in
                     Capsule()
@@ -490,27 +576,36 @@ struct CigarDetailViewDesign: View {
         return parts.isEmpty ? "—" : parts.joined(separator: " ")
     }
 
-    // ── Price section ────────────────────────────────────────────────────────
-    @ViewBuilder
-    private var priceSection: some View {
-        if let price = cigar.priceRange {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("PRISESTIMAT")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(textSubtle)
-                    .tracking(0.6)
-                Text(price)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(textPrimary)
-                    .tracking(-0.48)
-            }
-        }
-    }
-
     // ── Helpers ──────────────────────────────────────────────────────────────
     private func saveQuantity() {
         guard let entry else { return }
         Task { try? await humidorService.updateQuantity(entryId: entry.id, quantity: quantity) }
+    }
+
+    private func confirmLogged() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation { showLoggedToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { showLoggedToast = false }
+        }
+    }
+
+    private func toggleWishlist() {
+        guard let userId = authService.userId else { showLoginSheet = true; return }
+        isWishlistLoading = true
+        Task {
+            do {
+                if isInWishlist {
+                    try await wishlistService.removeFromWishlist(userId: userId, cigarId: cigar.id)
+                    isInWishlist = false
+                } else {
+                    try await wishlistService.addToWishlist(userId: userId, cigarId: cigar.id)
+                    isInWishlist = true
+                    humidorHasNew = true
+                }
+            } catch { print("Ønskeliste-feil: \(error)") }
+            isWishlistLoading = false
+        }
     }
 
     private func removeEntry() {
@@ -573,7 +668,7 @@ struct CigarDetailViewDesign: View {
     )
 
     NavigationStack {
-        CigarDetailViewDesign(cigar: mockCigar, entry: mockEntry)
+        CigarDetailViewDesign(cigar: mockCigar, humidorEntry: mockEntry)
     }
     .environmentObject(AuthService())
 }

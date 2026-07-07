@@ -60,7 +60,7 @@ struct HumidorView: View {
                             if authService.userId != nil && !isLoading {
                                 ForEach(entries.filter { $0.quantity > 0 }) { entry in
                                     if let cigar = entry.cigar {
-                                        NavigationLink(destination: CigarDetailView(cigar: cigar, humidorEntry: entry)) {
+                                        NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, humidorEntry: entry)) {
                                             HumidorRow(entry: entry)
                                         }
                                         .listRowBackground(Color("Card"))
@@ -95,7 +95,7 @@ struct HumidorView: View {
                             if !isLoadingWishlist && !wishlistCigars.isEmpty {
                                 Section(header: Text("Ønskeliste (\(wishlistCigars.count))").textCase(.none).font(.headline.bold()).foregroundColor(Color("TextPrimary"))) {
                                     ForEach(wishlistCigars) { cigar in
-                                        NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+                                        NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
                                             WishlistRow(cigar: cigar)
                                         }
                                         .listRowBackground(Color("Card"))
@@ -433,7 +433,7 @@ struct ManualAddSearchView: View {
                 }
 
                 ForEach(searchResults) { cigar in
-                    NavigationLink(destination: CigarDetailView(cigar: cigar)) {
+                    NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
                         CigarRow(cigar: cigar)
                     }
                 }

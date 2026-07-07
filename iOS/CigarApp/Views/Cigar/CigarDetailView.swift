@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 // MARK: - CigarDetailView
 // Fullt informasjonskort for en sigar.
@@ -29,6 +30,8 @@ struct CigarDetailView: View {
     @State private var showSmokingSheet = false
     // Marker som røkt fra treff-modus (uten humidor)
     @State private var showLogSmokedSheet = false
+    // Bekreftelse etter logging
+    @State private var showLoggedToast = false
 
     // Fjern fra humidor
     @State private var showRemoveAlert = false
@@ -54,6 +57,15 @@ struct CigarDetailView: View {
         _quantity = State(initialValue: humidorEntry?.quantity ?? 1)
         if humidorEntry != nil {
             // ingen isSaved-state nødvendig lenger
+        }
+    }
+
+    // Vis kort bekreftelse + haptikk etter at en økt er logget
+    private func confirmLogged() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation { showLoggedToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { showLoggedToast = false }
         }
     }
 
@@ -251,6 +263,7 @@ struct CigarDetailView: View {
                                                 imageData: data
                                             )
                                         }
+                                        await MainActor.run { confirmLogged() }
                                     } catch {
                                         print("Feil ved logging: \(error)")
                                     }
@@ -343,6 +356,7 @@ struct CigarDetailView: View {
                                         let tastingService = TastingService()
                                         try? await tastingService.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
                                     }
+                                    await MainActor.run { confirmLogged() }
                                 } catch {
                                     print("Feil ved logging (uten humidor): \(error)")
                                 }
@@ -374,6 +388,23 @@ struct CigarDetailView: View {
                         }
                     }
                 }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if showLoggedToast {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Logget i journalen").fontWeight(.semibold)
+                }
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background(Color("Accent"))
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
+                .padding(.bottom, 28)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .navigationTitle(cigar.brand)
@@ -1164,15 +1195,38 @@ struct DetailRow: View {
 struct FlavorTagsView: View {
     let notes: [String]
 
+    // Note → ikon-familie, deduplisert, med norsk etikett
+    private var items: [(icon: String, label: String)] {
+        var seen = Set<String>()
+        var result: [(icon: String, label: String)] = []
+        for note in notes {
+            guard let icon = FlavorIcon.name(for: note), !seen.contains(icon) else { continue }
+            seen.insert(icon)
+            result.append((icon, FlavorIcon.displayLabel(for: icon)))
+        }
+        return result
+    }
+
+    // 4 i bredden
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
+
     var body: some View {
-        FlowLayout(spacing: 8) {
-            ForEach(notes, id: \.self) { note in
-                Text(note)
-                    .font(.caption)
-                    .foregroundColor(Color("TextSecondary"))
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Color("Surface"))
-                    .clipShape(Capsule())
+        LazyVGrid(columns: columns, spacing: 20) {
+            ForEach(items, id: \.icon) { item in
+                VStack(spacing: 6) {
+                    Image(item.icon)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 38, height: 38)
+                        .foregroundColor(Color("Accent"))
+                    Text(item.label)
+                        .font(.caption)
+                        .foregroundColor(Color("TextSecondary"))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
     }

@@ -190,6 +190,15 @@ struct ProfileSettingsView: View {
     // Lys/mørk-modus — deles med app-roten via samme AppStorage-nøkkel
     @AppStorage("appearance") private var appearance = "system"
 
+    // Samme utledning som app-roten, så arket selv oppdaterer modus live
+    private var preferredScheme: ColorScheme? {
+        switch appearance {
+        case "light": return .light
+        case "dark":  return .dark
+        default:      return nil
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -290,6 +299,7 @@ struct ProfileSettingsView: View {
             .background(Color("Background"))
             .navigationTitle("Innstillinger")
             .navigationBarTitleDisplayMode(.inline)
+            .preferredColorScheme(preferredScheme)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Ferdig") { dismiss() }

@@ -9,16 +9,29 @@ import SwiftUI
 struct ContentView: View {
 
     @EnvironmentObject var authService: AuthService
-    @State private var selectedTab = 1
+    @State private var selectedTab = 0   // åpner på Utforsk
     @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
 
     init() {
-        let bgColor = UIColor(red: 0.949, green: 0.941, blue: 0.914, alpha: 1.0) // #F2F0E9
-
-        // Bruk DefaultBackground for å beholde standard ikon-rendering (outline/fill)
+        // Adaptiv bakgrunn: følger Background-asset (lys #F2F0E9 / mørk #131211)
         let tabApp = UITabBarAppearance()
         tabApp.configureWithDefaultBackground()
-        tabApp.backgroundColor = bgColor
+        tabApp.backgroundColor = UIColor(named: "Background")
+
+        // Tydelig forskjell på valgt vs. uvalgt: valgt = Accent, uvalgt = dempet grå
+        let accent = UIColor(named: "Accent") ?? .systemBrown
+        let inactive = (UIColor(named: "TextSecondary") ?? .secondaryLabel).withAlphaComponent(0.5)
+        let item = UITabBarItemAppearance()
+        item.selected.iconColor = accent
+        item.selected.titleTextAttributes = [
+            .foregroundColor: accent,
+            .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
+        ]
+        item.normal.iconColor = inactive
+        item.normal.titleTextAttributes = [.foregroundColor: inactive]
+        tabApp.stackedLayoutAppearance = item
+        tabApp.inlineLayoutAppearance = item
+        tabApp.compactInlineLayoutAppearance = item
 
         UITabBar.appearance().standardAppearance = tabApp
         UITabBar.appearance().scrollEdgeAppearance = tabApp
@@ -26,26 +39,26 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            FeedView()
+                .environmentObject(authService)
+                .tabItem { Label("Feed", image: "tab_feed") }
+                .tag(3)
+
             ExploreView()
-                .tabItem { Label("Utforsk", systemImage: "magnifyingglass") }
+                .tabItem { Label("Utforsk", image: "tab_explore") }
                 .tag(0)
 
             HumidorView()
-                .tabItem { Label("Min humidor", systemImage: "archivebox") }
+                .tabItem { Label("Humidor", image: "tab_humidor") }
                 .badge(humidorHasNew ? 1 : 0)
                 .tag(1)
 
             JournalView()
-                .tabItem { Label("Journal", systemImage: "book.closed") }
+                .tabItem { Label("Journal", image: "tab_journal") }
                 .tag(2)
 
-            FeedView()
-                .environmentObject(authService)
-                .tabItem { Label("Feed", systemImage: "newspaper") }
-                .tag(3)
-
             ProfileView()
-                .tabItem { Label("Profil", systemImage: "person.crop.circle") }
+                .tabItem { Label("Profil", image: "tab_profile") }
                 .tag(4)
         }
         .accentColor(Color("Accent"))
