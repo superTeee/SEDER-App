@@ -157,9 +157,14 @@ class CigarService: ObservableObject {
         let topLeaf    = leafCounts.max    { $0.value < $1.value }?.key
         let topNotes   = Set(noteCounts.sorted { $0.value > $1.value }.prefix(5).map { $0.key })
 
-        // 3. Kandidater: rated sigarer, minus de brukeren alt har logget
-        let candidates = try await fetchAboveAverageCigars()
-            .filter { !loggedIds.contains($0.id) }
+        // 3. Kandidater: rated sigarer, helst de brukeren IKKE har logget (oppdagelse).
+        //    MEN: for en storbruker som har logget nesten alt kan dette kollapse til
+        //    én enkelt sigar — da roterer ikke «Dagens utvalgte» (satt fast på samme
+        //    sigar dag etter dag). Har vi for få ulog­gede kandidater, tar vi med hele
+        //    utvalget (også loggede) slik at det alltid finnes nok å rotere blant.
+        let above = try await fetchAboveAverageCigars()
+        let unlogged = above.filter { !loggedIds.contains($0.id) }
+        let candidates = unlogged.count >= 12 ? unlogged : above
         guard !candidates.isEmpty else { return nil }
 
         // 4. Scoring: numerisk nærhet på styrke/fylde/sødme/smaksintensitet,

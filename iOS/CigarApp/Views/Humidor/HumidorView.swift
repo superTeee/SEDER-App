@@ -318,9 +318,15 @@ struct HumidorRow: View {
 
             Spacer()
 
-            // Antall
-            VStack(spacing: 0) {
-                Text("\(entry.quantity) stk")
+            // Antall — sigar-ikon + tall
+            HStack(spacing: 5) {
+                Image("CigarCount")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 17)
+                    .foregroundColor(Color("TextSecondary"))
+                Text("\(entry.quantity)")
                     .font(.callout.bold())
                     .foregroundColor(Color("TextPrimary"))
             }
@@ -378,9 +384,17 @@ struct HumidorCard: View {
 
             Spacer()
 
-            Text(countLabel)
-                .font(.callout.weight(.medium))
-                .foregroundColor(Color("TextSecondary"))
+            // Antall — sigar-ikon + tall (evt. antall/kapasitet)
+            HStack(spacing: 5) {
+                Image("CigarCount")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 17)
+                Text(countLabel)
+                    .font(.callout.weight(.medium))
+            }
+            .foregroundColor(Color("TextSecondary"))
         }
         .padding(.vertical, 4)
     }
@@ -397,7 +411,7 @@ struct HumidorCard: View {
 
     private var countLabel: String {
         if let cap = humidor.capacity { return "\(cigarCount)/\(cap)" }
-        return "\(cigarCount) stk"
+        return "\(cigarCount)"
     }
 }
 

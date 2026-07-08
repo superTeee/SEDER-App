@@ -48,7 +48,7 @@ struct HumidorDetailView: View {
                         if let loc = humidor.location, !loc.isEmpty {
                             infoRow(icon: "mappin", text: loc)
                         }
-                        infoRow(icon: "square.stack.3d.up.fill", text: capacityLabel)
+                        infoRowAsset(asset: "CigarCount", text: capacityLabel)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -162,6 +162,23 @@ struct HumidorDetailView: View {
         }
     }
 
+    // Variant med et asset-ikon (f.eks. sigar-ikonet) i stedet for SF Symbol.
+    @ViewBuilder
+    private func infoRowAsset(asset: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(asset)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 19)
+                .foregroundColor(Color("TextPrimary"))
+                .frame(width: 20, alignment: .center)
+            Text(text)
+                .font(.system(size: 18))
+                .foregroundColor(Color("TextPrimary"))
+        }
+    }
+
     // ── Sigarliste ───────────────────────────────────────────────────────────
     @ViewBuilder
     private var cigarListSection: some View {
@@ -228,7 +245,7 @@ struct HumidorDetailView: View {
     private var capacityLabel: String {
         let count = visibleEntries.reduce(0) { $0 + $1.quantity }
         if let cap = humidor.capacity {
-            return "\(count) / \(cap) sigarer"
+            return "\(count)/\(cap)"
         }
         return "\(count) sigarer"
     }
