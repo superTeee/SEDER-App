@@ -26,6 +26,9 @@ struct CigarQuickActions: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // Gjør hele raden trykkbar for long-press, ikke bare tekst-pikslene.
+            .contentShape(.contextMenuPreview, Rectangle())
+            .contentShape(Rectangle())
             .contextMenu {
                 Button { requireLogin { showAddHumidor = true } } label: {
                     Label("Legg i humidor", systemImage: "archivebox")
