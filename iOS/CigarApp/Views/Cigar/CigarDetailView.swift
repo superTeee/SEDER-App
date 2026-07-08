@@ -713,6 +713,7 @@ struct SmokingLogSheet: View {
     @State private var photoItem: PhotosPickerItem? = nil
     @State private var photoData: Data?             = nil
     @State private var photoImage: Image?           = nil
+    @State private var cropRequest: CropRequest?    = nil
 
     // MARK: Hjelpere
 
@@ -796,10 +797,19 @@ struct SmokingLogSheet: View {
                                 guard let newItem,
                                       let data = try? await newItem.loadTransferable(type: Data.self),
                                       let uiImg = UIImage(data: data) else { return }
-                                let compressed = uiImg.jpegData(compressionQuality: 0.8) ?? data
-                                photoData  = compressed
-                                photoImage = Image(uiImage: uiImg)
+                                cropRequest = CropRequest(image: uiImg, ratio: 1.6)
+                                photoItem = nil
                             }
+                        }
+                        .fullScreenCover(item: $cropRequest) { req in
+                            ImageCropper(image: req.image, ratio: req.ratio) { cropped in
+                                cropRequest = nil
+                                photoData = cropped.jpegData(compressionQuality: 0.9)
+                                photoImage = Image(uiImage: cropped)
+                            } onCancel: {
+                                cropRequest = nil
+                            }
+                            .ignoresSafeArea()
                         }
                     }
                     .padding(.vertical, 12)

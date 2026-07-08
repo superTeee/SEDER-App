@@ -479,6 +479,7 @@ struct CreatePostView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var photoData: Data?
     @State private var photoImage: Image?
+    @State private var cropRequest: CropRequest?
     @State private var isPosting = false
     @State private var errorMessage: String?
     @FocusState private var textFieldFocused: Bool
@@ -558,10 +559,19 @@ struct CreatePostView: View {
                             guard let newItem,
                                   let data = try? await newItem.loadTransferable(type: Data.self),
                                   let uiImg = UIImage(data: data) else { return }
-                            let compressed = uiImg.jpegData(compressionQuality: 0.82) ?? data
-                            photoData = compressed
-                            photoImage = Image(uiImage: uiImg)
+                            cropRequest = CropRequest(image: uiImg, ratio: 1.7)  // bredt feed-bilde
+                            photoItem = nil
                         }
+                    }
+                    .fullScreenCover(item: $cropRequest) { req in
+                        ImageCropper(image: req.image, ratio: req.ratio) { cropped in
+                            cropRequest = nil
+                            photoData = cropped.jpegData(compressionQuality: 0.9)
+                            photoImage = Image(uiImage: cropped)
+                        } onCancel: {
+                            cropRequest = nil
+                        }
+                        .ignoresSafeArea()
                     }
 
                     if let errorMessage {

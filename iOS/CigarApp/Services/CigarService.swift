@@ -85,25 +85,21 @@ class CigarService: ObservableObject {
     // MARK: - Dagens utvalgte (sigarer med rating)
     // Returnerer sigarer med avg_rating >= 1, stabilt sortert etter id,
     // slik at daglig deterministisk valg (dayOfYear % count) gir samme sigar hele dagen.
-    // Faller tilbake til alle sigarer hvis ingen har rating ennå.
+    // Returnerer et STORT, stabilt basseng for «Dagens utvalgte»: høyest ratede
+    // først, deretter resten (uratede sist). Tidligere returnerte denne KUN de
+    // ratede sigarene når det fantes minst én — og siden nesten ingen er ratet
+    // ennå kollapset bassenget til én sigar, så «Dagens utvalgte» satt fast på
+    // samme sigar dag etter dag. Nå er det alltid hundrevis å rotere blant.
     func fetchAboveAverageCigars() async throws -> [Cigar] {
-        let rated: [Cigar] = try await supabase
+        let results: [Cigar] = try await supabase
             .from("cigars")
             .select()
-            .gte("avg_rating", value: 1.0)
-            .order("avg_rating", ascending: false)
+            .order("avg_rating", ascending: false, nullsFirst: false)
             .order("id")
+            .limit(500)
             .execute()
             .value
-        if !rated.isEmpty { return rated }
-        // Fallback: alle sigarer sortert stabilt
-        let all: [Cigar] = try await supabase
-            .from("cigars")
-            .select()
-            .order("id")
-            .execute()
-            .value
-        return all
+        return results
     }
 
     // MARK: - Dagens utvalgte (smakstilpasset)
@@ -190,7 +186,7 @@ class CigarService: ObservableObject {
                 $0.s != $1.s ? $0.s > $1.s
                              : ($0.cigar.avgRating ?? 0) > ($1.cigar.avgRating ?? 0)
             }
-        let topK = min(7, ranked.count)
+        let topK = min(20, ranked.count)
         let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
         let index = (dayOfYear - 1) % topK
         return ranked[index].cigar

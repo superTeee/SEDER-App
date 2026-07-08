@@ -22,6 +22,7 @@ struct CreateHumidorSheet: View {
     @State private var photoItem: PhotosPickerItem? = nil
     @State private var photoData: Data? = nil
     @State private var previewImage: Image? = nil
+    @State private var cropRequest: CropRequest? = nil
 
     @State private var isSaving = false
     @State private var errorMessage: String?
@@ -89,11 +90,22 @@ struct CreateHumidorSheet: View {
             }
             .onChange(of: photoItem) { _, item in
                 Task {
-                    if let data = try? await item?.loadTransferable(type: Data.self) {
-                        photoData = data
-                        if let ui = UIImage(data: data) { previewImage = Image(uiImage: ui) }
+                    if let data = try? await item?.loadTransferable(type: Data.self),
+                       let ui = UIImage(data: data) {
+                        cropRequest = CropRequest(image: ui, ratio: 1.7)  // bredt cover
                     }
+                    photoItem = nil
                 }
+            }
+            .fullScreenCover(item: $cropRequest) { req in
+                ImageCropper(image: req.image, ratio: req.ratio) { cropped in
+                    cropRequest = nil
+                    photoData = cropped.jpegData(compressionQuality: 0.9)
+                    previewImage = Image(uiImage: cropped)
+                } onCancel: {
+                    cropRequest = nil
+                }
+                .ignoresSafeArea()
             }
             .onAppear(perform: prefill)
         }

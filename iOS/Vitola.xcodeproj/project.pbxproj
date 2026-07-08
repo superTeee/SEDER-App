@@ -39,6 +39,7 @@
 		9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F387CE9EB627A94583C36905 /* CigarIcon.swift */; };
 		AA10AA10PHOTO0001BUILD01 /* PhotoButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */; };
 		AA30IMAGESUPPORTBUILD001 /* ImageSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */; };
+		AA40QUICKACTIONSBUILD001 /* CigarQuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */; };
 		9ED2C29D15EA6574A7968BD3 /* FeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B396E61F32632853E4FAB9B /* FeedService.swift */; };
 		A884C17B44F5394512640A17 /* PrivacyConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E9A02AA6944A0B73171140 /* PrivacyConsentView.swift */; };
 		B1CE78687C4775D7CDD62BF1 /* ProfileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C89DE87D59170A59BF29DB /* ProfileService.swift */; };
@@ -110,6 +111,7 @@
 		F387CE9EB627A94583C36905 /* CigarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarIcon.swift; sourceTree = "<group>"; };
 		AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoButtons.swift; sourceTree = "<group>"; };
 		AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSupport.swift; sourceTree = "<group>"; };
+		AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarQuickActions.swift; sourceTree = "<group>"; };
 		F456A8E60766707FEA12C6AB /* FriendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendService.swift; sourceTree = "<group>"; };
 		F45A0F899263EDC54E49B8EA /* Cigar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cigar.swift; sourceTree = "<group>"; };
 		F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
@@ -253,6 +255,7 @@
 				F387CE9EB627A94583C36905 /* CigarIcon.swift */,
 				AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */,
 				AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */,
+				AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */,
 				8C95ABF9625A3D548A7FA88F /* FeedbackSheet.swift */,
 				E01E2818C7850701195E98C9 /* MailComposeView.swift */,
 				6D90177D2555F69A2182BB66 /* StarRatingRow.swift */,
@@ -422,6 +425,7 @@
 				9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */,
 				AA10AA10PHOTO0001BUILD01 /* PhotoButtons.swift in Sources */,
 				AA30IMAGESUPPORTBUILD001 /* ImageSupport.swift in Sources */,
+				AA40QUICKACTIONSBUILD001 /* CigarQuickActions.swift in Sources */,
 				6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */,
 				8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */,
 				0C961807024378FF6186CDB2 /* ExploreView.swift in Sources */,
@@ -525,7 +529,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 165;
+				CURRENT_PROJECT_VERSION = 169;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -548,7 +552,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 165;
+				CURRENT_PROJECT_VERSION = 169;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

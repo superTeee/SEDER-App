@@ -1,0 +1,90 @@
+import SwiftUI
+
+// MARK: - CigarQuickActions
+// Gjenbrukbar long-press-hurtigmeny for et listeelement som representerer en sigar.
+// Handlinger: Legg i humidor · Marker som røkt · Legg i ønskeliste · Del.
+// Bruk: .cigarQuickActions(cigar) på en rad/kort (f.eks. en NavigationLink).
+
+struct CigarQuickActions: ViewModifier {
+    let cigar: Cigar
+    @EnvironmentObject var authService: AuthService
+
+    @State private var showAddHumidor = false
+    @State private var showLogSmoked = false
+    @State private var showLogin = false
+
+    private let humidorService = HumidorService()
+    private let wishlistService = WishlistService()
+    private let tastingService = TastingService()
+
+    private var shareText: String {
+        var parts = [cigar.brand]
+        if let s = cigar.series, !s.isEmpty { parts.append(s) }
+        if let v = cigar.vitola, !v.isEmpty { parts.append(v) }
+        return parts.joined(separator: " ") + " — sjekk ut denne sigaren i Vitola"
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .contextMenu {
+                Button { requireLogin { showAddHumidor = true } } label: {
+                    Label("Legg i humidor", systemImage: "archivebox")
+                }
+                Button { requireLogin { showLogSmoked = true } } label: {
+                    Label("Marker som røkt", systemImage: "flame")
+                }
+                Button { requireLogin { addToWishlist() } } label: {
+                    Label("Legg i ønskeliste", systemImage: "bookmark")
+                }
+                ShareLink(item: shareText) {
+                    Label("Del", systemImage: "square.and.arrow.up")
+                }
+            }
+            .sheet(isPresented: $showAddHumidor) {
+                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId in
+                    guard let uid = authService.userId else { return }
+                    Task {
+                        _ = try? await humidorService.addToHumidor(
+                            cigarId: cigar.id, userId: uid, humidorId: humidorId,
+                            quantity: qty, purchasedAt: purchasedAt, addedToHumidorAt: addedAt)
+                    }
+                }
+            }
+            .sheet(isPresented: $showLogSmoked) {
+                SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType in
+                    guard let uid = authService.userId else { return }
+                    Task {
+                        if let logId = try? await humidorService.logTastingForCigar(
+                            cigarId: cigar.id, userId: uid, smokedAt: smokedAt, rating: rating,
+                            smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
+                            flavorRating: flavor, notes: notes, cutType: cutType),
+                           let data = photoData {
+                            _ = try? await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showLogin) { AuthView() }
+    }
+
+    private func requireLogin(_ action: @escaping () -> Void) {
+        if authService.userId == nil { showLogin = true } else { action() }
+    }
+
+    private func addToWishlist() {
+        guard let uid = authService.userId else { return }
+        Task {
+            try? await wishlistService.addToWishlist(userId: uid, cigarId: cigar.id)
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+    }
+}
+
+extension View {
+    /// Legger til long-press-hurtigmeny med sigar-handlinger på et listeelement.
+    func cigarQuickActions(_ cigar: Cigar) -> some View {
+        modifier(CigarQuickActions(cigar: cigar))
+    }
+}

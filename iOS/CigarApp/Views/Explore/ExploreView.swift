@@ -11,6 +11,7 @@ struct ExploreView: View {
 
     // Søk
     @State private var searchQuery   = ""
+    @FocusState private var searchFocused: Bool
     @State private var searchResults: [Cigar] = []
     @State private var isSearching   = false
     @State private var searchTask: Task<Void, Never>? = nil
@@ -129,6 +130,7 @@ struct ExploreView: View {
                         }
                         .padding(.bottom, 100) // plass til FAB
                     }
+                    .scrollDismissesKeyboard(.immediately) // dra/scroll lukker tastaturet
                 }
 
                 // — FAB: Skann sigar
@@ -277,6 +279,14 @@ struct ExploreView: View {
                 .foregroundColor(Color(.secondaryLabel))
             TextField("Søk etter sigar eller merke…", text: $searchQuery)
                 .submitLabel(.search)
+                .focused($searchFocused)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Ferdig") { searchFocused = false }
+                            .fontWeight(.semibold)
+                    }
+                }
                 .onSubmit {
                     if !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
                         saveRecent(searchQuery.trimmingCharacters(in: .whitespaces))
@@ -380,6 +390,7 @@ struct ExploreView: View {
                             TopCigarRow(rank: index + 1, cigar: cigar)
                         }
                         .buttonStyle(.plain)
+                        .cigarQuickActions(cigar)
                         if index < topCigars.count - 1 {
                             Divider().padding(.leading, 56)
                         }
@@ -403,6 +414,7 @@ struct ExploreView: View {
                 featuredCard(cigar: cigar)
             }
             .buttonStyle(.plain)
+            .cigarQuickActions(cigar)
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
@@ -608,6 +620,7 @@ struct ExploreView: View {
                     NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
                         ExploreResultRow(cigar: cigar)
                     }
+                    .cigarQuickActions(cigar)
                     if cigar.id != results.last?.id {
                         Divider().padding(.leading, 16)
                     }
@@ -1395,6 +1408,7 @@ struct BrandCigarsView: View {
                                         .padding(.vertical, 12)
                                     }
                                     .buttonStyle(.plain)
+                                    .cigarQuickActions(cigar)
 
                                     if cigar.id != group.cigars.last?.id {
                                         Divider().padding(.leading, 16)
