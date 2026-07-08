@@ -200,7 +200,7 @@ struct CigarDetailViewDesign: View {
     // ── Hero image ──────────────────────────────────────────────────────────
     @ViewBuilder
     private var heroImage: some View {
-        ZStack(alignment: .topLeading) {
+        ZStack(alignment: .topTrailing) {
             // Bilde
             Group {
                 if let photoURL = entry?.photoURL, let url = URL(string: photoURL) {
@@ -218,31 +218,22 @@ struct CigarDetailViewDesign: View {
                         default: Rectangle().fill(surfacePrimary)
                         }
                     }
-                } else {
-                    // Ingen bilde → tom placeholder med "Last opp bilde" i midten
+                } else if entry != nil {
+                    // I humidor uten bilde → "Last opp bilde" i midten
                     Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [surfacePrimary, pageBg],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .fill(LinearGradient(colors: [surfacePrimary, pageBg], startPoint: .top, endPoint: .bottom))
                         .overlay {
                             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                                VStack(spacing: 8) {
-                                    if isUploadingPhoto {
-                                        ProgressView().tint(action)
-                                    } else {
-                                        Image(systemName: "arrow.up.circle.fill")
-                                            .font(.system(size: 34))
-                                            .foregroundColor(action)
-                                        Text("Last opp bilde")
-                                            .font(.system(size: 14, weight: .medium))
-                                            .foregroundColor(action)
-                                    }
-                                }
+                                UploadPhotoPlaceholder(isBusy: isUploadingPhoto)
                             }
+                        }
+                } else {
+                    // Ikke i humidor, ingen bilde → nøytralt sigarikon
+                    Rectangle()
+                        .fill(LinearGradient(colors: [surfacePrimary, pageBg], startPoint: .top, endPoint: .bottom))
+                        .overlay {
+                            CigarIcon(color: textSubtle.opacity(0.3))
+                                .frame(width: 60, height: 60)
                         }
                 }
             }
@@ -250,26 +241,11 @@ struct CigarDetailViewDesign: View {
             .frame(height: 240)
             .clipped()
 
-            // "Endre bilde"-pill (frosted glass, top-left) — kun når det finnes et bilde
-            if hasPhoto {
+            // "Endre"-pille (felles stil) — kun for humidor-entry med et bilde
+            if entry != nil, hasPhoto {
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    HStack(spacing: 6) {
-                        if isUploadingPhoto {
-                            ProgressView().scaleEffect(0.75).tint(textPrimary)
-                        } else {
-                            Image(systemName: "camera.fill").font(.system(size: 12))
-                        }
-                        Text("Endre bilde")
-                            .font(.system(size: 13, weight: .medium))
-                    }
-                    .foregroundColor(Color(red: 0.965, green: 0.953, blue: 0.941))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial.opacity(0.85))
-                    .clipShape(Capsule())
+                    EditPhotoPill(isBusy: isUploadingPhoto)
                 }
-                .padding(.leading, 20)
-                .padding(.top, 16) // nær toppen av bildet
             }
         }
         // Quantity-pill flytende i nederkant av bildet (50% overlapp)

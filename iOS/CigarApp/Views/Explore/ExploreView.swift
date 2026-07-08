@@ -29,6 +29,9 @@ struct ExploreView: View {
     // Dagens utvalgte
     @State private var featuredCigar: Cigar? = nil
     @State private var isLoadingFeatured = false
+    // Hvilken dag (dag-i-året) det gjeldende utvalget ble beregnet for —
+    // brukes til å friske opp valget når appen åpnes en ny dag.
+    @AppStorage("featuredDayOfYear") private var featuredDayOfYear: Int = -1
 
     // Avansert filter
     @State private var showFilterSheet   = false
@@ -227,7 +230,15 @@ struct ExploreView: View {
                 Text(scanService.errorMessage ?? "")
             }
             .task { await loadBrands(); await loadFlavorOptions(); await loadTopCigars(); await loadFeaturedCigar() }
-            .onAppear { recentSearches = loadRecent() }
+            .onAppear {
+                recentSearches = loadRecent()
+                // Nytt døgn? Beregn dagens utvalgte på nytt (viewet lever ofte på
+                // tvers av dager i minnet, så .task alene rekker ikke å rotere).
+                let today = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
+                if today != featuredDayOfYear {
+                    Task { await loadFeaturedCigar() }
+                }
+            }
             .onChange(of: searchQuery) { query in
                 searchTask?.cancel()
                 if query.isEmpty {
@@ -664,19 +675,21 @@ struct ExploreView: View {
     private func loadFeaturedCigar() async {
         isLoadingFeatured = true
         defer { isLoadingFeatured = false }
+        let today = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
         do {
             // Prøv smakstilpasset valg først (ligner journalen, men ikke logget før)
             if let matched = try await cigarService.fetchTasteFeaturedCigar() {
                 featuredCigar = matched
+                featuredDayOfYear = today
                 return
             }
             // Fallback: deterministisk rating-valg (ny bruker / for lite loggdata)
             let candidates = try await cigarService.fetchAboveAverageCigars()
             guard !candidates.isEmpty else { return }
             // Deterministisk valg: samme sigar hele dagen, ny sigar neste dag
-            let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
-            let index = (dayOfYear - 1) % candidates.count
+            let index = (today - 1) % candidates.count
             featuredCigar = candidates[index]
+            featuredDayOfYear = today
         } catch {
             print("Feil ved lasting av dagens utvalgte: \(error)")
         }
@@ -907,7 +920,11 @@ struct AdvancedFilterSheet: View {
     private let fillerOptions   = ["Nicaraguan", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador", "Peru", "Pennsylvania"]
     private let smokingTimeOpts = ["Under 45 min", "45–90 min", "90 min+"]
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private var chipSelectedBg: Color { Color(hex: "#E0D2BA") }
+    // Samme farge som smaksnote-ikonene: #8F7B51 i lys modus, accent i mørk.
+    private var chipStroke: Color { colorScheme == .dark ? Color("Accent") : Color(hex: "#8F7B51") }
 
     private var ctaText: String {
         if let count = resultCount {
@@ -992,6 +1009,8 @@ struct AdvancedFilterSheet: View {
             }
             .background(Color("Card"))
         }
+        .padding(.horizontal, 8)          // 8px luft på hver side av arket
+        .frame(maxWidth: .infinity)
         .background(Color("Card"))
     }
 
@@ -1013,7 +1032,7 @@ struct AdvancedFilterSheet: View {
                         .padding(.vertical, 9)
                         .background(isSelected ? chipSelectedBg : Color.clear)
                         .foregroundColor(Color(.label))
-                        .overlay(Capsule().stroke(isSelected ? Color.clear : Color(red: 202/255, green: 189/255, blue: 162/255), lineWidth: 1))
+                        .overlay(Capsule().stroke(isSelected ? Color.clear : chipStroke, lineWidth: 1))
                         .clipShape(Capsule())
                         .onTapGesture {
                             if isSelected { crossSection.removeAll { $0 == opt } }
@@ -1028,7 +1047,8 @@ struct AdvancedFilterSheet: View {
     }
 
     private func sectionDivider() -> some View {
-        Divider().padding(.horizontal, 16)
+        // +10px luft mellom hver filterkategori (5 over + 5 under)
+        Divider().padding(.horizontal, 16).padding(.vertical, 5)
     }
 
     // ── Multi-select chip section med expand ──
@@ -1048,7 +1068,8 @@ struct AdvancedFilterSheet: View {
             MultiChipFlowLayout(
                 options: showAll.wrappedValue ? options : Array(options.prefix(initialCount)),
                 selection: selection,
-                selectedBg: chipSelectedBg
+                selectedBg: chipSelectedBg,
+                strokeColor: chipStroke
             )
             .padding(.horizontal, 16)
 
@@ -1057,10 +1078,11 @@ struct AdvancedFilterSheet: View {
                     withAnimation(.easeInOut(duration: 0.2)) { showAll.wrappedValue.toggle() }
                 } label: {
                     Text(showAll.wrappedValue ? "Vis færre ↑" : "Se alle ↓")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundColor(Color("Accent"))
                 }
                 .padding(.horizontal, 16)
+                .padding(.top, 4)   // litt mer luft ned til chipsene
                 .padding(.bottom, 14)
             } else {
                 Spacer().frame(height: 14)
@@ -1107,7 +1129,7 @@ struct AdvancedFilterSheet: View {
                         .padding(.vertical, 9)
                         .background(isSelected ? chipSelectedBg : Color.clear)
                         .foregroundColor(Color(.label))
-                        .overlay(Capsule().stroke(isSelected ? Color.clear : Color(red: 202/255, green: 189/255, blue: 162/255), lineWidth: 1))
+                        .overlay(Capsule().stroke(isSelected ? Color.clear : chipStroke, lineWidth: 1))
                         .clipShape(Capsule())
                         .onTapGesture {
                             if isSelected { smokingTime.removeAll { $0 == opt } }
@@ -1128,9 +1150,11 @@ struct MultiChipFlowLayout: View {
     let options: [String]
     @Binding var selection: [String]
     let selectedBg: Color
+    var strokeColor: Color = Color(red: 202/255, green: 189/255, blue: 162/255)
 
     var body: some View {
-        let rows = computeRows(screenWidth: UIScreen.main.bounds.width - 32)
+        // Innhold ligger 8px (ark) + 16px (seksjon) inne på hver side.
+        let rows = computeRows(screenWidth: UIScreen.main.bounds.width - 48)
         VStack(alignment: .leading, spacing: 8) {
             ForEach(rows.indices, id: \.self) { rowIdx in
                 HStack(spacing: 8) {
@@ -1142,7 +1166,7 @@ struct MultiChipFlowLayout: View {
                             .padding(.vertical, 9)
                             .background(isSelected ? selectedBg : Color.clear)
                             .foregroundColor(Color(.label))
-                            .overlay(Capsule().stroke(isSelected ? Color.clear : Color(red: 202/255, green: 189/255, blue: 162/255), lineWidth: 1))
+                            .overlay(Capsule().stroke(isSelected ? Color.clear : strokeColor, lineWidth: 1))
                             .clipShape(Capsule())
                             .onTapGesture {
                                 if isSelected { selection.removeAll { $0.lowercased() == opt.lowercased() } }
@@ -1343,21 +1367,47 @@ struct BrandCigarsView: View {
                         .foregroundColor(Color(.secondaryLabel))
                 }
             } else {
-                List {
-                    ForEach(groupedBySeries, id: \.series) { group in
-                        Section(group.series) {
-                            ForEach(group.cigars) { cigar in
-                                NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
-                                    BrandCigarRow(cigar: cigar)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(groupedBySeries, id: \.series) { group in
+                            // Serie-header: samme farge som tittel, ingen innrykk,
+                            // venstrejustert med kortene.
+                            Text(group.series)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+                                .tracking(-0.3)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 22)
+                                .padding(.bottom, 8)
+
+                            VStack(spacing: 0) {
+                                ForEach(group.cigars) { cigar in
+                                    NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
+                                        HStack {
+                                            BrandCigarRow(cigar: cigar)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 13, weight: .medium))
+                                                .foregroundColor(Color(.tertiaryLabel))
+                                        }
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 12)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if cigar.id != group.cigars.last?.id {
+                                        Divider().padding(.leading, 16)
+                                    }
                                 }
-                                .listRowBackground(Color("Card"))
                             }
+                            .background(Color("Card"))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal, 16)
                         }
                     }
+                    .padding(.bottom, 40)
                 }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
-                .background(Color("Background"))
             }
         }
         .navigationTitle(brand)

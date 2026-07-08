@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 // MARK: - HumidorDetailView
 // Viser sigarene i én humidor. Per-sigar kontekstmeny for å flytte mellom humidorer.
@@ -18,6 +19,11 @@ struct HumidorDetailView: View {
     @State private var isLoading = true
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
+
+    // Bilde (cover) — kan lastes opp direkte fra denne visningen
+    @State private var coverURL: String?
+    @State private var coverItem: PhotosPickerItem?
+    @State private var isUploadingCover = false
 
     private var visibleEntries: [HumidorEntry] {
         entries.filter { $0.quantity > 0 }
@@ -87,6 +93,9 @@ struct HumidorDetailView: View {
                 })
             }
         }
+        .onChange(of: coverItem) { _, item in
+            Task { await uploadCover(item) }
+        }
         .task { await load() }
         .refreshable { await load() }
     }
@@ -94,21 +103,39 @@ struct HumidorDetailView: View {
     // ── Hero image (som i sigar-detalj) ──────────────────────────────────────
     @ViewBuilder
     private var heroImage: some View {
-        Group {
-            if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let img): img.resizable().scaledToFill()
-                    default: heroPlaceholder
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if let urlStr = coverURL, let url = URL(string: urlStr) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img): img.resizable().scaledToFill()
+                        default: heroPlaceholder
+                        }
                     }
+                    .id(urlStr)
+                } else {
+                    // Ingen bilde → "Last opp bilde" i midten
+                    Rectangle()
+                        .fill(LinearGradient(colors: [Color("Surface"), Color("Background")],
+                                             startPoint: .top, endPoint: .bottom))
+                        .overlay {
+                            PhotosPicker(selection: $coverItem, matching: .images) {
+                                UploadPhotoPlaceholder(isBusy: isUploadingCover)
+                            }
+                        }
                 }
-            } else {
-                heroPlaceholder
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 220)
+            .clipped()
+
+            // "Endre"-pille (felles stil) — kun når det finnes et bilde
+            if coverURL != nil {
+                PhotosPicker(selection: $coverItem, matching: .images) {
+                    EditPhotoPill(isBusy: isUploadingCover)
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 220)
-        .clipped()
     }
 
     private var heroPlaceholder: some View {
@@ -207,11 +234,24 @@ struct HumidorDetailView: View {
     }
 
     private func load() async {
+        if coverURL == nil { coverURL = humidor.imageURL }
         guard let userId = authService.userId else { isLoading = false; return }
         isLoading = true
         let all = (try? await humidorService.fetchHumidor(userId: userId)) ?? []
         entries = all.filter { $0.humidorId == humidor.id }
         isLoading = false
+    }
+
+    private func uploadCover(_ item: PhotosPickerItem?) async {
+        guard let item, let userId = authService.userId else { return }
+        isUploadingCover = true
+        defer { isUploadingCover = false }
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+        if let newURL = try? await humidorService.uploadHumidorCover(
+            humidorId: humidor.id, userId: userId, imageData: data) {
+            coverURL = newURL
+            onChanged()
+        }
     }
 
     private func move(_ entry: HumidorEntry, to humidorId: UUID) {

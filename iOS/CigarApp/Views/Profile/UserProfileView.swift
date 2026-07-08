@@ -34,7 +34,14 @@ struct UserProfileView: View {
 
     @State private var uploadErrorMessage: String?
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private let profileService = ProfileService()
+
+    // Samme farge som smaksnote-ikonene: #8F7B51 i lys modus, accent i mørk.
+    private var accentIconColor: Color {
+        colorScheme == .dark ? Color("Accent") : Color(hex: "#8F7B51")
+    }
 
     var body: some View {
         ScrollView {
@@ -157,19 +164,7 @@ struct UserProfileView: View {
 
                 if isOwnProfile {
                     PhotosPicker(selection: $coverItem, matching: .images) {
-                        HStack(spacing: 5) {
-                            if isUploadingCover {
-                                ProgressView().tint(.white).scaleEffect(0.7)
-                            } else {
-                                Image(systemName: "camera.fill").font(.system(size: 11))
-                            }
-                            Text("Endre").font(.caption)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(Color.black.opacity(0.4))
-                        .clipShape(Capsule())
-                        .padding(10)
+                        EditPhotoPill(isBusy: isUploadingCover)
                     }
                 }
             }
@@ -343,7 +338,7 @@ struct UserProfileView: View {
         VStack(spacing: 5) {
             Image(systemName: icon)
                 .font(.system(size: 19))
-                .foregroundColor(Color("Accent"))
+                .foregroundColor(accentIconColor)
             Text(showDash ? "–" : "\(value)")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(Color("TextPrimary"))
@@ -521,54 +516,51 @@ struct UserProfileView: View {
         if let log = lastLog, let cigar = log.cigar {
             VStack(alignment: .leading, spacing: 0) {
                 sectionHeader("Sist røkt")
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 14) {
-                        // Ikon eller bilde
-                        if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {
-                            AsyncImage(url: url) { img in
-                                img.resizable().scaledToFill()
-                            } placeholder: {
-                                smokeIconBox
-                            }
-                            .frame(width: 68, height: 68)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        } else {
+                HStack(alignment: .top, spacing: 14) {
+                    // Ikon eller bilde
+                    if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {
+                        AsyncImage(url: url) { img in
+                            img.resizable().scaledToFill()
+                        } placeholder: {
                             smokeIconBox
                         }
-
-                        // Info — brand, series
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(cigar.brand)
-                                .font(.subheadline.bold())
-                                .foregroundColor(Color("TextPrimary"))
-                                .lineLimit(1)
-                            if let series = cigar.series {
-                                Text(series)
-                                    .font(.caption)
-                                    .foregroundColor(Color("TextSecondary"))
-                                    .lineLimit(1)
-                            }
-                        }
-
-                        Spacer(minLength: 4)
-
-                        // Rating-badge
-                        if let rating = log.rating {
-                            Text("\(rating)")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color("Accent"))
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                        }
+                        .frame(width: 68, height: 68)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        smokeIconBox
                     }
 
-                    // Tidspunkt for røkt — alltid nederst
-                    Text(log.smokedAt, format: .dateTime.day().month(.wide).year().hour().minute())
-                        .font(.caption)
-                        .foregroundColor(Color("TextSecondary").opacity(0.55))
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    // Info — brand, series/vitola, tidspunkt (alt stablet vertikalt)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(cigar.brand)
+                            .font(.subheadline.bold())
+                            .foregroundColor(Color("TextPrimary"))
+                            .lineLimit(1)
+                        if let series = cigar.series {
+                            Text(series)
+                                .font(.caption)
+                                .foregroundColor(Color("TextSecondary"))
+                                .lineLimit(1)
+                        }
+                        // Tidspunkt for røkt — under de andre tekstene
+                        Text(log.smokedAt, format: .dateTime.day().month(.wide).year().hour().minute())
+                            .font(.caption2)
+                            .foregroundColor(Color("TextSecondary").opacity(0.55))
+                            .padding(.top, 2)
+                    }
+
+                    Spacer(minLength: 4)
+
+                    // Rating-badge
+                    if let rating = log.rating {
+                        Text("\(rating)")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color("Accent"))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)

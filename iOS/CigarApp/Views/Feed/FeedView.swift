@@ -15,6 +15,7 @@ private let vitolaShareURL = "https://vitola.app"
 struct FeedView: View {
 
     @EnvironmentObject var authService: AuthService
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var posts: [FeedPost] = []
     @State private var isLoading = true
@@ -43,6 +44,9 @@ struct FeedView: View {
             .navigationTitle("Feed")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(Color("Background"), for: .navigationBar)
+            // Tittelfargen fulgte ikke lys/mørk modus når baren fikk egen bakgrunn
+            // (ble hvit og usynlig i lys modus ved scroll). Tving riktig kontrast.
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar {
                 if authService.userId != nil {
                     ToolbarItem(placement: .primaryAction) {
