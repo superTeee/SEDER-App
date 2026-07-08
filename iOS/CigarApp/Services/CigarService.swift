@@ -195,22 +195,70 @@ class CigarService: ObservableObject {
     func fetchDistinctBrands() async throws -> [String] {
         struct BrandRow: Decodable { let brand: String }
 
-        let rows: [BrandRow] = try await supabase
-            .from("cigars")
-            .select("brand")
-            .order("brand")
-            .execute()
-            .value
-
-        // Dedupliser i Swift — PostgREST støtter ikke GROUP BY direkte
+        // PostgREST returnerer maks 1000 rader per kall. Med >1000 sigarer ble
+        // merkelista kuttet (stoppet ~«H»). Paginer med .range() til alt er hentet.
         var seen = Set<String>()
         var brands: [String] = []
-        for row in rows {
-            if seen.insert(row.brand).inserted {
-                brands.append(row.brand)
+        let pageSize = 1000
+        var from = 0
+
+        while true {
+            let rows: [BrandRow] = try await supabase
+                .from("cigars")
+                .select("brand")
+                .order("brand")
+                .range(from: from, to: from + pageSize - 1)
+                .execute()
+                .value
+
+            for row in rows {
+                if seen.insert(row.brand).inserted {
+                    brands.append(row.brand)
+                }
             }
+
+            if rows.count < pageSize { break } // siste side
+            from += pageSize
         }
+
         return brands
+    }
+
+    // MARK: - Distinkte smaksnoter (for avansert-søk-filter)
+    // Henter alle flavor_notes-arrays og returnerer et sett med de faktiske
+    // rå-notatene som finnes på sigarer i databasen.
+    func fetchDistinctFlavorNotes() async throws -> [String] {
+        struct NoteRow: Decodable { let flavorNotes: [String]?
+            enum CodingKeys: String, CodingKey { case flavorNotes = "flavor_notes" }
+        }
+
+        var seen = Set<String>()
+        var notes: [String] = []
+        let pageSize = 1000
+        var from = 0
+
+        while true {
+            let rows: [NoteRow] = try await supabase
+                .from("cigars")
+                .select("flavor_notes")
+                .range(from: from, to: from + pageSize - 1)
+                .execute()
+                .value
+
+            for row in rows {
+                for note in row.flavorNotes ?? [] {
+                    let trimmed = note.trimmingCharacters(in: .whitespaces)
+                    if !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted {
+                        notes.append(trimmed)
+                    }
+                }
+            }
+
+            if rows.count < pageSize { break }
+            from += pageSize
+        }
+
+        return notes
     }
 
     // MARK: - Avansert filtrert søk
@@ -243,6 +291,7 @@ class CigarService: ObservableObject {
         sweetnessRange: ClosedRange<Double>? = nil,
         flavorIntensityRange: ClosedRange<Double>? = nil,
         smokingNotes: [String] = [],
+        flavorNoteGroups: [[String]] = [],
         crossSection: [String] = []
     ) async throws -> [Cigar] {
         var builder = supabase
@@ -280,9 +329,14 @@ class CigarService: ObservableObject {
         if let r = flavorIntensityRange {
             builder = builder.gte("flavor_intensity", value: r.lowerBound).lte("flavor_intensity", value: r.upperBound)
         }
-        if !smokingNotes.isEmpty {
-            // Én overlaps-sjekk per kategori → AND-logikk mellom kategoriene,
-            // OR innad i hver kategori sine DB-verdier.
+        if !flavorNoteGroups.isEmpty {
+            // Dynamiske grupper (utledet fra faktiske DB-notater). Én overlaps
+            // per gruppe → AND mellom valgte smaksnoter, OR innad i hver gruppe.
+            for group in flavorNoteGroups where !group.isEmpty {
+                builder = builder.overlaps("flavor_notes", value: group)
+            }
+        } else if !smokingNotes.isEmpty {
+            // Fallback: statisk norsk→engelsk-mapping.
             for note in smokingNotes {
                 let engValues = Self.norToEngNotes[note] ?? [note]
                 builder = builder.overlaps("flavor_notes", value: engValues)

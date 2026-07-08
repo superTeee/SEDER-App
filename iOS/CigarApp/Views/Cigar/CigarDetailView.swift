@@ -544,6 +544,7 @@ struct AddToHumidorSheet: View {
     private let humidorService = HumidorService()
     @State private var humidors: [Humidor] = []
     @State private var selectedHumidorId: UUID? = nil
+    @State private var showCreateHumidor = false
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -565,6 +566,24 @@ struct AddToHumidorSheet: View {
                         if let vitola = cigar.vitola {
                             Text(vitola).font(.caption).foregroundColor(Color("TextSecondary"))
                         }
+                    }
+                }
+
+                // Humidor-valg øverst — velg hvilken humidor sigaren skal i,
+                // eller opprett en ny på stedet.
+                Section("Humidor") {
+                    if !humidors.isEmpty {
+                        Picker("Velg humidor", selection: $selectedHumidorId) {
+                            ForEach(humidors) { h in
+                                Text(h.name).tag(Optional(h.id))
+                            }
+                        }
+                    }
+                    Button {
+                        showCreateHumidor = true
+                    } label: {
+                        Label("Opprett ny humidor", systemImage: "plus.circle.fill")
+                            .foregroundColor(Color("Accent"))
                     }
                 }
 
@@ -625,16 +644,6 @@ struct AddToHumidorSheet: View {
                 Section("Antall") {
                     Stepper("\(quantity) stk", value: $quantity, in: 1...100)
                 }
-
-                if !humidors.isEmpty {
-                    Section("Humidor") {
-                        Picker("Velg humidor", selection: $selectedHumidorId) {
-                            ForEach(humidors) { h in
-                                Text(h.name).tag(Optional(h.id))
-                            }
-                        }
-                    }
-                }
             }
             .navigationTitle("Legg i humidor")
             .navigationBarTitleDisplayMode(.inline)
@@ -650,6 +659,13 @@ struct AddToHumidorSheet: View {
                     .fontWeight(.semibold)
                 }
             }
+            .sheet(isPresented: $showCreateHumidor) {
+                if let userId {
+                    CreateHumidorSheet(userId: userId, onSaved: {
+                        Task { await reloadAndSelectNewest() }
+                    })
+                }
+            }
             .task { await loadHumidors() }
         }
     }
@@ -658,6 +674,18 @@ struct AddToHumidorSheet: View {
         guard let userId else { return }
         humidors = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
         if selectedHumidorId == nil { selectedHumidorId = humidors.first?.id }
+    }
+
+    // Etter at en ny humidor er opprettet: hent lista på nytt og velg den nye.
+    private func reloadAndSelectNewest() async {
+        guard let userId else { return }
+        let before = Set(humidors.map(\.id))
+        humidors = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
+        if let newOne = humidors.first(where: { !before.contains($0.id) }) {
+            selectedHumidorId = newOne.id
+        } else if selectedHumidorId == nil {
+            selectedHumidorId = humidors.first?.id
+        }
     }
 }
 

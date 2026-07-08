@@ -24,82 +24,43 @@ struct HumidorDetailView: View {
     }
 
     var body: some View {
-        List {
-            // Info-topp
-            Section {
-                HStack(spacing: 14) {
-                    coverThumb
-                    VStack(alignment: .leading, spacing: 3) {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                heroImage
+
+                // Navn + metadata (samme stil som origin/vitola i sigar-detalj)
+                VStack(alignment: .leading, spacing: 18) {
+                    Text(humidor.name)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(Color("TextPrimary"))
+                        .tracking(-0.4)
+
+                    VStack(alignment: .leading, spacing: 10) {
                         if let type = humidor.typeEnum {
-                            Label(type.displayName, systemImage: type.icon)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundColor(Color("TextPrimary"))
+                            infoRow(icon: type.icon, text: type.displayName)
                         }
                         if let loc = humidor.location, !loc.isEmpty {
-                            Text(loc).font(.caption).foregroundColor(Color("TextSecondary"))
+                            infoRow(icon: "mappin", text: loc)
                         }
-                        Text(capacityLabel)
-                            .font(.caption).foregroundColor(Color("TextSecondary"))
+                        infoRow(icon: "square.stack.3d.up.fill", text: capacityLabel)
                     }
-                    Spacer()
                 }
-            }
-            .listRowBackground(Color("Card"))
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
 
-            Section("Sigarer") {
-                ForEach(visibleEntries) { entry in
-                    if let cigar = entry.cigar {
-                        NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, humidorEntry: entry)) {
-                            HumidorRow(entry: entry)
-                        }
-                        .listRowBackground(Color("Card"))
-                        .contextMenu {
-                            if allHumidors.count > 1 {
-                                Menu {
-                                    ForEach(allHumidors.filter { $0.id != humidor.id }) { h in
-                                        Button(h.name) { move(entry, to: h.id) }
-                                    }
-                                } label: {
-                                    Label("Flytt til humidor", systemImage: "arrow.right.arrow.left")
-                                }
-                            }
-                            Button(role: .destructive) { remove(entry) } label: {
-                                Label("Fjern fra humidor", systemImage: "trash")
-                            }
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) { remove(entry) } label: {
-                                Label("Fjern", systemImage: "trash")
-                            }
-                        }
-                    }
-                }
+                cigarListSection
+                    .padding(.top, 28)
             }
+            .padding(.bottom, 48)
         }
-        .scrollContentBackground(.hidden)
         .background(Color("Background"))
         .overlay {
             if isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if visibleEntries.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "archivebox")
-                        .font(.system(size: 48))
-                        .foregroundColor(Color("TextSecondary").opacity(0.5))
-                    Text("Ingen sigarer her ennå")
-                        .font(.headline)
-                    Text("Legg til sigarer fra Utforsk eller scan,\nog velg denne humidoren.")
-                        .font(.subheadline)
-                        .foregroundColor(Color("TextSecondary"))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal, 32)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color("Background"))
             }
         }
         .navigationTitle(humidor.name)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -130,20 +91,110 @@ struct HumidorDetailView: View {
         .refreshable { await load() }
     }
 
+    // ── Hero image (som i sigar-detalj) ──────────────────────────────────────
     @ViewBuilder
-    private var coverThumb: some View {
-        if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
-            AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: { placeholder }
-                .frame(width: 60, height: 60).clipShape(RoundedRectangle(cornerRadius: 8))
-        } else {
-            placeholder
+    private var heroImage: some View {
+        Group {
+            if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img): img.resizable().scaledToFill()
+                    default: heroPlaceholder
+                    }
+                }
+            } else {
+                heroPlaceholder
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 220)
+        .clipped()
+    }
+
+    private var heroPlaceholder: some View {
+        Rectangle()
+            .fill(LinearGradient(colors: [Color("Surface"), Color("Background")],
+                                 startPoint: .top, endPoint: .bottom))
+            .overlay {
+                Image(systemName: humidor.typeEnum?.icon ?? "archivebox")
+                    .font(.system(size: 46))
+                    .foregroundColor(Color("Accent").opacity(0.5))
+            }
+    }
+
+    @ViewBuilder
+    private func infoRow(icon: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 17))
+                .foregroundColor(Color("TextPrimary"))
+                .frame(width: 20, alignment: .center)
+            Text(text)
+                .font(.system(size: 18))
+                .foregroundColor(Color("TextPrimary"))
         }
     }
 
-    private var placeholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8).fill(Color("Accent").opacity(0.12)).frame(width: 60, height: 60)
-            Image(systemName: humidor.typeEnum?.icon ?? "archivebox").foregroundColor(Color("Accent"))
+    // ── Sigarliste ───────────────────────────────────────────────────────────
+    @ViewBuilder
+    private var cigarListSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("SIGARER")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color("TextSecondary"))
+                .tracking(0.6)
+                .padding(.horizontal, 20)
+
+            if visibleEntries.isEmpty && !isLoading {
+                VStack(spacing: 12) {
+                    Image(systemName: "archivebox")
+                        .font(.system(size: 44))
+                        .foregroundColor(Color("TextSecondary").opacity(0.5))
+                    Text("Ingen sigarer her ennå")
+                        .font(.headline)
+                        .foregroundColor(Color("TextPrimary"))
+                    Text("Legg til sigarer fra Utforsk eller scan,\nog velg denne humidoren.")
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+                .padding(.horizontal, 32)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(visibleEntries) { entry in
+                        if let cigar = entry.cigar {
+                            NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, humidorEntry: entry)) {
+                                HumidorRow(entry: entry)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                if allHumidors.count > 1 {
+                                    Menu {
+                                        ForEach(allHumidors.filter { $0.id != humidor.id }) { h in
+                                            Button(h.name) { move(entry, to: h.id) }
+                                        }
+                                    } label: {
+                                        Label("Flytt til humidor", systemImage: "arrow.right.arrow.left")
+                                    }
+                                }
+                                Button(role: .destructive) { remove(entry) } label: {
+                                    Label("Fjern fra humidor", systemImage: "trash")
+                                }
+                            }
+                            if entry.id != visibleEntries.last?.id {
+                                Divider().padding(.leading, 16)
+                            }
+                        }
+                    }
+                }
+                .background(Color("Card"))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(.horizontal, 16)
+            }
         }
     }
 

@@ -19,6 +19,9 @@ struct ExploreView: View {
     @State private var allBrands: [String] = []
     @State private var isLoadingBrands = false
 
+    // Smaksnote-filtervalg utledet fra faktiske notater i databasen
+    @State private var flavorFilterOptions: [FlavorFilterOption] = []
+
     // Topp 3 sigarer
     @State private var topCigars: [Cigar] = []
     @State private var isLoadingTop = false
@@ -104,10 +107,13 @@ struct ExploreView: View {
                 Color("Background").ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // — Søkefelt
-                    searchBar
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                    // — Søkefelt + filter-knapp
+                    HStack(spacing: 10) {
+                        searchBar
+                        filterButton
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
 
                     // — Innhold
                     ScrollView {
@@ -128,11 +134,6 @@ struct ExploreView: View {
             .navigationTitle("Utforsk")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(Color("Background"), for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    filterButton
-                }
-            }
             // --- Sheets & navigasjon ---
             .sheet(isPresented: $showFilterSheet) {
                 AdvancedFilterSheet(
@@ -153,6 +154,7 @@ struct ExploreView: View {
                     smokingTime:         $filterSmokingTime,
                     crossSection:        $filterCrossSection,
                     resultCount:         $filterResultCount,
+                    flavorOptions:       flavorFilterOptions.map(\.label),
                     onApply: {
                         showFilterSheet = false
                         Task { await applyFilters() }
@@ -224,7 +226,7 @@ struct ExploreView: View {
             } message: {
                 Text(scanService.errorMessage ?? "")
             }
-            .task { await loadBrands(); await loadTopCigars(); await loadFeaturedCigar() }
+            .task { await loadBrands(); await loadFlavorOptions(); await loadTopCigars(); await loadFeaturedCigar() }
             .onAppear { recentSearches = loadRecent() }
             .onChange(of: searchQuery) { query in
                 searchTask?.cancel()
@@ -292,17 +294,23 @@ struct ExploreView: View {
         Button {
             showFilterSheet = true
         } label: {
-            HStack(spacing: 5) {
-                if hasActiveFilters {
-                    Circle()
-                        .fill(Color("Accent"))
-                        .frame(width: 7, height: 7)
+            Image(systemName: "slider.horizontal.3")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+                .background(Color("Accent"))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(alignment: .topTrailing) {
+                    if hasActiveFilters {
+                        Circle()
+                            .fill(.white)
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().fill(Color("Accent")).frame(width: 6, height: 6))
+                            .offset(x: 3, y: -3)
+                    }
                 }
-                Text("Avansert søk")
-                    .font(.system(size: 14, weight: .medium))
-            }
-            .foregroundColor(Color("Accent"))
         }
+        .accessibilityLabel("Avansert søk")
     }
 
     // MARK: - FAB
@@ -623,6 +631,26 @@ struct ExploreView: View {
         }
     }
 
+    private func loadFlavorOptions() async {
+        do {
+            let rawNotes = try await cigarService.fetchDistinctFlavorNotes()
+            // Grupper rå-notatene på ikon-familie slik at hvert filtervalg
+            // svarer til minst én ekte sigar. Ukjente notater (uten ikon) droppes.
+            var byFamily: [String: [String]] = [:]
+            for note in rawNotes {
+                guard let family = FlavorIcon.name(for: note) else { continue }
+                byFamily[family, default: []].append(note)
+            }
+            flavorFilterOptions = byFamily
+                .map { FlavorFilterOption(label: FlavorIcon.displayLabel(for: $0.key),
+                                          iconFamily: $0.key,
+                                          dbNotes: $0.value) }
+                .sorted { $0.label < $1.label }
+        } catch {
+            print("Feil ved lasting av smaksnoter: \(error)")
+        }
+    }
+
     private func loadTopCigars() async {
         isLoadingTop = true
         defer { isLoadingTop = false }
@@ -678,6 +706,13 @@ struct ExploreView: View {
         }
     }
 
+    // Oversetter valgte smaksnote-etiketter til grupper av faktiske DB-notater.
+    private var selectedFlavorNoteGroups: [[String]] {
+        filterSmokingNotes.compactMap { label in
+            flavorFilterOptions.first { $0.label == label }?.dbNotes
+        }
+    }
+
     private func applyFilters() async {
         isSearching = true
         defer { isSearching = false }
@@ -693,6 +728,7 @@ struct ExploreView: View {
                 sweetnessRange:      filterSweetnessMin > 1.0 || filterSweetnessMax < 5.0 ? filterSweetnessMin...filterSweetnessMax : nil,
                 flavorIntensityRange: filterFlavorIntensityMin > 1.0 || filterFlavorIntensityMax < 5.0 ? filterFlavorIntensityMin...filterFlavorIntensityMax : nil,
                 smokingNotes:        filterSmokingNotes,
+                flavorNoteGroups:    selectedFlavorNoteGroups,
                 crossSection:        filterCrossSection
             )
             hasAppliedFilter = true
@@ -750,6 +786,7 @@ struct ExploreView: View {
                 sweetnessRange:      filterSweetnessMin > 1.0 || filterSweetnessMax < 5.0 ? filterSweetnessMin...filterSweetnessMax : nil,
                 flavorIntensityRange: filterFlavorIntensityMin > 1.0 || filterFlavorIntensityMax < 5.0 ? filterFlavorIntensityMin...filterFlavorIntensityMax : nil,
                 smokingNotes:        filterSmokingNotes,
+                flavorNoteGroups:    selectedFlavorNoteGroups,
                 crossSection:        filterCrossSection
             )
             filterResultCount = results.count
@@ -777,6 +814,17 @@ struct ExploreView: View {
         list.removeAll { $0 == term }
         recentSearchesRaw = list.joined(separator: "§")
     }
+}
+
+// MARK: - FlavorFilterOption
+// Ett smaksnote-filtervalg, utledet fra faktiske flavor_notes i databasen.
+// label = norsk visningsnavn (f.eks. «Kakao»), dbNotes = rå-notatene som
+// mapper til samme ikon-familie (brukes til overlaps-filtrering).
+struct FlavorFilterOption: Identifiable, Hashable {
+    let label: String
+    let iconFamily: String
+    let dbNotes: [String]
+    var id: String { iconFamily }
 }
 
 // MARK: - ExploreResultRow
@@ -835,6 +883,9 @@ struct AdvancedFilterSheet: View {
     @Binding var crossSection:       [String]
     @Binding var resultCount:        Int?
 
+    // Dynamiske smaksnote-valg (norske etiketter) utledet fra databasen
+    var flavorOptions: [String] = []
+
     var onApply: () -> Void
     var onReset: () -> Void
 
@@ -854,7 +905,6 @@ struct AdvancedFilterSheet: View {
     private let wrapperOptions  = ["Connecticut Shade", "Ecuador Connecticut", "San Andrés", "Cameroon", "Sumatra", "Broadleaf", "Habano", "Colorado Claro", "Maduro", "Corojo"]
     private let binderOptions   = ["Nicaraguan", "Dominican", "Honduran", "Mexican San Andrés", "Ecuadorian", "Connecticut", "Sumatran", "Cameroon"]
     private let fillerOptions   = ["Nicaraguan", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador", "Peru", "Pennsylvania"]
-    private let notesOptions    = ["Kremete", "Nøtter", "Kaffe", "Søt", "Pepper", "Tre", "Jord", "Lær", "Krydder", "Blomst", "Sitrus", "Sjokolade"]
     private let smokingTimeOpts = ["Under 45 min", "45–90 min", "90 min+"]
 
     private var chipSelectedBg: Color { Color(hex: "#E0D2BA") }
@@ -904,8 +954,10 @@ struct AdvancedFilterSheet: View {
                     chipSection(title: "FILLER",  options: fillerOptions,  selection: $filler,         showAll: $showAllFiller)
                     sectionDivider()
                     profileSlidersSection
-                    sectionDivider()
-                    chipSection(title: "SMAKSNOTER", options: notesOptions, selection: $smokingNotes, showAll: $showAllNotes)
+                    if !flavorOptions.isEmpty {
+                        sectionDivider()
+                        chipSection(title: "SMAKSNOTER", options: flavorOptions, selection: $smokingNotes, showAll: $showAllNotes)
+                    }
                 }
             }
             .background(Color("Card"))

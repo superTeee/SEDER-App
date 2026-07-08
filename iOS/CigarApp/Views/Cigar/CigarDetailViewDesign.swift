@@ -14,6 +14,7 @@ struct CigarDetailViewDesign: View {
 
     @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var quantity: Int
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -40,6 +41,11 @@ struct CigarDetailViewDesign: View {
     private let textPrimary   = Color("TextPrimary")
     private let textSecondary = Color("TextSecondary")
     private let textSubtle    = Color("TextSecondary")
+
+    // Smaksnote-ikoner: fast #8F7B51 i lys modus, accent i mørk modus
+    private var flavorIconColor: Color {
+        colorScheme == .dark ? Color("Accent") : Color(hex: "#8F7B51")
+    }
 
     init(cigar: Cigar, humidorEntry: HumidorEntry? = nil, onScanNext: (() -> Void)? = nil) {
         self.cigar = cigar
@@ -184,6 +190,13 @@ struct CigarDetailViewDesign: View {
         }
     }
 
+    // Har sigaren et bilde (enten opplastet i humidor eller produktbilde)?
+    private var hasPhoto: Bool {
+        if let p = entry?.photoURL, !p.isEmpty { return true }
+        if let p = cigar.productImageUrl, !p.isEmpty { return true }
+        return false
+    }
+
     // ── Hero image ──────────────────────────────────────────────────────────
     @ViewBuilder
     private var heroImage: some View {
@@ -206,6 +219,7 @@ struct CigarDetailViewDesign: View {
                         }
                     }
                 } else {
+                    // Ingen bilde → tom placeholder med "Last opp bilde" i midten
                     Rectangle()
                         .fill(
                             LinearGradient(
@@ -215,8 +229,20 @@ struct CigarDetailViewDesign: View {
                             )
                         )
                         .overlay {
-                            CigarIcon(color: textSubtle.opacity(0.3))
-                                .frame(width: 60, height: 60)
+                            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                                VStack(spacing: 8) {
+                                    if isUploadingPhoto {
+                                        ProgressView().tint(action)
+                                    } else {
+                                        Image(systemName: "arrow.up.circle.fill")
+                                            .font(.system(size: 34))
+                                            .foregroundColor(action)
+                                        Text("Last opp bilde")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(action)
+                                    }
+                                }
+                            }
                         }
                 }
             }
@@ -224,25 +250,27 @@ struct CigarDetailViewDesign: View {
             .frame(height: 240)
             .clipped()
 
-            // "Endre bilde"-pill (frosted glass, top-left)
-            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                HStack(spacing: 6) {
-                    if isUploadingPhoto {
-                        ProgressView().scaleEffect(0.75).tint(textPrimary)
-                    } else {
-                        Image(systemName: "camera.fill").font(.system(size: 12))
+            // "Endre bilde"-pill (frosted glass, top-left) — kun når det finnes et bilde
+            if hasPhoto {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    HStack(spacing: 6) {
+                        if isUploadingPhoto {
+                            ProgressView().scaleEffect(0.75).tint(textPrimary)
+                        } else {
+                            Image(systemName: "camera.fill").font(.system(size: 12))
+                        }
+                        Text("Endre bilde")
+                            .font(.system(size: 13, weight: .medium))
                     }
-                    Text("Endre bilde")
-                        .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Color(red: 0.965, green: 0.953, blue: 0.941))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial.opacity(0.85))
+                    .clipShape(Capsule())
                 }
-                .foregroundColor(Color(red: 0.965, green: 0.953, blue: 0.941))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial.opacity(0.85))
-                .clipShape(Capsule())
+                .padding(.leading, 20)
+                .padding(.top, 16) // nær toppen av bildet
             }
-            .padding(.leading, 20)
-            .padding(.top, 16) // nær toppen av bildet
         }
         // Quantity-pill flytende i nederkant av bildet (50% overlapp)
         .overlay(alignment: .bottom) {
@@ -257,7 +285,8 @@ struct CigarDetailViewDesign: View {
         ZStack {
             Capsule()
                 .fill(surfacePrimary)
-                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                .shadow(color: colorScheme == .dark ? .black.opacity(0.3) : .clear,
+                        radius: colorScheme == .dark ? 4 : 0, x: 0, y: colorScheme == .dark ? 2 : 0)
                 .frame(width: 180, height: 56)
 
             HStack(spacing: 0) {
@@ -477,7 +506,7 @@ struct CigarDetailViewDesign: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 40, height: 40)
-                            .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : Color("Accent"))
+                            .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : flavorIconColor)
                         Text(pair.label)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : textPrimary)
