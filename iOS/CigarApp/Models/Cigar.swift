@@ -205,7 +205,7 @@ enum FlavorIcon {
 
     /// Norsk etikett per ikon-familie (appen er på norsk).
     static let label: [String: String] = [
-        "cedar": "Sedertre", "cocoa": "Kakao", "leather": "Skinn", "tobacco": "Tobakk",
+        "cedar": "Sedertre", "cocoa": "Kakao", "leather": "Lær", "tobacco": "Tobakk",
         "cinnamon": "Kanel", "minerals": "Mineral", "whisky": "Whisky", "citrus": "Sitrus",
         "wood": "Tre", "pepper": "Pepper", "nuts": "Nøtter", "vanilla": "Vanilje",
         "earth": "Jord", "fruit": "Frukt", "floral": "Blomst", "hay": "Høy",
