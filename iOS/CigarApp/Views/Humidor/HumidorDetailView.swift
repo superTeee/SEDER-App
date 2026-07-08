@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Kingfisher
 
 // MARK: - HumidorDetailView
 // Viser sigarene i én humidor. Per-sigar kontekstmeny for å flytte mellom humidorer.
@@ -24,6 +25,7 @@ struct HumidorDetailView: View {
     @State private var coverURL: String?
     @State private var coverItem: PhotosPickerItem?
     @State private var isUploadingCover = false
+    @State private var cropRequest: CropRequest?
 
     private var visibleEntries: [HumidorEntry] {
         entries.filter { $0.quantity > 0 }
@@ -94,7 +96,23 @@ struct HumidorDetailView: View {
             }
         }
         .onChange(of: coverItem) { _, item in
-            Task { await uploadCover(item) }
+            guard let item else { return }
+            Task {
+                if let raw = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: raw) {
+                    cropRequest = CropRequest(image: img, ratio: 1.7)  // bredt cover
+                }
+                coverItem = nil
+            }
+        }
+        .fullScreenCover(item: $cropRequest) { req in
+            ImageCropper(image: req.image, ratio: req.ratio) { cropped in
+                cropRequest = nil
+                Task { await uploadCover(cropped) }
+            } onCancel: {
+                cropRequest = nil
+            }
+            .ignoresSafeArea()
         }
         .task { await load() }
         .refreshable { await load() }
@@ -106,13 +124,12 @@ struct HumidorDetailView: View {
         ZStack(alignment: .topTrailing) {
             Group {
                 if let urlStr = coverURL, let url = URL(string: urlStr) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img): img.resizable().scaledToFill()
-                        default: heroPlaceholder
-                        }
-                    }
-                    .id(urlStr)
+                    KFImage(url)
+                        .resizable()
+                        .placeholder { heroPlaceholder }
+                        .fade(duration: 0.15)
+                        .scaledToFill()
+                        .id(urlStr)
                 } else {
                     // Ingen bilde → "Last opp bilde" i midten
                     Rectangle()
@@ -259,11 +276,11 @@ struct HumidorDetailView: View {
         isLoading = false
     }
 
-    private func uploadCover(_ item: PhotosPickerItem?) async {
-        guard let item, let userId = authService.userId else { return }
+    private func uploadCover(_ image: UIImage) async {
+        guard let userId = authService.userId,
+              let data = image.jpegData(compressionQuality: 1.0) else { return }
         isUploadingCover = true
         defer { isUploadingCover = false }
-        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
         if let newURL = try? await humidorService.uploadHumidorCover(
             humidorId: humidor.id, userId: userId, imageData: data) {
             coverURL = newURL

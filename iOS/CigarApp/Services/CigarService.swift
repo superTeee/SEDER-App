@@ -604,7 +604,7 @@ class HumidorService: ObservableObject {
 
         try await supabase.storage
             .from("humidor-photos")
-            .upload(path, data: imageData, options: FileOptions(contentType: "image/jpeg", upsert: true))
+            .upload(path, data: downscaledJPEG(imageData, maxDim: 1400), options: FileOptions(contentType: "image/jpeg", upsert: true))
 
         let publicURL = try supabase.storage
             .from("humidor-photos")
@@ -701,7 +701,7 @@ class HumidorService: ObservableObject {
         let path = "\(userId.uuidString.lowercased())/\(humidorId.uuidString.lowercased()).jpg"
         try await supabase.storage
             .from("humidor-covers")
-            .upload(path, data: imageData, options: FileOptions(contentType: "image/jpeg", upsert: true))
+            .upload(path, data: downscaledJPEG(imageData, maxDim: 1400), options: FileOptions(contentType: "image/jpeg", upsert: true))
         let publicURL = try supabase.storage
             .from("humidor-covers")
             .getPublicURL(path: path)
@@ -744,7 +744,7 @@ class TastingService: ObservableObject {
 
         try await supabase.storage
             .from("log-photos")
-            .upload(path, data: imageData, options: FileOptions(contentType: "image/jpeg", upsert: true))
+            .upload(path, data: downscaledJPEG(imageData, maxDim: 1400), options: FileOptions(contentType: "image/jpeg", upsert: true))
 
         let publicURL = try supabase.storage
             .from("log-photos")

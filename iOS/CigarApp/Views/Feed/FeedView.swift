@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Kingfisher
 
 // MARK: - FeedView
 // Sosial feed — poster fra deg selv og venner.
@@ -372,18 +373,16 @@ struct FeedPostCard: View {
             // ── Bilde ────────────────────────────────────────
             let photoUrl = post.imageUrl ?? post.tastingPhotoUrl
             if let urlStr = photoUrl, let url = URL(string: urlStr) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                            .frame(maxWidth: .infinity).frame(height: 220).clipped()
-                    } else if phase.error != nil {
-                        EmptyView()
-                    } else {
+                KFImage(url)
+                    .resizable()
+                    .placeholder {
                         Rectangle().fill(Color("Surface")).frame(height: 220)
                             .overlay(ProgressView())
                     }
-                }
-                .padding(.bottom, 8)
+                    .fade(duration: 0.15)
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity).frame(height: 220).clipped()
+                    .padding(.bottom, 8)
             }
 
             // ── Tekst ─────────────────────────────────────────
@@ -677,13 +676,12 @@ struct PostDetailView: View {
                     }
 
                     if let urlStr = post.imageUrl ?? post.tastingPhotoUrl, let url = URL(string: urlStr) {
-                        AsyncImage(url: url) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill()
-                                    .frame(maxWidth: .infinity).frame(height: 240).clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                            } else { EmptyView() }
-                        }
+                        KFImage(url)
+                            .resizable()
+                            .fade(duration: 0.15)
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity).frame(height: 240).clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
 
                     if let text = post.content, !text.isEmpty {

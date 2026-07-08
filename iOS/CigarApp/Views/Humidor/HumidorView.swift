@@ -1,4 +1,5 @@
 import SwiftUI
+import Kingfisher
 
 // MARK: - HumidorView
 // Brukerens personlige sigarsamling — med støtte for ønskeliste.
@@ -355,11 +356,13 @@ struct HumidorCard: View {
         HStack(spacing: 14) {
             // Bilde eller ikon
             if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
-                AsyncImage(url: url) { img in
-                    img.resizable().scaledToFill()
-                } placeholder: { iconBox }
-                .frame(width: 60, height: 60)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                KFImage(url)
+                    .resizable()
+                    .placeholder { iconBox }
+                    .fade(duration: 0.15)
+                    .scaledToFill()
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 iconBox
             }

@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Kingfisher
 
 // MARK: - CreateHumidorSheet
 // Opprett eller rediger en humidor. Felter: navn, type, lokasjon, kapasitet, bilde.
@@ -104,7 +105,10 @@ struct CreateHumidorSheet: View {
             previewImage.resizable().scaledToFill()
                 .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 8))
         } else if let urlStr = existing?.imageURL, let url = URL(string: urlStr) {
-            AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: { placeholderThumb }
+            KFImage(url)
+                .resizable()
+                .placeholder { placeholderThumb }
+                .scaledToFill()
                 .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 8))
         } else {
             placeholderThumb

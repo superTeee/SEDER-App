@@ -1,8 +1,9 @@
 import SwiftUI
+import Kingfisher
 
 // MARK: - AvatarView
-// Gjenbrukbar avatar-komponent med AsyncImage og fallback til initialer/ikon.
-// Bruk: AvatarView(url: post.authorAvatarUrl, name: post.authorName, size: 36)
+// Gjenbrukbar avatar-komponent med cachet bilde (Kingfisher) og fallback til
+// initialer/ikon. Bruk: AvatarView(url: post.authorAvatarUrl, name: post.authorName, size: 36)
 
 struct AvatarView: View {
 
@@ -23,18 +24,11 @@ struct AvatarView: View {
     var body: some View {
         Group {
             if let urlString = url, let imageUrl = URL(string: urlString) {
-                AsyncImage(url: imageUrl) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure, .empty:
-                        fallbackView
-                    @unknown default:
-                        fallbackView
-                    }
-                }
+                KFImage(imageUrl)
+                    .resizable()
+                    .placeholder { fallbackView }
+                    .fade(duration: 0.15)
+                    .scaledToFill()
             } else {
                 fallbackView
             }

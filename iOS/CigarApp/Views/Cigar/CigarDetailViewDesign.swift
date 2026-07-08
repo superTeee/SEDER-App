@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UIKit
+import Kingfisher
 
 // MARK: - CigarDetailViewDesign
 // Pixel-perfect implementasjon fra Figma-design (node 184:197)
@@ -19,6 +20,7 @@ struct CigarDetailViewDesign: View {
     @State private var quantity: Int
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isUploadingPhoto = false
+    @State private var cropRequest: CropRequest?
     @State private var showSmokingSheet = false
     @State private var showRemoveAlert = false
     @State private var isSaving = false
@@ -173,14 +175,23 @@ struct CigarDetailViewDesign: View {
             }
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
-            guard let newItem, let entry, let userId = authService.userId else { return }
+            guard let newItem else { return }
             Task {
-                isUploadingPhoto = true
-                defer { isUploadingPhoto = false }
-                guard let data = try? await newItem.loadTransferable(type: Data.self) else { return }
-                let url = try? await humidorService.uploadPhoto(entryId: entry.id, userId: userId, imageData: data)
-                if url != nil { selectedPhotoItem = nil }
+                if let raw = try? await newItem.loadTransferable(type: Data.self),
+                   let img = UIImage(data: raw) {
+                    cropRequest = CropRequest(image: img, ratio: 1.6)  // bredt hero-bilde
+                }
+                selectedPhotoItem = nil
             }
+        }
+        .fullScreenCover(item: $cropRequest) { req in
+            ImageCropper(image: req.image, ratio: req.ratio) { cropped in
+                cropRequest = nil
+                uploadPhoto(cropped)
+            } onCancel: {
+                cropRequest = nil
+            }
+            .ignoresSafeArea()
         }
         .onAppear {
             guard entry == nil, let userId = authService.userId else { return }
@@ -204,20 +215,18 @@ struct CigarDetailViewDesign: View {
             // Bilde
             Group {
                 if let photoURL = entry?.photoURL, let url = URL(string: photoURL) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img): img.resizable().scaledToFill()
-                        default: Rectangle().fill(surfacePrimary)
-                        }
-                    }
-                    .id(photoURL)
+                    KFImage(url)
+                        .resizable()
+                        .placeholder { Rectangle().fill(surfacePrimary) }
+                        .fade(duration: 0.15)
+                        .scaledToFill()
+                        .id(photoURL)
                 } else if let productURL = cigar.productImageUrl, let url = URL(string: productURL) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img): img.resizable().scaledToFill()
-                        default: Rectangle().fill(surfacePrimary)
-                        }
-                    }
+                    KFImage(url)
+                        .resizable()
+                        .placeholder { Rectangle().fill(surfacePrimary) }
+                        .fade(duration: 0.15)
+                        .scaledToFill()
                 } else if entry != nil {
                     // I humidor uten bilde → "Last opp bilde" i midten
                     Rectangle()
@@ -593,6 +602,19 @@ struct CigarDetailViewDesign: View {
     private func saveQuantity() {
         guard let entry else { return }
         Task { try? await humidorService.updateQuantity(entryId: entry.id, quantity: quantity) }
+    }
+
+    // Laster opp croppet sigarbilde (kun for sigarer i humidor).
+    private func uploadPhoto(_ image: UIImage) {
+        guard let entry, let userId = authService.userId,
+              let data = image.jpegData(compressionQuality: 1.0) else { return }
+        Task {
+            isUploadingPhoto = true
+            defer { isUploadingPhoto = false }
+            if let url = try? await humidorService.uploadPhoto(entryId: entry.id, userId: userId, imageData: data) {
+                self.entry?.photoURL = url
+            }
+        }
     }
 
     private func confirmLogged() {

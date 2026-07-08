@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Kingfisher
 
 // MARK: - UserProfileView
 // Rik profilside — gjenbrukbar for egen profil og venn sin profil.
@@ -33,6 +34,11 @@ struct UserProfileView: View {
     @State private var localCoverURL: String?
 
     @State private var uploadErrorMessage: String?
+
+    // Crop-flyt (Mantis)
+    private enum CropTarget { case avatar, cover }
+    @State private var cropRequest: CropRequest?
+    @State private var cropTarget: CropTarget = .avatar
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -95,38 +101,35 @@ struct UserProfileView: View {
             }
         }
         .onChange(of: avatarItem) { _, newItem in
-            guard let newItem, let uid = authService.userId else { return }
+            guard let newItem else { return }
             Task {
-                isUploadingAvatar = true
-                defer { isUploadingAvatar = false }
-                do {
-                    guard let rawData = try? await newItem.loadTransferable(type: Data.self),
-                          let uiImage = UIImage(data: rawData),
-                          let jpegData = uiImage.jpegData(compressionQuality: 0.85) else { return }
-                    let url = try await profileService.uploadAvatar(userId: uid, imageData: jpegData)
-                    localAvatarURL = url
-                } catch {
-                    uploadErrorMessage = "Kunne ikke laste opp bilde: \(error.localizedDescription)"
+                if let raw = try? await newItem.loadTransferable(type: Data.self),
+                   let img = UIImage(data: raw) {
+                    cropTarget = .avatar
+                    cropRequest = CropRequest(image: img, ratio: 1)   // kvadrat
                 }
                 avatarItem = nil
             }
         }
         .onChange(of: coverItem) { _, newItem in
-            guard let newItem, let uid = authService.userId else { return }
+            guard let newItem else { return }
             Task {
-                isUploadingCover = true
-                defer { isUploadingCover = false }
-                do {
-                    guard let rawData = try? await newItem.loadTransferable(type: Data.self),
-                          let uiImage = UIImage(data: rawData),
-                          let jpegData = uiImage.jpegData(compressionQuality: 0.85) else { return }
-                    let url = try await profileService.uploadCover(userId: uid, imageData: jpegData)
-                    localCoverURL = url
-                } catch {
-                    uploadErrorMessage = "Kunne ikke laste opp toppbilde: \(error.localizedDescription)"
+                if let raw = try? await newItem.loadTransferable(type: Data.self),
+                   let img = UIImage(data: raw) {
+                    cropTarget = .cover
+                    cropRequest = CropRequest(image: img, ratio: 2.6)  // bredt banner
                 }
                 coverItem = nil
             }
+        }
+        .fullScreenCover(item: $cropRequest) { req in
+            ImageCropper(image: req.image, ratio: req.ratio) { cropped in
+                cropRequest = nil
+                uploadCropped(cropped)
+            } onCancel: {
+                cropRequest = nil
+            }
+            .ignoresSafeArea()
         }
         .task { await load() }
         .alert("Opplasting feilet", isPresented: .constant(uploadErrorMessage != nil)) {
@@ -149,11 +152,11 @@ struct UserProfileView: View {
             ZStack(alignment: .topTrailing) {
                 Group {
                     if let url = displayCoverURL.flatMap(URL.init) {
-                        AsyncImage(url: url) { img in
-                            img.resizable().scaledToFill()
-                        } placeholder: {
-                            Color("Accent").opacity(0.22)
-                        }
+                        KFImage(url)
+                            .resizable()
+                            .placeholder { Color("Accent").opacity(0.22) }
+                            .fade(duration: 0.15)
+                            .scaledToFill()
                     } else {
                         Color("Accent").opacity(0.22)
                     }
@@ -176,13 +179,13 @@ struct UserProfileView: View {
                 ZStack(alignment: .bottomTrailing) {
                     Group {
                         if let url = displayAvatarURL.flatMap(URL.init) {
-                            AsyncImage(url: url) { img in
-                                img.resizable().scaledToFill()
-                            } placeholder: {
-                                initialsCircle(name: p.displayName, size: 80)
-                            }
-                            .frame(width: 80, height: 80)
-                            .clipShape(Circle())
+                            KFImage(url)
+                                .resizable()
+                                .placeholder { initialsCircle(name: p.displayName, size: 80) }
+                                .fade(duration: 0.15)
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
                         } else {
                             initialsCircle(name: p.displayName, size: 80)
                         }
@@ -519,13 +522,13 @@ struct UserProfileView: View {
                 HStack(alignment: .top, spacing: 14) {
                     // Ikon eller bilde
                     if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {
-                        AsyncImage(url: url) { img in
-                            img.resizable().scaledToFill()
-                        } placeholder: {
-                            smokeIconBox
-                        }
-                        .frame(width: 68, height: 68)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        KFImage(url)
+                            .resizable()
+                            .placeholder { smokeIconBox }
+                            .fade(duration: 0.15)
+                            .scaledToFill()
+                            .frame(width: 68, height: 68)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     } else {
                         smokeIconBox
                     }
@@ -626,6 +629,26 @@ struct UserProfileView: View {
     }
 
     // MARK: - Load
+
+    // Laster opp det ferdig-croppede bildet (tjenesten skalerer ned videre).
+    private func uploadCropped(_ image: UIImage) {
+        guard let uid = authService.userId,
+              let data = image.jpegData(compressionQuality: 1.0) else { return }
+        let isAvatar = (cropTarget == .avatar)
+        Task {
+            if isAvatar { isUploadingAvatar = true } else { isUploadingCover = true }
+            do {
+                if isAvatar {
+                    localAvatarURL = try await profileService.uploadAvatar(userId: uid, imageData: data)
+                } else {
+                    localCoverURL = try await profileService.uploadCover(userId: uid, imageData: data)
+                }
+            } catch {
+                uploadErrorMessage = "Kunne ikke laste opp bilde: \(error.localizedDescription)"
+            }
+            if isAvatar { isUploadingAvatar = false } else { isUploadingCover = false }
+        }
+    }
 
     private func load() async {
         isLoading = true

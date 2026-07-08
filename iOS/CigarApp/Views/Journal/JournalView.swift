@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Kingfisher
 
 // MARK: - JournalView
 // Røykelogg — alle sigarer du har røkt, nyest først.
@@ -216,24 +217,18 @@ struct JournalRow: View {
 
             // ── Bilde (hvis finnes) ───────────────────────────
             if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 154)
-                            .clipped()
-                    } else if phase.error != nil {
-                        EmptyView()
-                    } else {
-                        Rectangle()
-                            .fill(Color(.secondarySystemBackground))
-                            .frame(height: 154)
+                KFImage(url)
+                    .resizable()
+                    .placeholder {
+                        Rectangle().fill(Color(.secondarySystemBackground)).frame(height: 154)
                     }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .padding(.bottom, 8)
+                    .fade(duration: 0.15)
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 154)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .padding(.bottom, 8)
             }
 
             // ── Rad: info + score ─────────────────────────────
@@ -422,16 +417,16 @@ struct EditLogSheet: View {
                                 .padding(.horizontal, 20)
                         } else if let url = photoUrl.flatMap({ URL(string: $0) }) {
                             // Eksisterende bilde fra Supabase
-                            AsyncImage(url: url) { phase in
-                                if let image = phase.image {
-                                    image.resizable().scaledToFill()
-                                        .frame(maxWidth: .infinity).frame(height: 180).clipped()
-                                } else {
+                            KFImage(url)
+                                .resizable()
+                                .placeholder {
                                     Rectangle().fill(Color(.secondarySystemBackground)).frame(height: 180)
                                 }
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                            .padding(.horizontal, 20)
+                                .fade(duration: 0.15)
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity).frame(height: 180).clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .padding(.horizontal, 20)
                         }
 
                         PhotosPicker(selection: $photoItem, matching: .images) {

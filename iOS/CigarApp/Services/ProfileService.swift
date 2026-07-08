@@ -131,9 +131,10 @@ class ProfileService: ObservableObject {
         // VIKTIG: auth.uid()::text i Postgres er små bokstaver — path MÅ
         // være lowercase, ellers feiler RLS-policyen.
         let path = "\(userId.uuidString.lowercased())/avatar.jpg"
+        let data = downscaledJPEG(imageData, maxDim: 800)
         try await supabase.storage
             .from("avatars")
-            .upload(path, data: imageData, options: FileOptions(
+            .upload(path, data: data, options: FileOptions(
                 cacheControl: "3600",
                 contentType: "image/jpeg",
                 upsert: true
@@ -161,9 +162,10 @@ class ProfileService: ObservableObject {
 
     func uploadCover(userId: UUID, imageData: Data) async throws -> String {
         let path = "\(userId.uuidString.lowercased())/cover.jpg"
+        let data = downscaledJPEG(imageData, maxDim: 1400)
         try await supabase.storage
             .from("avatars")
-            .upload(path, data: imageData, options: FileOptions(
+            .upload(path, data: data, options: FileOptions(
                 cacheControl: "3600",
                 contentType: "image/jpeg",
                 upsert: true
