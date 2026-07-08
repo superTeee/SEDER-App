@@ -364,7 +364,7 @@ struct CigarDetailView: View {
                         }
                     }
                     .sheet(isPresented: $showAddToHumidorSheet) {
-                        AddToHumidorSheet(cigar: cigar) { purchasedAt, addedAt, qty in
+                        AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId in
                             guard let userId = authService.userId else { return }
                             isSaving = true
                             Task {
@@ -372,6 +372,7 @@ struct CigarDetailView: View {
                                     let newEntry = try await humidorService.addToHumidor(
                                         cigarId: cigar.id,
                                         userId: userId,
+                                        humidorId: humidorId,
                                         quantity: qty,
                                         purchasedAt: purchasedAt,
                                         addedToHumidorAt: addedAt
@@ -529,7 +530,8 @@ struct CigarDetailView: View {
 struct AddToHumidorSheet: View {
 
     let cigar: Cigar
-    let onSave: (Date, Date, Int) -> Void
+    var userId: UUID? = nil
+    let onSave: (Date, Date, Int, UUID?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var purchasedAt: Date = Date()
@@ -537,6 +539,11 @@ struct AddToHumidorSheet: View {
     @State private var quantity: Int = 1
     @State private var showPurchasePicker = false
     @State private var showHumidorPicker = false
+
+    // Humidor-valg
+    private let humidorService = HumidorService()
+    @State private var humidors: [Humidor] = []
+    @State private var selectedHumidorId: UUID? = nil
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -618,6 +625,16 @@ struct AddToHumidorSheet: View {
                 Section("Antall") {
                     Stepper("\(quantity) stk", value: $quantity, in: 1...100)
                 }
+
+                if !humidors.isEmpty {
+                    Section("Humidor") {
+                        Picker("Velg humidor", selection: $selectedHumidorId) {
+                            ForEach(humidors) { h in
+                                Text(h.name).tag(Optional(h.id))
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle("Legg i humidor")
             .navigationBarTitleDisplayMode(.inline)
@@ -627,13 +644,20 @@ struct AddToHumidorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Legg til") {
-                        onSave(purchasedAt, addedAt, quantity)
+                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId)
                         dismiss()
                     }
                     .fontWeight(.semibold)
                 }
             }
+            .task { await loadHumidors() }
         }
+    }
+
+    private func loadHumidors() async {
+        guard let userId else { return }
+        humidors = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
+        if selectedHumidorId == nil { selectedHumidorId = humidors.first?.id }
     }
 }
 

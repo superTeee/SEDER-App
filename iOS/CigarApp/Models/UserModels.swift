@@ -101,6 +101,7 @@ struct HumidorEntry: Identifiable, Encodable {
     let id: UUID
     let userId: UUID
     let cigarId: UUID
+    var humidorId: UUID?
     var quantity: Int
     let purchaseDate: Date?
     let addedToHumidorAt: Date?
@@ -114,6 +115,7 @@ struct HumidorEntry: Identifiable, Encodable {
         case id
         case userId             = "user_id"
         case cigarId            = "cigar_id"
+        case humidorId          = "humidor_id"
         case quantity
         case purchaseDate       = "purchase_date"
         case addedToHumidorAt   = "added_to_humidor_at"
@@ -134,6 +136,7 @@ extension HumidorEntry: Decodable {
         id              = try c.decode(UUID.self,    forKey: .id)
         userId          = try c.decode(UUID.self,    forKey: .userId)
         cigarId         = try c.decode(UUID.self,    forKey: .cigarId)
+        humidorId       = try c.decodeIfPresent(UUID.self, forKey: .humidorId)
         quantity        = try c.decode(Int.self,     forKey: .quantity)
         addedToHumidorAt = try c.decodeIfPresent(Date.self,   forKey: .addedToHumidorAt)
         purchasePrice   = try c.decodeIfPresent(Double.self,  forKey: .purchasePrice)
@@ -174,6 +177,7 @@ extension HumidorEntry: Decodable {
 struct NewHumidorEntry: Encodable {
     let userId: UUID
     let cigarId: UUID
+    var humidorId: UUID?
     let quantity: Int
     let purchaseDate: Date?
     let addedToHumidorAt: Date?
@@ -183,6 +187,7 @@ struct NewHumidorEntry: Encodable {
     enum CodingKeys: String, CodingKey {
         case userId             = "user_id"
         case cigarId            = "cigar_id"
+        case humidorId          = "humidor_id"
         case quantity
         case purchaseDate       = "purchase_date"
         case addedToHumidorAt   = "added_to_humidor_at"

@@ -397,6 +397,7 @@ class HumidorService: ObservableObject {
     func addToHumidor(
         cigarId: UUID,
         userId: UUID,
+        humidorId: UUID? = nil,
         quantity: Int = 1,
         purchasedAt: Date? = nil,
         addedToHumidorAt: Date? = nil
@@ -404,6 +405,7 @@ class HumidorService: ObservableObject {
         let entry = NewHumidorEntry(
             userId: userId,
             cigarId: cigarId,
+            humidorId: humidorId,
             quantity: quantity,
             purchaseDate: purchasedAt,
             addedToHumidorAt: addedToHumidorAt,
@@ -571,6 +573,90 @@ class HumidorService: ObservableObject {
             .update(["photo_url": url])
             .eq("id", value: entryId.uuidString)
             .execute()
+    }
+
+    // MARK: - Humidorer (containere)
+
+    /// Hent alle humidorer for brukeren, eldst først.
+    func fetchHumidors(userId: UUID) async throws -> [Humidor] {
+        let humidors: [Humidor] = try await supabase
+            .from("humidors")
+            .select("*")
+            .eq("user_id", value: userId.uuidString)
+            .order("created_at", ascending: true)
+            .execute()
+            .value
+        return humidors
+    }
+
+    /// Opprett en ny humidor.
+    @discardableResult
+    func createHumidor(userId: UUID, name: String, type: String?, location: String?, capacity: Int?) async throws -> Humidor {
+        let new = NewHumidor(userId: userId, name: name, type: type, location: location, capacity: capacity)
+        let inserted: Humidor = try await supabase
+            .from("humidors")
+            .insert(new)
+            .select("*")
+            .single()
+            .execute()
+            .value
+        return inserted
+    }
+
+    /// Oppdater en humidor.
+    func updateHumidor(id: UUID, name: String, type: String?, location: String?, capacity: Int?) async throws {
+        struct Patch: Encodable {
+            let name: String
+            let type: String?
+            let location: String?
+            let capacity: Int?
+        }
+        try await supabase
+            .from("humidors")
+            .update(Patch(name: name, type: type, location: location, capacity: capacity))
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
+    /// Slett en humidor. Sigarer i den beholdes (humidor_id settes til null via ON DELETE SET NULL).
+    func deleteHumidor(id: UUID) async throws {
+        try await supabase
+            .from("humidors")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
+    /// Flytt en sigar-oppføring til en annen humidor.
+    func moveEntry(entryId: UUID, toHumidorId: UUID) async throws {
+        try await supabase
+            .from("humidor")
+            .update(["humidor_id": toHumidorId.uuidString])
+            .eq("id", value: entryId.uuidString)
+            .execute()
+    }
+
+    /// Last opp forsidebilde for en humidor (bucket: humidor-covers).
+    @discardableResult
+    func uploadHumidorCover(humidorId: UUID, userId: UUID, imageData: Data) async throws -> String {
+        let path = "\(userId.uuidString.lowercased())/\(humidorId.uuidString.lowercased()).jpg"
+        try await supabase.storage
+            .from("humidor-covers")
+            .upload(path, data: imageData, options: FileOptions(contentType: "image/jpeg", upsert: true))
+        let publicURL = try supabase.storage
+            .from("humidor-covers")
+            .getPublicURL(path: path)
+        var finalURLString = publicURL.absoluteString
+        if var components = URLComponents(url: publicURL, resolvingAgainstBaseURL: false) {
+            components.queryItems = [URLQueryItem(name: "v", value: "\(Int(Date().timeIntervalSince1970))")]
+            if let url = components.url { finalURLString = url.absoluteString }
+        }
+        try await supabase
+            .from("humidors")
+            .update(["image_url": finalURLString])
+            .eq("id", value: humidorId.uuidString)
+            .execute()
+        return finalURLString
     }
 }
 

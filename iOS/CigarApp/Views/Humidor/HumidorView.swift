@@ -11,9 +11,11 @@ struct HumidorView: View {
 
     // Humidor-state
     @State private var entries: [HumidorEntry] = []
+    @State private var humidors: [Humidor] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
+    @State private var showCreateHumidor = false
     private let humidorService = HumidorService()
 
     // Ønskeliste-state
@@ -70,15 +72,16 @@ struct HumidorView: View {
                     if selectedTab == .humidor {
                         List {
                             if authService.userId != nil && !isLoading {
-                                ForEach(entries.filter { $0.quantity > 0 }) { entry in
-                                    if let cigar = entry.cigar {
-                                        NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, humidorEntry: entry)) {
-                                            HumidorRow(entry: entry)
-                                        }
-                                        .listRowBackground(Color("Card"))
+                                ForEach(humidors) { humidor in
+                                    NavigationLink(destination: HumidorDetailView(
+                                        humidor: humidor,
+                                        allHumidors: humidors,
+                                        onChanged: { Task { await loadHumidor() } }
+                                    )) {
+                                        HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor))
                                     }
+                                    .listRowBackground(Color("Card"))
                                 }
-                                .onDelete(perform: deleteEntries)
                             }
                         }
                         .scrollContentBackground(.hidden)
@@ -88,16 +91,12 @@ struct HumidorView: View {
                                 LoggedOutHumidorView(onLogin: { showLoginSheet = true })
                                     .background(Color("Background"))
                             } else if isLoading {
-                                ProgressView("Laster humidor...")
+                                ProgressView("Laster humidorer...")
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .background(Color("Background"))
-                            } else if entries.isEmpty {
-                                EmptyHumidorView(
-                                    onCamera: { showCameraPicker = true },
-                                    onLibrary: { showLibraryPicker = true },
-                                    onManual: { showManualAdd = true }
-                                )
-                                .background(Color("Background"))
+                            } else if humidors.isEmpty {
+                                EmptyHumidorsView(onCreate: { showCreateHumidor = true })
+                                    .background(Color("Background"))
                             }
                         }
                         .refreshable { await loadHumidor() }
@@ -137,6 +136,23 @@ struct HumidorView: View {
             .navigationTitle("Min Humidor")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(Color("Background"), for: .navigationBar)
+            .toolbar {
+                if authService.userId != nil && selectedTab == .humidor {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showCreateHumidor = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showCreateHumidor) {
+                if let userId = authService.userId {
+                    CreateHumidorSheet(userId: userId, onSaved: { Task { await loadHumidor() } })
+                }
+            }
             .onAppear {
                 humidorHasNew = false  // Fjern badge når bruker ser humidor-siden
                 Task { await loadHumidor() }
@@ -187,11 +203,20 @@ struct HumidorView: View {
         }
         isLoading = true
         do {
-            entries = try await humidorService.fetchHumidor(userId: userId)
+            async let e = humidorService.fetchHumidor(userId: userId)
+            async let h = humidorService.fetchHumidors(userId: userId)
+            entries = try await e
+            humidors = try await h
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    /// Antall sigarer (sum av antall) i en gitt humidor.
+    private func cigarCount(for humidor: Humidor) -> Int {
+        entries.filter { $0.humidorId == humidor.id && $0.quantity > 0 }
+               .reduce(0) { $0 + $1.quantity }
     }
 
     private func deleteEntries(at offsets: IndexSet) {
@@ -312,6 +337,103 @@ struct HumidorRow: View {
         let parts = [entry.cigar?.series, entry.cigar?.vitola].compactMap { $0 }
         guard !parts.isEmpty else { return nil }
         return parts.joined(separator: " · ")
+    }
+}
+
+// MARK: - Humidor Card (ett kort i humidor-lista)
+struct HumidorCard: View {
+    let humidor: Humidor
+    let cigarCount: Int
+
+    var body: some View {
+        HStack(spacing: 14) {
+            // Bilde eller ikon
+            if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
+                AsyncImage(url: url) { img in
+                    img.resizable().scaledToFill()
+                } placeholder: { iconBox }
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                iconBox
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(humidor.name)
+                    .font(.headline)
+                    .foregroundColor(Color("TextPrimary"))
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    if let type = humidor.typeEnum {
+                        Text(type.displayName)
+                    }
+                    if let loc = humidor.location, !loc.isEmpty {
+                        Text("· \(loc)")
+                    }
+                }
+                .font(.caption)
+                .foregroundColor(Color("TextSecondary"))
+                .lineLimit(1)
+            }
+
+            Spacer()
+
+            Text(countLabel)
+                .font(.callout.weight(.medium))
+                .foregroundColor(Color("TextSecondary"))
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var iconBox: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8).fill(Color("Accent").opacity(0.12))
+                .frame(width: 60, height: 60)
+            Image(systemName: humidor.typeEnum?.icon ?? "archivebox")
+                .font(.system(size: 22))
+                .foregroundColor(Color("Accent"))
+        }
+    }
+
+    private var countLabel: String {
+        if let cap = humidor.capacity { return "\(cigarCount)/\(cap)" }
+        return "\(cigarCount) stk"
+    }
+}
+
+// MARK: - Tom humidor-liste (ingen humidorer ennå)
+struct EmptyHumidorsView: View {
+    var onCreate: () -> Void
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "archivebox")
+                .font(.system(size: 60))
+                .foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Ingen humidorer ennå")
+                .font(.title3.bold())
+            Text("Opprett din første humidor for å\norganisere sigarsamlingen din")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+
+            Button(action: onCreate) {
+                HStack {
+                    Image(systemName: "plus")
+                    Text("Opprett humidor").fontWeight(.semibold)
+                }
+                .frame(maxWidth: 240)
+                .padding()
+                .background(Color("Accent"))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .padding(.top, 8)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
     }
 }
 

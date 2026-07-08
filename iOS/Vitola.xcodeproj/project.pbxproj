@@ -45,6 +45,9 @@
 		BB8D3B415547CA4BA1FC0A8A /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1DAC674D82E358AFA54243 /* JournalView.swift */; };
 		BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 333232B66274F8E65263E2F7 /* Supabase */; };
 		C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831F95D91D3339D747199BE9 /* HumidorView.swift */; };
+		AA00000000000000000000B1 /* HumidorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B2 /* HumidorModels.swift */; };
+		AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000C2 /* CreateHumidorSheet.swift */; };
+		AA00000000000000000000D1 /* HumidorDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000D2 /* HumidorDetailView.swift */; };
 		C997089A85720FBA25E6575D /* FriendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */; };
 		C9E028D726AD7AE3394F9E31 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED781FACD8808BE8540BBD9C /* ProfileView.swift */; };
 		D6850B81775379622B3BE2E5 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */; };
@@ -78,6 +81,9 @@
 		775627F695B6D8E09B10E267 /* ScanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanService.swift; sourceTree = "<group>"; };
 		81DE84548D3017B15393EC79 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
 		831F95D91D3339D747199BE9 /* HumidorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorView.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B2 /* HumidorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorModels.swift; sourceTree = "<group>"; };
+		AA00000000000000000000C2 /* CreateHumidorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateHumidorSheet.swift; sourceTree = "<group>"; };
+		AA00000000000000000000D2 /* HumidorDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorDetailView.swift; sourceTree = "<group>"; };
 		8B47B6CE2C77268EDACBCADA /* UnknownBarcodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnknownBarcodeView.swift; sourceTree = "<group>"; };
 		8C95ABF9625A3D548A7FA88F /* FeedbackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackSheet.swift; sourceTree = "<group>"; };
 		8D880C526BA2ED3FDC6288E7 /* OnboardingProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProfileView.swift; sourceTree = "<group>"; };
@@ -122,6 +128,8 @@
 			isa = PBXGroup;
 			children = (
 				831F95D91D3339D747199BE9 /* HumidorView.swift */,
+				AA00000000000000000000C2 /* CreateHumidorSheet.swift */,
+				AA00000000000000000000D2 /* HumidorDetailView.swift */,
 			);
 			path = Humidor;
 			sourceTree = "<group>";
@@ -225,6 +233,7 @@
 				C88921AF95DA591733B22CC6 /* FeedModels.swift */,
 				4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */,
 				8EB0B9043F2D93F6611FC592 /* UserModels.swift */,
+				AA00000000000000000000B2 /* HumidorModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -407,6 +416,9 @@
 				C997089A85720FBA25E6575D /* FriendModels.swift in Sources */,
 				5D46BD1B60BFD1B7BD1FDF96 /* FriendService.swift in Sources */,
 				C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */,
+				AA00000000000000000000B1 /* HumidorModels.swift in Sources */,
+				AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */,
+				AA00000000000000000000D1 /* HumidorDetailView.swift in Sources */,
 				BB8D3B415547CA4BA1FC0A8A /* JournalView.swift in Sources */,
 				86E35448369E1D3E22BBACD7 /* MacroCameraView.swift in Sources */,
 				177A7186F1630F0803865214 /* MailComposeView.swift in Sources */,
@@ -497,7 +509,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 157;
+				CURRENT_PROJECT_VERSION = 159;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -520,7 +532,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 157;
+				CURRENT_PROJECT_VERSION = 159;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
