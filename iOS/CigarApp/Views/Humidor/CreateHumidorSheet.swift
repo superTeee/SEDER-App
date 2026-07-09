@@ -160,7 +160,9 @@ struct CreateHumidorSheet: View {
                     humidorId = created.id
                 }
                 if let photoData {
-                    _ = try? await humidorService.uploadHumidorCover(humidorId: humidorId, userId: userId, imageData: photoData)
+                    await attempt("Last opp humidor-cover") {
+                        try await humidorService.uploadHumidorCover(humidorId: humidorId, userId: userId, imageData: photoData)
+                    }
                 }
                 onSaved()
                 dismiss()

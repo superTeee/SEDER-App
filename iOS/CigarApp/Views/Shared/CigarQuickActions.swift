@@ -47,9 +47,11 @@ struct CigarQuickActions: ViewModifier {
                 AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId in
                     guard let uid = authService.userId else { return }
                     Task {
-                        _ = try? await humidorService.addToHumidor(
-                            cigarId: cigar.id, userId: uid, humidorId: humidorId,
-                            quantity: qty, purchasedAt: purchasedAt, addedToHumidorAt: addedAt)
+                        await attempt("Legg i humidor") {
+                            try await humidorService.addToHumidor(
+                                cigarId: cigar.id, userId: uid, humidorId: humidorId,
+                                quantity: qty, purchasedAt: purchasedAt, addedToHumidorAt: addedAt)
+                        }
                     }
                 }
             }
@@ -57,12 +59,16 @@ struct CigarQuickActions: ViewModifier {
                 SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType in
                     guard let uid = authService.userId else { return }
                     Task {
-                        if let logId = try? await humidorService.logTastingForCigar(
-                            cigarId: cigar.id, userId: uid, smokedAt: smokedAt, rating: rating,
-                            smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
-                            flavorRating: flavor, notes: notes, cutType: cutType),
-                           let data = photoData {
-                            _ = try? await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
+                        let logId = await attempt("Marker som røkt") {
+                            try await humidorService.logTastingForCigar(
+                                cigarId: cigar.id, userId: uid, smokedAt: smokedAt, rating: rating,
+                                smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
+                                flavorRating: flavor, notes: notes, cutType: cutType)
+                        }
+                        if let logId, let data = photoData {
+                            await attempt("Last opp loggbilde") {
+                                try await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
+                            }
                         }
                     }
                 }
@@ -77,7 +83,9 @@ struct CigarQuickActions: ViewModifier {
     private func addToWishlist() {
         guard let uid = authService.userId else { return }
         Task {
-            try? await wishlistService.addToWishlist(userId: uid, cigarId: cigar.id)
+            await attempt("Legg i ønskeliste") {
+                try await wishlistService.addToWishlist(userId: uid, cigarId: cigar.id)
+            }
             await MainActor.run {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
             }

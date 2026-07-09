@@ -111,7 +111,9 @@ struct CigarDetailViewDesign: View {
                             )
                             if let data = photoData {
                                 let ts = TastingService()
-                                try? await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                                await attempt("Last opp loggbilde") {
+                                    try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                                }
                             }
                             await MainActor.run { confirmLogged() }
                         } catch { print("Røyke-logg feil: \(error)") }
@@ -148,7 +150,9 @@ struct CigarDetailViewDesign: View {
                             burnRating: burn, flavorRating: flavor, notes: notes, cutType: cutType)
                         if let data = photoData {
                             let ts = TastingService()
-                            try? await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                            await attempt("Last opp loggbilde") {
+                                try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                            }
                         }
                         await MainActor.run { confirmLogged() }
                     } catch { print("Treff-logg feil: \(error)") }
@@ -601,7 +605,11 @@ struct CigarDetailViewDesign: View {
     // ── Helpers ──────────────────────────────────────────────────────────────
     private func saveQuantity() {
         guard let entry else { return }
-        Task { try? await humidorService.updateQuantity(entryId: entry.id, quantity: quantity) }
+        Task {
+            await attempt("Oppdater antall") {
+                try await humidorService.updateQuantity(entryId: entry.id, quantity: quantity)
+            }
+        }
     }
 
     // Laster opp croppet sigarbilde (kun for sigarer i humidor).
@@ -611,7 +619,9 @@ struct CigarDetailViewDesign: View {
         Task {
             isUploadingPhoto = true
             defer { isUploadingPhoto = false }
-            if let url = try? await humidorService.uploadPhoto(entryId: entry.id, userId: userId, imageData: data) {
+            if let url = await attempt("Last opp sigarbilde", {
+                try await humidorService.uploadPhoto(entryId: entry.id, userId: userId, imageData: data)
+            }) {
                 self.entry?.photoURL = url
             }
         }

@@ -95,7 +95,9 @@ struct UserProfileView: View {
             BioEditorSheet(currentBio: profile?.bio ?? "") { newBio in
                 guard let uid = authService.userId else { return }
                 Task {
-                    try? await profileService.saveBio(userId: uid, bio: newBio)
+                    await attempt("Lagre bio") {
+                        try await profileService.saveBio(userId: uid, bio: newBio)
+                    }
                     profile = try? await profileService.fetchFriendProfile(userId: userId)
                 }
             }

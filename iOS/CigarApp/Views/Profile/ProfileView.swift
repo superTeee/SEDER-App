@@ -97,7 +97,9 @@ struct EditNameSheet: View {
         guard let uid = authService.userId, !nameText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         isSaving = true
         Task {
-            try? await profileService.updateProfile(userId: uid, displayName: nameText.trimmingCharacters(in: .whitespaces), city: nil)
+            await attempt("Lagre visningsnavn") {
+                try await profileService.updateProfile(userId: uid, displayName: nameText.trimmingCharacters(in: .whitespaces), city: nil)
+            }
             isSaving = false
             dismiss()
         }
@@ -156,12 +158,14 @@ struct EditLocationSheet: View {
         guard let uid = authService.userId else { return }
         isSaving = true
         Task {
-            try? await profileService.updateProfile(
-                userId: uid,
-                displayName: nil,
-                city: city.trimmingCharacters(in: .whitespacesAndNewlines),
-                country: country.trimmingCharacters(in: .whitespacesAndNewlines)
-            )
+            await attempt("Lagre sted") {
+                try await profileService.updateProfile(
+                    userId: uid,
+                    displayName: nil,
+                    city: city.trimmingCharacters(in: .whitespacesAndNewlines),
+                    country: country.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
+            }
             isSaving = false
             dismiss()
         }

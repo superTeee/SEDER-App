@@ -281,8 +281,10 @@ struct HumidorDetailView: View {
               let data = image.jpegData(compressionQuality: 1.0) else { return }
         isUploadingCover = true
         defer { isUploadingCover = false }
-        if let newURL = try? await humidorService.uploadHumidorCover(
-            humidorId: humidor.id, userId: userId, imageData: data) {
+        if let newURL = await attempt("Last opp humidor-cover", {
+            try await humidorService.uploadHumidorCover(
+                humidorId: humidor.id, userId: userId, imageData: data)
+        }) {
             coverURL = newURL
             onChanged()
         }
@@ -306,7 +308,9 @@ struct HumidorDetailView: View {
 
     private func deleteHumidor() {
         Task {
-            try? await humidorService.deleteHumidor(id: humidor.id)
+            await attempt("Slett humidor") {
+                try await humidorService.deleteHumidor(id: humidor.id)
+            }
             onChanged()
             dismiss()
         }

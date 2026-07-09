@@ -218,6 +218,7 @@ struct UnknownBarcodeView: View {
             } catch {
                 isSaving  = false
                 saveError = "Kunne ikke lagre kobling — prøv igjen"
+                print("saveBarcode feilet for \(barcode) → \(cigar.id): \(error)")
             }
         }
     }

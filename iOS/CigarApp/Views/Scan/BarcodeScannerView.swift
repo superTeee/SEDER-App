@@ -276,7 +276,13 @@ private struct BarcodeResultSheet: View {
                     guard !isSaving else { return }
                     isSaving = true
                     Task {
-                        try? await barcodeService.saveBarcode(barcode, cigarID: cigar.id, source: "user")
+                        // Feiler lagringen, skal brukeren likevel komme videre til
+                        // sigaren — men feilen skal ikke forsvinne i stillhet.
+                        do {
+                            try await barcodeService.saveBarcode(barcode, cigarID: cigar.id, source: "user")
+                        } catch {
+                            print("Kunne ikke lagre strekkode-kobling \(barcode) → \(cigar.id): \(error)")
+                        }
                         onConfirm(cigar)
                     }
                 } label: {
