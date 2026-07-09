@@ -1089,24 +1089,13 @@ struct AdvancedFilterSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
 
-            HStack(spacing: 8) {
-                ForEach(crossSectionOptions, id: \.self) { opt in
-                    let isSelected = crossSection.contains(opt)
-                    Text(opt)
-                        .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(isSelected ? chipSelectedBg : Color.clear)
-                        .foregroundColor(Color(.label))
-                        .overlay(Capsule().stroke(isSelected ? Color.clear : chipStroke, lineWidth: 1))
-                        .clipShape(Capsule())
-                        .onTapGesture {
-                            if isSelected { crossSection.removeAll { $0 == opt } }
-                            else { crossSection.append(opt) }
-                        }
-                }
-                Spacer(minLength: 0)
-            }
+            // Samme chip som de andre seksjonene — én definisjon, ett utseende.
+            MultiChipFlowLayout(
+                options: crossSectionOptions,
+                selection: $crossSection,
+                selectedBg: chipSelectedBg,
+                strokeColor: chipStroke
+            )
             .padding(.horizontal, 16)
             .padding(.bottom, 14)
         }
@@ -1212,6 +1201,86 @@ struct AdvancedFilterSheet: View {
 
 // MARK: - MultiChipFlowLayout (multi-select, wrapping rows)
 
+// MARK: - FilterChip
+//
+// Chipen bytter tekstvekt når den velges. Halvfet tekst er bredere enn vanlig,
+// så hvis vi lot bredden følge vekten ville chipen hoppet i størrelse ved trykk
+// — og raden ville plutselig blitt for bred og brukket teksten i to linjer.
+//
+// Løsning: en usynlig halvfet kopi setter bredden, og den synlige teksten
+// tegnes oppå. Chipen er da alltid like bred, valgt eller ikke.
+
+struct FilterChip: View {
+    let title: String
+    let isSelected: Bool
+    let selectedBg: Color
+    let strokeColor: Color
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 15, weight: .semibold))
+            .lineLimit(1)
+            .fixedSize()
+            .hidden()
+            .overlay(
+                Text(title)
+                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+                    .fixedSize()
+                    .foregroundColor(Color(.label))
+            )
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(isSelected ? selectedBg : Color.clear)
+            .overlay(Capsule().stroke(isSelected ? Color.clear : strokeColor, lineWidth: 1))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
+    }
+}
+
+// MARK: - ChipFlowLayout
+//
+// Erstatter en tidligere bredde-gjetning (`tegn × 8pt`). Den bommet på lange
+// navn som «Dominican Republic», pakket raden for tett, og lot SwiftUI løse
+// overfyllingen ved å brekke teksten. Denne spør hver chip hvor bred den er.
+
+struct ChipFlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: maxWidth == .infinity ? x : maxWidth, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 struct MultiChipFlowLayout: View {
     let options: [String]
     @Binding var selection: [String]
@@ -1219,49 +1288,20 @@ struct MultiChipFlowLayout: View {
     var strokeColor: Color = Color(red: 202/255, green: 189/255, blue: 162/255)
 
     var body: some View {
-        // Innhold ligger 8px (ark) + 16px (seksjon) inne på hver side.
-        let rows = computeRows(screenWidth: UIScreen.main.bounds.width - 48)
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(rows.indices, id: \.self) { rowIdx in
-                HStack(spacing: 8) {
-                    ForEach(rows[rowIdx], id: \.self) { opt in
-                        let isSelected = selection.contains(where: { $0.lowercased() == opt.lowercased() })
-                        Text(opt)
-                            .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(isSelected ? selectedBg : Color.clear)
-                            .foregroundColor(Color(.label))
-                            .overlay(Capsule().stroke(isSelected ? Color.clear : strokeColor, lineWidth: 1))
-                            .clipShape(Capsule())
-                            .onTapGesture {
-                                if isSelected { selection.removeAll { $0.lowercased() == opt.lowercased() } }
-                                else { selection.append(opt) }
-                            }
+        ChipFlowLayout(spacing: 8) {
+            ForEach(options, id: \.self) { opt in
+                let isSelected = selection.contains { $0.lowercased() == opt.lowercased() }
+                FilterChip(title: opt,
+                           isSelected: isSelected,
+                           selectedBg: selectedBg,
+                           strokeColor: strokeColor)
+                    .onTapGesture {
+                        if isSelected { selection.removeAll { $0.lowercased() == opt.lowercased() } }
+                        else { selection.append(opt) }
                     }
-                    Spacer(minLength: 0)
-                }
             }
         }
-    }
-
-    private func computeRows(screenWidth: CGFloat) -> [[String]] {
-        var rows: [[String]] = []
-        var currentRow: [String] = []
-        var rowWidth: CGFloat = 0
-        for opt in options {
-            let chipW = CGFloat(opt.count) * 8 + 28 + 8
-            if rowWidth + chipW > screenWidth && !currentRow.isEmpty {
-                rows.append(currentRow)
-                currentRow = [opt]
-                rowWidth = chipW
-            } else {
-                currentRow.append(opt)
-                rowWidth += chipW
-            }
-        }
-        if !currentRow.isEmpty { rows.append(currentRow) }
-        return rows
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
