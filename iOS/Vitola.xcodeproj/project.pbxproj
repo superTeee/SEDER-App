@@ -29,6 +29,7 @@
 		6D9D07638987891501525A6A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */; };
 		7B07D356712571FB07ABF6B4 /* WishlistService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA86F7FB975163C27756E0F /* WishlistService.swift */; };
 		8018111CFDBB54A5702F371A /* CigarDetailViewDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */; };
+		AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */; };
 		810CF96C823CB1A8465D1947 /* VennerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DEE5F5271AB26DBC443EBCB /* VennerView.swift */; };
 		8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909149207DD9D2747DEE4727 /* ContentView.swift */; };
 		86E35448369E1D3E22BBACD7 /* MacroCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB5951CED5DF53CB34646C9 /* MacroCameraView.swift */; };
@@ -60,7 +61,6 @@
 		D6850B81775379622B3BE2E5 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */; };
 		DCF283B6483397354151D0DE /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71AF6BC818D389CFF8CC1858 /* FeedView.swift */; };
 		E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */; };
-		F714AAB8F26FC2F201A749FB /* CigarDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D122C57181C85D5D43402807 /* CigarDetailView.swift */; };
 		F846567A1031B0255EEAD978 /* StarRatingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D90177D2555F69A2182BB66 /* StarRatingRow.swift */; };
 		FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB0B9043F2D93F6611FC592 /* UserModels.swift */; };
 /* End PBXBuildFile section */
@@ -74,6 +74,7 @@
 		2BD105BAB7D21C10D1289623 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINUnlockView.swift; sourceTree = "<group>"; };
 		3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailViewDesign.swift; sourceTree = "<group>"; };
+		AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarSheets.swift; sourceTree = "<group>"; };
 		3D4F123712707C6A8B25490C /* PINService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINService.swift; sourceTree = "<group>"; };
 		4268E9B5C5FFA4E0654230A9 /* CigarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarService.swift; sourceTree = "<group>"; };
 		AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreStore.swift; sourceTree = "<group>"; };
@@ -106,7 +107,6 @@
 		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD6574A222EED0313457BD6D /* PINSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINSetupView.swift; sourceTree = "<group>"; };
 		C88921AF95DA591733B22CC6 /* FeedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedModels.swift; sourceTree = "<group>"; };
-		D122C57181C85D5D43402807 /* CigarDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailView.swift; sourceTree = "<group>"; };
 		DFDAFD471ECD732AD0BC15DA /* UserProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileView.swift; sourceTree = "<group>"; };
 		E01E2818C7850701195E98C9 /* MailComposeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposeView.swift; sourceTree = "<group>"; };
 		E7283863F25CF40E1B3513A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -190,8 +190,8 @@
 		4E70DB050FBA5B17C4335964 /* Cigar */ = {
 			isa = PBXGroup;
 			children = (
-				D122C57181C85D5D43402807 /* CigarDetailView.swift */,
 				3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */,
+				AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */,
 			);
 			path = Cigar;
 			sourceTree = "<group>";
@@ -426,8 +426,8 @@
 				8F4595BBECB6909AE790319C /* BarcodeService.swift in Sources */,
 				B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */,
 				8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */,
-				F714AAB8F26FC2F201A749FB /* CigarDetailView.swift in Sources */,
 				8018111CFDBB54A5702F371A /* CigarDetailViewDesign.swift in Sources */,
+				AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */,
 				9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */,
 				AA10AA10PHOTO0001BUILD01 /* PhotoButtons.swift in Sources */,
 				AA30IMAGESUPPORTBUILD001 /* ImageSupport.swift in Sources */,
@@ -537,7 +537,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 179;
+				CURRENT_PROJECT_VERSION = 180;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -560,7 +560,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 179;
+				CURRENT_PROJECT_VERSION = 180;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
