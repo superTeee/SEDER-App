@@ -23,11 +23,6 @@ struct PINUnlockView: View {
             VStack(spacing: 24) {
                 Spacer()
 
-                Image("Logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 72, height: 72)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 Text("Skriv inn koden din")
                     .font(.title3.bold())
 

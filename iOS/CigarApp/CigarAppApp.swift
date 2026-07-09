@@ -61,6 +61,13 @@ struct CigarAppApp: App {
                         .environmentObject(pinService)
                 }
             }
+            .onAppear {
+                // Splashen legges i sitt eget vindu over appen ved første render.
+                SplashOverlayWindow.shared.present()
+                // Utforsk-dataene hentes mens splashen spiller, så siden er
+                // ferdig utfylt før brukeren i det hele tatt ser den.
+                ExploreStore.shared.preload()
+            }
             .onOpenURL { url in
                 // Google Sign In URL-callback
                 GIDSignIn.sharedInstance.handle(url)

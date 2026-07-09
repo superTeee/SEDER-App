@@ -54,19 +54,24 @@ targets:
           - CFBundleTypeRole: Editor
             CFBundleURLSchemes:
               - com.googleusercontent.apps.1080195891334-sssk6g0avcs1rdr2srbhi9faedchqilo
+          - CFBundleTypeRole: Editor
+            CFBundleURLName: com.tomerikheggedal.vitola
+            CFBundleURLSchemes:
+              - vitola
         NSCameraUsageDescription: "Vitola bruker kameraet til å scanne sigarbandet"
         NSPhotoLibraryUsageDescription: "Velg et bilde av et sigarband fra biblioteket ditt"
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations: {}
-        UILaunchScreen: {}
+        UILaunchScreen:
+          UIColorName: LaunchBackground
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tomerikheggedal.vitola
         DEVELOPMENT_TEAM: H7NS3V5EFA
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "170"
+        CURRENT_PROJECT_VERSION: "179"
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         TARGETED_DEVICE_FAMILY: "1"

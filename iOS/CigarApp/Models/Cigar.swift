@@ -164,7 +164,10 @@ enum FlavorIcon {
         "mild spice": "spice",
         "mineral": "minerals",
         "minerals": "minerals",
+        "mint": "mint",
+        "minty": "mint",
         "molasses": "honey",
+        "mynte": "mint",
         "natural sweetness": "honey",
         "nougat": "nuts",
         "nut": "nuts",
@@ -173,6 +176,7 @@ enum FlavorIcon {
         "oak": "wood",
         "paprika": "pepper",
         "pepper": "pepper",
+        "peppermint": "mint",
         "roasted almonds": "nuts",
         "roasted aromas": "coffee",
         "roasted cashews": "nuts",
@@ -182,6 +186,7 @@ enum FlavorIcon {
         "sedertre": "cedar",
         "smoky wood": "wood",
         "soft spice": "spice",
+        "spearmint": "mint",
         "spice": "spice",
         "sweet cream": "cream",
         "sweet earth": "earth",
@@ -211,7 +216,7 @@ enum FlavorIcon {
         "wood": "Tre", "pepper": "Pepper", "nuts": "Nøtter", "vanilla": "Vanilje",
         "earth": "Jord", "fruit": "Frukt", "floral": "Blomst", "hay": "Høy",
         "coffee": "Kaffe", "honey": "Honning", "toast": "Toast", "cream": "Kremete",
-        "spice": "Krydder"
+        "spice": "Krydder", "mint": "Mynte"
     ]
 
     /// Norsk visningsetikett for et ikon-navn.

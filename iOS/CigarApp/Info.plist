@@ -26,6 +26,16 @@
 				<string>com.googleusercontent.apps.1080195891334-sssk6g0avcs1rdr2srbhi9faedchqilo</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.tomerikheggedal.vitola</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>vitola</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
@@ -41,6 +51,9 @@
 		<dict/>
 	</dict>
 	<key>UILaunchScreen</key>
-	<dict/>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
 </dict>
 </plist>

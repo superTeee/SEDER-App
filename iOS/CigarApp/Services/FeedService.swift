@@ -9,7 +9,6 @@ class FeedService {
 
     // MARK: - Private param structs (unngår mixed-type dictionary-problemer)
     private struct GetFeedParams: Encodable {
-        let p_user_id: String
         let p_limit: Int
         let p_offset: Int
     }
@@ -17,10 +16,12 @@ class FeedService {
     // MARK: - Feed
 
     /// Henter feed (egne + venners poster), nyest først.
-    func fetchFeed(userId: UUID, limit: Int = 50, offset: Int = 0) async throws -> [FeedPost] {
+    ///
+    /// Bruker-ID sendes IKKE fra klienten. `get_feed` leser `auth.uid()` selv —
+    /// ellers kunne hvem som helst be om hvem som helst sin feed.
+    func fetchFeed(limit: Int = 50, offset: Int = 0) async throws -> [FeedPost] {
         let response = try await supabase
             .rpc("get_feed", params: GetFeedParams(
-                p_user_id: userId.uuidString,
                 p_limit:   limit,
                 p_offset:  offset
             ))
@@ -61,7 +62,7 @@ class FeedService {
             .execute()
 
         // Hent hele innlegget med forfatterinfo via get_feed (nyeste post)
-        let posts = try await fetchFeed(userId: userId, limit: 1, offset: 0)
+        let posts = try await fetchFeed(limit: 1, offset: 0)
         // Fallback: returner første post fra feed
         if let first = posts.first { return first }
 
@@ -91,11 +92,13 @@ class FeedService {
     // MARK: - Likes
 
     /// Toggler en like. Returnerer ny `likedByMe`-status.
-    func toggleLike(postId: UUID, userId: UUID) async throws -> Bool {
+    ///
+    /// Bruker-ID sendes IKKE fra klienten — `toggle_post_like` leser `auth.uid()`
+    /// selv, ellers kunne man like og avlike på vegne av andre.
+    func toggleLike(postId: UUID) async throws -> Bool {
         let response = try await supabase
             .rpc("toggle_post_like", params: [
-                "p_post_id":  postId.uuidString,
-                "p_user_id":  userId.uuidString
+                "p_post_id": postId.uuidString
             ])
             .execute()
 

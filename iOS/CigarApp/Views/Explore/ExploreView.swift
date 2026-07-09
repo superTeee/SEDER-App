@@ -16,23 +16,17 @@ struct ExploreView: View {
     @State private var isSearching   = false
     @State private var searchTask: Task<Void, Never>? = nil
 
-    // Alle merker (for alfabetisk liste)
-    @State private var allBrands: [String] = []
-    @State private var isLoadingBrands = false
+    // Delt datalager. Fylles parallelt allerede mens splash-sekvensen spiller,
+    // og overlever fane-bytter — derfor ingen ny henting hver gang viewet vises.
+    @ObservedObject private var store = ExploreStore.shared
 
-    // Smaksnote-filtervalg utledet fra faktiske notater i databasen
-    @State private var flavorFilterOptions: [FlavorFilterOption] = []
-
-    // Topp 3 sigarer
-    @State private var topCigars: [Cigar] = []
-    @State private var isLoadingTop = false
-
-    // Dagens utvalgte
-    @State private var featuredCigar: Cigar? = nil
-    @State private var isLoadingFeatured = false
-    // Hvilken dag (dag-i-året) det gjeldende utvalget ble beregnet for —
-    // brukes til å friske opp valget når appen åpnes en ny dag.
-    @AppStorage("featuredDayOfYear") private var featuredDayOfYear: Int = -1
+    private var allBrands: [String]                    { store.brands }
+    private var flavorFilterOptions: [FlavorFilterOption] { store.flavorOptions }
+    private var topCigars: [Cigar]                     { store.topCigars }
+    private var featuredCigar: Cigar?                  { store.featuredCigar }
+    private var isLoadingBrands: Bool                  { store.isLoadingBrands }
+    private var isLoadingTop: Bool                     { store.isLoadingTop }
+    private var isLoadingFeatured: Bool                { store.isLoadingFeatured }
 
     // Avansert filter
     @State private var showFilterSheet   = false
@@ -231,15 +225,12 @@ struct ExploreView: View {
             } message: {
                 Text(scanService.errorMessage ?? "")
             }
-            .task { await loadBrands(); await loadFlavorOptions(); await loadTopCigars(); await loadFeaturedCigar() }
             .onAppear {
                 recentSearches = loadRecent()
-                // Nytt døgn? Beregn dagens utvalgte på nytt (viewet lever ofte på
-                // tvers av dager i minnet, så .task alene rekker ikke å rotere).
-                let today = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
-                if today != featuredDayOfYear {
-                    Task { await loadFeaturedCigar() }
-                }
+                // Er som regel allerede ferdig — starter under splashen.
+                store.preload()
+                // Nytt døgn? Beregn dagens utvalgte på nytt.
+                store.refreshFeaturedIfNewDay()
             }
             .onChange(of: searchQuery) { query in
                 searchTask?.cancel()
@@ -376,13 +367,15 @@ struct ExploreView: View {
 
     private var topFiveSection: some View {
         Group {
-            if isLoadingTop {
-                HStack {
-                    Spacer()
-                    ProgressView().padding(.vertical, 24)
-                    Spacer()
+            if topCigars.isEmpty {
+                // Skjelett med nøyaktig samme høyde som tre ferdige rader,
+                // så innholdet under ikke hopper når dataene lander.
+                VStack(spacing: 0) {
+                    ForEach(0..<3, id: \.self) { index in
+                        SkeletonRow()
+                        if index < 2 { Divider().padding(.leading, 56) }
+                    }
                 }
-                .padding(.horizontal, 16)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(topCigars.enumerated()), id: \.element.id) { index, cigar in
@@ -396,28 +389,40 @@ struct ExploreView: View {
                         }
                     }
                 }
-                .background(Color("Card"))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
             }
         }
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Dagens utvalgte
 
     @ViewBuilder
     private var featuredSection: some View {
-        if let cigar = featuredCigar {
-            sectionHeader("Dagens utvalgte")
-            NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
-                featuredCard(cigar: cigar)
+        sectionHeader("Dagens utvalgte")
+
+        Group {
+            if let cigar = featuredCigar {
+                NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
+                    featuredCard(cigar: cigar)
+                }
+                .buttonStyle(.plain)
+                .cigarQuickActions(cigar)
+            } else {
+                // Samme høyde som det ferdige kortet (52 pt ikon + 2×14 padding).
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color("Card"))
+                    .frame(height: 80)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color("Accent").opacity(0.25), lineWidth: 1)
+                    )
             }
-            .buttonStyle(.plain)
-            .cigarQuickActions(cigar)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
         }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 
     private func featuredCard(cigar: Cigar) -> some View {
@@ -526,11 +531,9 @@ struct ExploreView: View {
             .padding(.bottom, 24)
         }
 
-        // Topp 3 sigarer
-        if !topCigars.isEmpty || isLoadingTop {
-            sectionHeader("Brukernes topp 3")
-            topFiveSection
-        }
+        // Topp 3 sigarer — headeren står alltid, så layouten er stabil.
+        sectionHeader("Brukernes topp 3")
+        topFiveSection
 
         // Dagens utvalgte
         featuredSection
@@ -645,68 +648,7 @@ struct ExploreView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func loadBrands() async {
-        isLoadingBrands = true
-        defer { isLoadingBrands = false }
-        do {
-            allBrands = try await cigarService.fetchDistinctBrands()
-        } catch {
-            print("Feil ved lasting av merker: \(error)")
-        }
-    }
-
-    private func loadFlavorOptions() async {
-        do {
-            let rawNotes = try await cigarService.fetchDistinctFlavorNotes()
-            // Grupper rå-notatene på ikon-familie slik at hvert filtervalg
-            // svarer til minst én ekte sigar. Ukjente notater (uten ikon) droppes.
-            var byFamily: [String: [String]] = [:]
-            for note in rawNotes {
-                guard let family = FlavorIcon.name(for: note) else { continue }
-                byFamily[family, default: []].append(note)
-            }
-            flavorFilterOptions = byFamily
-                .map { FlavorFilterOption(label: FlavorIcon.displayLabel(for: $0.key),
-                                          iconFamily: $0.key,
-                                          dbNotes: $0.value) }
-                .sorted { $0.label < $1.label }
-        } catch {
-            print("Feil ved lasting av smaksnoter: \(error)")
-        }
-    }
-
-    private func loadTopCigars() async {
-        isLoadingTop = true
-        defer { isLoadingTop = false }
-        do {
-            topCigars = try await cigarService.fetchTopRatedCigars(limit: 3)
-        } catch {
-            print("Feil ved lasting av topp-sigarer: \(error)")
-        }
-    }
-
-    private func loadFeaturedCigar() async {
-        isLoadingFeatured = true
-        defer { isLoadingFeatured = false }
-        let today = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
-        do {
-            // Prøv smakstilpasset valg først (ligner journalen, men ikke logget før)
-            if let matched = try await cigarService.fetchTasteFeaturedCigar() {
-                featuredCigar = matched
-                featuredDayOfYear = today
-                return
-            }
-            // Fallback: deterministisk rating-valg (ny bruker / for lite loggdata)
-            let candidates = try await cigarService.fetchAboveAverageCigars()
-            guard !candidates.isEmpty else { return }
-            // Deterministisk valg: samme sigar hele dagen, ny sigar neste dag
-            let index = (today - 1) % candidates.count
-            featuredCigar = candidates[index]
-            featuredDayOfYear = today
-        } catch {
-            print("Feil ved lasting av dagens utvalgte: \(error)")
-        }
-    }
+    // Hentingene bor nå i ExploreStore (parallelt, startet under splashen).
 
     // Pop hele scan-stakken tilbake til Utforsk og åpne kameraet på nytt,
     // slik at man kan legge inn flere sigarer på rad uten å trykke back-back-back.
@@ -1435,6 +1377,39 @@ struct BrandCigarsView: View {
                 isLoading = false
             }
         }
+    }
+}
+
+// MARK: - TopCigarRow
+
+// MARK: - SkeletonRow
+// Plassholder med samme høyde som TopCigarRow (3 tekstlinjer + 2×12 padding),
+// slik at Topp 3 ikke endrer høyde når dataene lander.
+
+struct SkeletonRow: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            Circle()
+                .fill(Color(.tertiarySystemFill))
+                .frame(width: 24, height: 24)
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 6) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(.tertiarySystemFill))
+                    .frame(width: 120, height: 11)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(.quaternarySystemFill))
+                    .frame(width: 90, height: 10)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(.quaternarySystemFill))
+                    .frame(width: 60, height: 8)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 79)
     }
 }
 

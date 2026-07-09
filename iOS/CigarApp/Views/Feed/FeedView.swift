@@ -170,13 +170,13 @@ struct FeedView: View {
     // MARK: Actions
 
     private func loadFeed() async {
-        guard let userId = authService.userId else {
+        guard authService.userId != nil else {
             isLoading = false
             return
         }
         isLoading = true
         do {
-            posts = try await feedService.fetchFeed(userId: userId)
+            posts = try await feedService.fetchFeed()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -184,10 +184,10 @@ struct FeedView: View {
     }
 
     private func toggleLike(_ post: FeedPost) async {
-        guard let userId = authService.userId,
+        guard authService.userId != nil,
               let idx = posts.firstIndex(where: { $0.id == post.id }) else { return }
         do {
-            let liked = try await feedService.toggleLike(postId: post.id, userId: userId)
+            let liked = try await feedService.toggleLike(postId: post.id)
             posts[idx].likedByMe = liked
             posts[idx].likeCount += liked ? 1 : -1
         } catch {
