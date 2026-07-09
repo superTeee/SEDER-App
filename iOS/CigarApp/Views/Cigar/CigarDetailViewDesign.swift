@@ -30,6 +30,7 @@ struct CigarDetailViewDesign: View {
     @State private var showLogSmokedSheet = false
     @State private var showLoginSheet = false
     @State private var showLoggedToast = false
+    @State private var showReportSheet = false
     @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
 
     private let humidorService = HumidorService()
@@ -197,6 +198,10 @@ struct CigarDetailViewDesign: View {
             }
             .ignoresSafeArea()
         }
+        .sheet(isPresented: $showReportSheet) {
+            CigarReportSheet(cigar: cigar)
+                .environmentObject(authService)
+        }
         .onAppear {
             guard entry == nil, let userId = authService.userId else { return }
             Task {
@@ -342,6 +347,14 @@ struct CigarDetailViewDesign: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 6)
             }
+
+            // Sier ærlig fra om spesifikasjonene er sjekket mot en kilde,
+            // og lar brukeren rette oss når de ikke er det.
+            VerificationBadge(cigar: cigar) {
+                guard authService.userId != nil else { showLoginSheet = true; return }
+                showReportSheet = true
+            }
+            .padding(.horizontal, 6)
 
             // Action-knapp
             if entry != nil {
@@ -695,7 +708,9 @@ struct CigarDetailViewDesign: View {
         bodyType: nil,
         headType: nil,
         footType: nil,
-        createdAt: nil
+        createdAt: nil,
+        sourceUrl: nil,
+        verifiedAt: nil
     )
 
     let mockEntry = HumidorEntry(

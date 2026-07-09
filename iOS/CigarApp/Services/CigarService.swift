@@ -7,6 +7,27 @@ import Supabase
 @MainActor
 class CigarService: ObservableObject {
 
+    // MARK: - Meld feil på sigardata
+
+    private struct ReportCigarParams: Encodable {
+        let p_cigar_id: String
+        let p_field: String
+        let p_comment: String?
+    }
+
+    /// Sender inn en rettelse. Bruker-ID sendes IKKE fra klienten — `report_cigar`
+    /// leser `auth.uid()` selv.
+    func reportCigar(cigarId: UUID, field: String, comment: String) async throws {
+        let trimmed = comment.trimmingCharacters(in: .whitespacesAndNewlines)
+        try await supabase
+            .rpc("report_cigar", params: ReportCigarParams(
+                p_cigar_id: cigarId.uuidString,
+                p_field:    field,
+                p_comment:  trimmed.isEmpty ? nil : trimmed
+            ))
+            .execute()
+    }
+
     // MARK: - Søk etter sigarer (tekst-matching fra OCR)
     func searchCigars(query: String) async throws -> [Cigar] {
         // Bruker search_cigars_ranked() i Supabase (se migrations/002_ranked_search.sql,

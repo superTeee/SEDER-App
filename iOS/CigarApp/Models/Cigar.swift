@@ -34,6 +34,15 @@ struct Cigar: Codable, Identifiable, Hashable {
     let footType: String?            // f.eks. "Closed"/"Tapered" — null = standard/åpen
     let createdAt: Date?
 
+    // Herkomst. Uten disse kunne ikke databasen skille en rad hentet fra
+    // produsentens katalog fra en rad noen hadde gjettet seg fram til.
+    let sourceUrl: String?          // Hvor spesifikasjonene kommer fra
+    let verifiedAt: Date?           // Når de sist ble sjekket mot kilden
+
+    /// Er spesifikasjonene sjekket mot en kilde? Er de ikke det, skal appen si
+    /// det til brukeren i stedet for å presentere gjetning som fakta.
+    var isVerified: Bool { verifiedAt != nil }
+
     enum CodingKeys: String, CodingKey {
         case id
         case brand
@@ -64,6 +73,8 @@ struct Cigar: Codable, Identifiable, Hashable {
         case headType           = "head_type"
         case footType           = "foot_type"
         case createdAt          = "created_at"
+        case sourceUrl          = "source_url"
+        case verifiedAt         = "verified_at"
     }
 
     // Hjelpefunksjoner
