@@ -654,9 +654,14 @@ struct UserProfileView: View {
         isLoading = true
         defer { isLoading = false }
         do {
+            // «Sist røkt» hentes kun for egen profil. RLS på tasting_logs slipper
+            // uansett bare gjennom egne rader, så et kall for en venn ville stille
+            // returnert tomt. Å åpne tabellen for venner ville eksponert HELE
+            // journalen deres — også logger de aldri har delt i feeden — og
+            // røykelogger er sannsynligvis helseopplysninger (GDPR art. 9).
             async let p  = profileService.fetchFriendProfile(userId: userId)
             async let h  = isOwnProfile ? [] : profileService.fetchPublicHumidorEntries(userId: userId)
-            async let ll = profileService.fetchRecentLogs(userId: userId, limit: 1)
+            async let ll = isOwnProfile ? profileService.fetchRecentLogs(userId: userId, limit: 1) : []
             let (prof, humList, logs) = try await (p, h, ll)
             profile        = prof
             publicHumidors = humList

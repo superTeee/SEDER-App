@@ -77,8 +77,10 @@ class ProfileService: ObservableObject {
         return entries
     }
 
-    // MARK: - Hent siste journal-innlegg for en bruker (venner kan se)
+    // MARK: - Hent siste journal-innlegg
 
+    /// Kun for innlogget bruker. RLS på `tasting_logs` tillater bare `auth.uid() = user_id`,
+    /// så et kall med en annen brukers ID returnerer alltid en tom liste.
     func fetchRecentLogs(userId: UUID, limit: Int = 5) async throws -> [TastingLog] {
         let logs: [TastingLog] = try await supabase
             .from("tasting_logs")
