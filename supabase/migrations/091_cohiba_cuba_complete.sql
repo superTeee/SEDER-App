@@ -1,0 +1,17 @@
+-- 091_cohiba_cuba_complete.sql
+--
+-- Kubansk Cohiba: 21 rader → 23, alle verifisert.
+-- Kilde: https://www.cubancigarwebsite.com/brand/cohiba
+--
+-- De 21 radene vi hadde var nesten alle feil:
+--   Siglo II sto 50 × 5,0"  — den er 42 × 5,1"
+--   Siglo IV sto 50 × 6,1"  — den er 46 × 5,6"
+--   Siglo VI fantes to ganger, med to forskjellige (og feil) mål
+--   "Behike Robusto" finnes ikke
+--
+-- Styrke per linje, hentet fra kildens merkenotat:
+--   Línea Clásica + Maduro 5 : medium-full → 4
+--   Línea 1492 (Siglo)       : medium      → 3
+--   Behike (BHK)             : full        → 5
+--
+-- Ingen brukerdata pekte på radene, så de ble slettet og skrevet på nytt.

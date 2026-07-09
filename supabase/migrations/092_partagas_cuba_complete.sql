@@ -1,0 +1,11 @@
+-- 092_partagas_cuba_complete.sql
+--
+-- Kubansk Partagás: 6 rader → 27, alle verifisert.
+-- Kilde: https://www.cubancigarwebsite.com/brand/partagas
+-- Merkenotat: "The range comprises full-strength cigars" → styrke 5.
+--
+-- Inkluderer hele Serie D (No. 4, 5, 6), Serie E No. 2, Serie P No. 2,
+-- Maduro-linjen (No. 1, 2, 3), og LCDH-eksklusivene Culebras, Salomones
+-- og Aliados.
+--
+-- flavor_notes står tomme; Habanos publiserer dem ikke.
