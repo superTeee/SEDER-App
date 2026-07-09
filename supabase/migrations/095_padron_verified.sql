@@ -1,0 +1,63 @@
+-- 095_padron_verified.sql
+--
+-- Padrón: 102 uverifiserte rader → 69 verifiserte.
+-- Kilde: https://padron.com/cigar-offering/ og de fem serie-sidene under den.
+--
+-- Etter kjøring: 69 rader, 0 uverifiserte, 0 dubletter, 9 humidor-oppføringer intakt.
+--
+--
+-- SERIENE
+--
+--   Padrón Series             14   («medium- to full-bodied» → styrke 4)
+--   Dámaso Series             6    («mild» → styrke 2, Ecuador Connecticut-dekkblad)
+--   1964 Anniversary Series   15   (ingen styrkeutsagn på siden → styrke står tom)
+--   1926 Serie                20   («full-bodied» → styrke 5, natural + maduro)
+--   Family Reserve            14   («full-bodied» → styrke 5, natural + maduro)
+--
+-- 1926 og Family Reserve selges i både sun-grown natural og maduro. Kilden
+-- oppgir målene én gang; maduro-radene deler mål med sin natural-tvilling og
+-- skiller seg bare på `wrapper_leaf`.
+--
+--
+-- HVA SOM BLE GJORT
+--
+-- 1. Ni rader lå i testeres humidorer. De ble OPPDATERT på plass, ikke slettet.
+--    `ON DELETE CASCADE` fra humidor til cigars ville ellers tatt med seg data.
+--    Rader: 1926 No. 2, No. 40 Maduro, No. 80 Maduro; 1964 Corona;
+--    Dámaso No. 8; Family Reserve No. 44 Maduro, No. 45, No. 50 Maduro, No. 95.
+--
+-- 2. Resten av de uverifiserte Padrón-radene ble slettet og erstattet.
+--
+-- 3. Merket het «Padron». Nå «Padrón», som Bolívar, Ramón Allones og de andre.
+--
+--
+-- TO FEIL SOM BLE FANGET UNDERVEIS
+--
+-- Padróns egen side har en trykkfeil på 1964 Piramide: «52 x 42 x 6 7/8».
+-- To ringmål på samme sigar. Den raden er derfor IKKE lagt inn. Den mangler
+-- heller ikke i basen — den finnes bare ikke, og det er riktigere enn å gjette
+-- mellom 42 og 52.
+--
+-- Første forsøk laget dubletter: den beskyttede raden «No. 40 Maduro» matchet
+-- natural-spesifikasjonen, og «No. 40 Torpedo Maduro» ble lagt inn i tillegg.
+-- Samme sigar, to rader. Den innsatte ble slettet, den beskyttede fikk riktig
+-- navn og form. Samme for Family Reserve No. 44.
+--
+--
+-- HVA SOM IKKE ER TATT MED
+--
+-- * `strength`/`body` for 1964 Anniversary Series står tomme. Padrón oppgir
+--   ingen styrke for den serien. Vi gjetter ikke — appen viser «Ukjent».
+-- * `shape` settes bare der navnet sier det (Torpedo, Belicoso). Padrón er
+--   kjent for box-press, men siden sier det ikke, så `cross_section` står tom.
+-- * `flavor_notes` står tomme. Padrón publiserer dem ikke.
+-- * 50th Anniversary, 60th Anniversary og Special Releases er ikke tatt med.
+-- * Padrón Series' side nevner en «Magnum» i teksten, men lister den ikke
+--   blant størrelsene. Den er derfor ikke lagt inn.
+--
+--
+-- ANMERKNING
+--
+-- Padrón 1926 Serie No. 90 står nå 52 × 5.5". Det var denne raden en tester
+-- meldte inn: beskrivelsen hadde lånt 1926-seriens 75-årshistorie, mens No. 90
+-- markerer José O. Padróns 90-årsdag. Beskrivelsen er nå generert fra målene.
