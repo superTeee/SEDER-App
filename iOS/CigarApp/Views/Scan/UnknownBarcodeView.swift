@@ -198,8 +198,9 @@ struct UnknownBarcodeView: View {
                         .font(.subheadline)
                         .foregroundColor(Color(.secondaryLabel))
                 }
-                if let vitola = cigar.vitola {
-                    Text(vitola)
+                let meta = [cigar.vitola, cigar.dimensionsLabel].compactMap { $0 }
+                if !meta.isEmpty {
+                    Text(meta.joined(separator: " · "))
                         .font(.caption)
                         .foregroundColor(Color(.tertiaryLabel))
                 }

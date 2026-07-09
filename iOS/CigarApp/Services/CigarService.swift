@@ -264,29 +264,38 @@ class CigarService: ObservableObject {
         return ranked[index].cigar
     }
 
-    // MARK: - Hent alle unike merkenavn (for Explore-siden)
-    func fetchDistinctBrands() async throws -> [String] {
-        struct BrandRow: Decodable { let brand: String }
+    // MARK: - Merkeliste med antall (for Explore-siden)
+    //
+    // Vi henter uansett én rad per sigar for å finne de unike merkene, så
+    // antall sigarer og antall serier koster ingenting ekstra å telle opp.
+    func fetchBrandSummaries() async throws -> [BrandSummary] {
+        struct BrandRow: Decodable {
+            let brand: String
+            let series: String?
+        }
 
         // PostgREST returnerer maks 1000 rader per kall. Med >1000 sigarer ble
         // merkelista kuttet (stoppet ~«H»). Paginer med .range() til alt er hentet.
-        var seen = Set<String>()
-        var brands: [String] = []
+        var order: [String] = []
+        var cigarCounts: [String: Int] = [:]
+        var seriesByBrand: [String: Set<String>] = [:]
         let pageSize = 1000
         var from = 0
 
         while true {
             let rows: [BrandRow] = try await supabase
                 .from("cigars")
-                .select("brand")
+                .select("brand,series")
                 .order("brand")
                 .range(from: from, to: from + pageSize - 1)
                 .execute()
                 .value
 
             for row in rows {
-                if seen.insert(row.brand).inserted {
-                    brands.append(row.brand)
+                if cigarCounts[row.brand] == nil { order.append(row.brand) }
+                cigarCounts[row.brand, default: 0] += 1
+                if let series = row.series, !series.isEmpty {
+                    seriesByBrand[row.brand, default: []].insert(series)
                 }
             }
 
@@ -294,7 +303,11 @@ class CigarService: ObservableObject {
             from += pageSize
         }
 
-        return brands
+        return order.map { brand in
+            BrandSummary(brand: brand,
+                         cigarCount:  cigarCounts[brand] ?? 0,
+                         seriesCount: seriesByBrand[brand]?.count ?? 0)
+        }
     }
 
     // MARK: - Distinkte smaksnoter (for avansert-søk-filter)

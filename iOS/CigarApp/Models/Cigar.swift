@@ -93,6 +93,13 @@ struct Cigar: Codable, Identifiable, Hashable {
         [brand, series, vitola].compactMap { $0 }.joined(separator: " ")
     }
 
+    /// «50 × 4.9"» — ringmål × lengde. Nil når ett av tallene mangler;
+    /// et halvt mål er verre enn ingen mål. Ett sted, brukt i alle listene.
+    var dimensionsLabel: String? {
+        guard let ringGauge, let lengthInches else { return nil }
+        return "\(ringGauge) × \(String(format: "%.1f", lengthInches))\""
+    }
+
     var strengthLabel: String {
         guard let s = strength else { return "Ukjent" }
         switch s {
@@ -111,6 +118,27 @@ struct Cigar: Codable, Identifiable, Hashable {
         case 2.5..<3.5: return "orange"
         default: return "red"
         }
+    }
+}
+
+// MARK: - BrandSummary
+// Ett merke i Utforsk-lista, med nok tall til at brukeren vet hva som venter
+// bak trykket. «Cohiba — 23 sigarer · 6 serier» sier mer enn «Cohiba ›».
+
+struct BrandSummary: Identifiable, Hashable {
+    let brand: String
+    let cigarCount: Int
+    let seriesCount: Int
+
+    var id: String { brand }
+
+    /// «23 sigarer · 6 serier». Serier utelates når merket ikke har noen.
+    var subtitle: String {
+        var parts = ["\(cigarCount) \(cigarCount == 1 ? "sigar" : "sigarer")"]
+        if seriesCount > 1 {
+            parts.append("\(seriesCount) serier")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

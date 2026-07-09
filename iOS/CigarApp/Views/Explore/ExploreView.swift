@@ -28,7 +28,7 @@ struct ExploreView: View {
     // og overlever fane-bytter — derfor ingen ny henting hver gang viewet vises.
     @ObservedObject private var store = ExploreStore.shared
 
-    private var allBrands: [String]                    { store.brands }
+    private var allBrands: [BrandSummary]              { store.brands }
     private var flavorFilterOptions: [FlavorFilterOption] { store.flavorOptions }
     private var topCigars: [Cigar]                     { store.topCigars }
     private var featuredCigar: Cigar?                  { store.featuredCigar }
@@ -96,13 +96,14 @@ struct ExploreView: View {
 
     var showingSearch: Bool { !searchQuery.isEmpty }
 
-    var brandSections: [(letter: String, brands: [String])] {
-        Dictionary(grouping: allBrands) { brand -> String in
-            let first = brand.first.map { String($0).uppercased() } ?? "#"
+    var brandSections: [(letter: String, brands: [BrandSummary])] {
+        Dictionary(grouping: allBrands) { summary -> String in
+            let first = summary.brand.first.map { String($0).uppercased() } ?? "#"
             return first.first?.isLetter == true ? first : "#"
         }
         .sorted { $0.key < $1.key }
-        .map { (letter: $0.key, brands: $0.value.sorted()) }
+        .map { (letter: $0.key,
+                brands: $0.value.sorted { $0.brand.localizedStandardCompare($1.brand) == .orderedAscending }) }
     }
 
     /// 80 treff spredt utover i én liste er uleselig. Gruppert på merke er det
@@ -594,21 +595,26 @@ struct ExploreView: View {
                     .padding(.bottom, 4)
 
                 VStack(spacing: 0) {
-                    ForEach(section.brands, id: \.self) { brand in
-                        NavigationLink(value: brand) {
+                    ForEach(section.brands) { brand in
+                        NavigationLink(value: brand.brand) {
                             HStack {
-                                Text(brand)
-                                    .foregroundColor(Color(.label))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(brand.brand)
+                                        .foregroundColor(Color(.label))
+                                    Text(brand.subtitle)
+                                        .font(.caption)
+                                        .foregroundColor(Color(.secondaryLabel))
+                                }
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(Color(.tertiaryLabel))
                             }
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 13)
+                            .padding(.vertical, 11)
                         }
 
-                        if brand != section.brands.last {
+                        if brand.id != section.brands.last?.id {
                             Divider().padding(.leading, 16)
                         }
                     }
@@ -888,8 +894,8 @@ struct ExploreResultRow: View {
         if !showsBrand, cigar.series != nil, let vitola = cigar.vitola {
             parts.append(vitola)
         }
-        if let rg = cigar.ringGauge, let length = cigar.lengthInches {
-            parts.append("\(rg) × \(String(format: "%.1f", length))\"")
+        if let dimensions = cigar.dimensionsLabel {
+            parts.append(dimensions)
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
@@ -1586,30 +1592,24 @@ struct TopCigarRow: View {
 struct BrandCigarRow: View {
     let cigar: Cigar
 
+    /// «Robusto · 50 × 4.9" · Cuba». Bygges av delene som faktisk finnes, så
+    /// «·» aldri blir stående alene når et felt mangler.
+    private var metaLine: String? {
+        let parts = [cigar.commonFormat, cigar.dimensionsLabel, cigar.wrapperCountry]
+            .compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             if let vitola = cigar.vitola {
                 Text(vitola)
                     .font(.subheadline)
             }
-            HStack(spacing: 8) {
-                if let format = cigar.commonFormat {
-                    Text(format)
-                        .font(.caption)
-                        .foregroundColor(Color(.secondaryLabel))
-                }
-                if let wrapper = cigar.wrapperCountry {
-                    // Skilletegn kun når det finnes et format foran — ellers
-                    // blir "·" stående alene foran wrapper/origin.
-                    if cigar.commonFormat != nil {
-                        Text("·")
-                            .font(.caption)
-                            .foregroundColor(Color(.tertiaryLabel))
-                    }
-                    Text(wrapper)
-                        .font(.caption)
-                        .foregroundColor(Color(.secondaryLabel))
-                }
+            if let metaLine {
+                Text(metaLine)
+                    .font(.caption)
+                    .foregroundColor(Color(.secondaryLabel))
             }
         }
         .padding(.vertical, 2)

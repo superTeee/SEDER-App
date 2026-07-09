@@ -22,7 +22,7 @@ final class ExploreStore: ObservableObject {
 
     // MARK: Data
 
-    @Published private(set) var brands: [String] = []
+    @Published private(set) var brands: [BrandSummary] = []
     @Published private(set) var flavorOptions: [FlavorFilterOption] = []
     @Published private(set) var topCigars: [Cigar] = []
     @Published private(set) var featuredCigar: Cigar? = nil
@@ -115,7 +115,7 @@ final class ExploreStore: ObservableObject {
     private func loadBrands() async {
         defer { isLoadingBrands = false }
         do {
-            brands = try await cigarService.fetchDistinctBrands()
+            brands = try await cigarService.fetchBrandSummaries()
         } catch {
             print("Feil ved lasting av merker: \(error)")
         }

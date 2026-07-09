@@ -146,6 +146,13 @@ struct CigarRow: View {
 
     let cigar: Cigar
 
+    /// «Robustos · 50 × 4.9"» — målene hjelper deg å skille to like sigarer
+    /// fra hverandre når du står med den ene i hånden.
+    private var metaLine: String? {
+        let parts = [cigar.vitola, cigar.dimensionsLabel].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(cigar.brand)
@@ -155,8 +162,8 @@ struct CigarRow: View {
                     .font(.subheadline)
                     .foregroundColor(Color("TextSecondary"))
             }
-            if let vitola = cigar.vitola {
-                Text(vitola)
+            if let metaLine {
+                Text(metaLine)
                     .font(.caption)
                     .foregroundColor(Color("TextSecondary"))
             }
