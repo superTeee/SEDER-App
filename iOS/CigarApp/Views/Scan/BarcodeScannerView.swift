@@ -677,7 +677,9 @@ final class BarcodeCameraVC: UIViewController {
     private func stopSession() {
         focusResetTimer?.invalidate()
         focusResetTimer = nil
-        captureSession?.stopRunning()
+        // stopRunning() kan bruke flere hundre millisekunder — samme kø som startSession().
+        guard let session = captureSession, session.isRunning else { return }
+        DispatchQueue.global(qos: .userInitiated).async { session.stopRunning() }
     }
 }
 

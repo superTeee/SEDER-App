@@ -405,22 +405,30 @@ class CigarService: ObservableObject {
             let series: String?
         }
 
-        let rows: [BrandSeriesRow] = try await supabase
-            .from("cigars")
-            .select("brand, series")
-            .execute()
-            .value
-
+        // PostgREST returnerer maks 1000 rader per kall. Uten paginering mistet
+        // vokabularet alle merker etter ~rad 1000, og skanning av dem ble dårligere.
         var words = Set<String>()
-        for row in rows {
-            for part in row.brand.split(separator: " ") {
-                words.insert(String(part))
-            }
-            if let series = row.series {
-                for part in series.split(separator: " ") {
-                    words.insert(String(part))
+        var from = 0
+        let pageSize = 1000
+
+        while true {
+            let rows: [BrandSeriesRow] = try await supabase
+                .from("cigars")
+                .select("brand, series")
+                .order("id")
+                .range(from: from, to: from + pageSize - 1)
+                .execute()
+                .value
+
+            for row in rows {
+                words.formUnion(row.brand.split(separator: " ").map(String.init))
+                if let series = row.series {
+                    words.formUnion(series.split(separator: " ").map(String.init))
                 }
             }
+
+            if rows.count < pageSize { break } // siste side
+            from += pageSize
         }
 
         return Array(words)
