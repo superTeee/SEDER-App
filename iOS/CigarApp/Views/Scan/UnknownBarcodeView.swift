@@ -11,6 +11,7 @@ struct UnknownBarcodeView: View {
     var onLinked: (Cigar) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authService: AuthService
     @StateObject private var cigarService = CigarService()
 
     @State private var searchQuery    = ""
@@ -20,6 +21,7 @@ struct UnknownBarcodeView: View {
     @State private var isSaving       = false
     @State private var saveError:     String?
     @State private var searchTask: Task<Void, Never>?
+    @State private var showAddCigar   = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -85,6 +87,20 @@ struct UnknownBarcodeView: View {
                     guard !Task.isCancelled else { return }
                     runSearch()
                 }
+            }
+
+            // ─── Legg til selv ───
+            // Sigaren finnes ikke i basen. Da skal ikke skanningen ende blindt —
+            // brukeren legger den inn, og strekkoden kobles til den nye raden.
+            if selectedCigar == nil {
+                Button {
+                    showAddCigar = true
+                } label: {
+                    Label("Sigaren finnes ikke — legg den inn selv", systemImage: "plus.circle")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(Color("Accent"))
+                }
+                .padding(.top, 14)
             }
 
             // ─── Resultatliste ───
@@ -159,6 +175,14 @@ struct UnknownBarcodeView: View {
             }
         }
         .background(Color("Card"))
+        .sheet(isPresented: $showAddCigar) {
+            AddCigarSheet(prefillBrand: searchQuery) { cigar in
+                // Sigaren er ny og privat. Strekkoden knyttes til den med det
+                // samme, så neste skann treffer — også før forslaget er godkjent.
+                saveLink(cigar: cigar)
+            }
+            .environmentObject(authService)
+        }
     }
 
     // MARK: - Hjelpere

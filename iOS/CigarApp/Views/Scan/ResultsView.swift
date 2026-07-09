@@ -10,6 +10,7 @@ struct ResultsView: View {
     // Valgfri "scan neste"-handling fra scan-flyten (pop til rot + åpne kamera).
     var onScanNext: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authService: AuthService
 
     @StateObject private var cigarService = CigarService()
     @State private var searchQuery: String = ""
@@ -17,6 +18,10 @@ struct ResultsView: View {
     @State private var isSearching = false
     @State private var searchError: String?
     @State private var hasSearched = false
+
+    // Fant hverken scan eller søk sigaren, legger brukeren den inn selv.
+    @State private var showAddCigar = false
+    @State private var createdCigar: Cigar?
 
     var body: some View {
         List {
@@ -71,6 +76,18 @@ struct ResultsView: View {
                 }
             }
 
+            // Siste utvei. Brukeren står med sigaren i hånden — da skal
+            // appen aldri svare "finnes ikke" og stoppe der.
+            Section {
+                Button {
+                    showAddCigar = true
+                } label: {
+                    Label("Legg til sigaren selv", systemImage: "plus.circle")
+                }
+            } footer: {
+                Text("Sigaren blir din med én gang, og vi sjekker den mot kilden før den eventuelt blir synlig for alle.")
+            }
+
             // Scan på nytt
             Section {
                 Button(action: { if let onScanNext { onScanNext() } else { dismiss() } }) {
@@ -80,6 +97,15 @@ struct ResultsView: View {
         }
         .navigationTitle("Treff")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showAddCigar) {
+            AddCigarSheet(prefillBrand: searchQuery) { cigar in
+                createdCigar = cigar
+            }
+            .environmentObject(authService)
+        }
+        .navigationDestination(item: $createdCigar) { cigar in
+            CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext)
+        }
     }
 
     private func runSearch() async {
