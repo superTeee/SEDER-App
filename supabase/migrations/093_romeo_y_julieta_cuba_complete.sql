@@ -1,0 +1,13 @@
+-- 093_romeo_y_julieta_cuba_complete.sql
+--
+-- Kubansk Romeo y Julieta: 6 rader → 28, alle verifisert.
+-- Kilde: https://www.cubancigarwebsite.com/brand/romeo-y-julieta
+-- Merkenotat: "medium strength cigars" → styrke 3.
+--
+-- De 6 gamle radene inneholdt to dubletter av Churchills og to av
+-- Short Churchills, med ulike (og feil) mål.
+--
+-- VIKTIG: raden d292a8e8-c920-4990-ad53-85f7fc98be69 lå i en testers humidor.
+-- Den ble OPPDATERT på plass, ikke slettet. `ON DELETE CASCADE` fra humidor
+-- til cigars ville ellers tatt med seg testerens data.
+-- Etter kjøring: 28 rader, 28 verifisert, humidor-oppføringen intakt.
