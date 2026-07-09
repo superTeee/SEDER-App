@@ -132,12 +132,14 @@ struct BrandSummary: Identifiable, Hashable {
 
     var id: String { brand }
 
-    /// «23 sigarer · 6 serier». Serier utelates når merket ikke har noen.
+    /// «6 serier · 23 sigarer». Serien er den grovere inndelingen, så den kommer
+    /// først. Serier utelates når merket bare har én.
     var subtitle: String {
-        var parts = ["\(cigarCount) \(cigarCount == 1 ? "sigar" : "sigarer")"]
+        var parts: [String] = []
         if seriesCount > 1 {
             parts.append("\(seriesCount) serier")
         }
+        parts.append("\(cigarCount) \(cigarCount == 1 ? "sigar" : "sigarer")")
         return parts.joined(separator: " · ")
     }
 }

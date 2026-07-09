@@ -919,9 +919,11 @@ struct ExploreResultRow: View {
                             .foregroundColor(Color(.tertiaryLabel))
                     }
                 } else if let specLine {
+                    // Samme vekt som metadata i merkelista — treffene skal ikke
+                    // være vanskeligere å lese enn resten av Utforsk.
                     Text(specLine)
                         .font(.caption)
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .foregroundColor(Color(.secondaryLabel))
                 }
             }
             Spacer()
@@ -1020,11 +1022,13 @@ struct AdvancedFilterSheet: View {
 
             ScrollView {
                 VStack(spacing: 0) {
+                    // Vitola først: formatet er det folk velger etter — hvor lang
+                    // tid de har, ikke hvilket land dekkbladet kommer fra.
+                    chipSection(title: "VITOLA",  options: vitolaOptions,  selection: $vitola,         showAll: $showAllVitola)
+                    sectionDivider()
                     crossSectionFilterSection
                     sectionDivider()
                     chipSection(title: "OPPHAV",  options: originOptions,  selection: $countryOrigin,  showAll: $showAllOrigin)
-                    sectionDivider()
-                    chipSection(title: "VITOLA",  options: vitolaOptions,  selection: $vitola,         showAll: $showAllVitola)
                     sectionDivider()
                     chipSection(title: "WRAPPER", options: wrapperOptions, selection: $wrapperCountry, showAll: $showAllWrapper)
                     sectionDivider()
