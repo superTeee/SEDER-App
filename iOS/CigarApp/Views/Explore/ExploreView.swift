@@ -9,6 +9,14 @@ struct ExploreView: View {
     @StateObject private var cigarService = CigarService()
     @StateObject private var scanService  = ScanService()
 
+    @EnvironmentObject var authService: AuthService
+
+    // Legg til egen sigar når søket ikke gir treff
+    @State private var showAddCigarSheet = false
+    @State private var showLoginSheet    = false
+    @State private var createdCigar: Cigar?
+    @State private var navigateToCreated = false
+
     // Søk
     @State private var searchQuery   = ""
     @FocusState private var searchFocused: Bool
@@ -188,6 +196,22 @@ struct ExploreView: View {
                     CigarDetailViewDesign(cigar: cigar)
                 }
             }
+            .navigationDestination(isPresented: $navigateToCreated) {
+                if let cigar = createdCigar {
+                    CigarDetailViewDesign(cigar: cigar)
+                }
+            }
+            .sheet(isPresented: $showAddCigarSheet) {
+                AddCigarSheet(prefillBrand: searchQuery) { cigar in
+                    // Sigaren er din med én gang — gå rett til den.
+                    createdCigar = cigar
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        navigateToCreated = true
+                    }
+                }
+                .environmentObject(authService)
+            }
+            .sheet(isPresented: $showLoginSheet) { AuthView() }
             .fullScreenCover(isPresented: $showBarcodeScan) {
                 BarcodeScanView { cigar in
                     // Liten delay slik at fullScreenCover rekker å lukke seg før navigering
@@ -611,6 +635,21 @@ struct ExploreView: View {
                     .font(.subheadline)
                     .foregroundColor(Color(.tertiaryLabel))
                     .multilineTextAlignment(.center)
+
+                // Mangler sigaren, skal ikke brukeren bli stående fast.
+                Button {
+                    guard authService.userId != nil else { showLoginSheet = true; return }
+                    showAddCigarSheet = true
+                } label: {
+                    Label("Legg til sigaren selv", systemImage: "plus.circle")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 11)
+                        .background(Color("Accent"))
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 8)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 60)

@@ -1,0 +1,17 @@
+-- 090_own_cigars_and_submissions.sql
+--
+-- Brukeren skal aldri bli stående fast fordi en sigar mangler. Men han skal
+-- heller ikke kunne skrive rett inn i det delte oppslagsverket — da blir det en
+-- myr av dubletter og gjetninger, akkurat den feilen vi bruker uker på å rydde.
+--
+--   cigars.created_by / cigars.is_public
+--   RLS: alle ser det offentlige; du ser i tillegg dine egne private rader
+--   cigar_submissions: forslagskø
+--   create_own_cigar(): oppretter privat rad + forslag i én operasjon
+--
+-- Insert-policyen tvinger is_public = false og verified_at = null. Ingen kan
+-- erklære seg selv offentlig eller verifisert.
+--
+-- search_cigars_ranked er SECURITY INVOKER og arver RLS automatisk — verifisert.
+--
+-- Kjørt mot produksjon 9. juli 2026. Full ordlyd i git-historikken.

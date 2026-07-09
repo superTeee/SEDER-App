@@ -39,9 +39,18 @@ struct Cigar: Codable, Identifiable, Hashable {
     let sourceUrl: String?          // Hvor spesifikasjonene kommer fra
     let verifiedAt: Date?           // Når de sist ble sjekket mot kilden
 
+    // Egne sigarer. En privat rad (is_public = false) er brukerens egen, opprettet
+    // fordi sigaren manglet i basen. Den virker i humidor og journal med én gang,
+    // men er usynlig for alle andre til forslaget er godkjent.
+    let createdBy: UUID?
+    let isPublic: Bool?
+
     /// Er spesifikasjonene sjekket mot en kilde? Er de ikke det, skal appen si
     /// det til brukeren i stedet for å presentere gjetning som fakta.
     var isVerified: Bool { verifiedAt != nil }
+
+    /// Privat rad som kun eieren ser.
+    var isPrivate: Bool { isPublic == false }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -75,6 +84,8 @@ struct Cigar: Codable, Identifiable, Hashable {
         case createdAt          = "created_at"
         case sourceUrl          = "source_url"
         case verifiedAt         = "verified_at"
+        case createdBy          = "created_by"
+        case isPublic           = "is_public"
     }
 
     // Hjelpefunksjoner

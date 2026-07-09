@@ -32,6 +32,7 @@
 		8018111CFDBB54A5702F371A /* CigarDetailViewDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */; };
 		AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */; };
 		AA90REPORTSHEETBUILD0001 /* CigarReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */; };
+		AB10ADDCIGARBUILD0000001 /* AddCigarSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */; };
 		810CF96C823CB1A8465D1947 /* VennerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DEE5F5271AB26DBC443EBCB /* VennerView.swift */; };
 		8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909149207DD9D2747DEE4727 /* ContentView.swift */; };
 		86E35448369E1D3E22BBACD7 /* MacroCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB5951CED5DF53CB34646C9 /* MacroCameraView.swift */; };
@@ -78,6 +79,7 @@
 		3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailViewDesign.swift; sourceTree = "<group>"; };
 		AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarSheets.swift; sourceTree = "<group>"; };
 		AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarReportSheet.swift; sourceTree = "<group>"; };
+		AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCigarSheet.swift; sourceTree = "<group>"; };
 		3D4F123712707C6A8B25490C /* PINService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINService.swift; sourceTree = "<group>"; };
 		4268E9B5C5FFA4E0654230A9 /* CigarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarService.swift; sourceTree = "<group>"; };
 		AA80ATTEMPTFILE000000001 /* Attempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attempt.swift; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 				3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */,
 				AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */,
 				AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */,
+				AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */,
 			);
 			path = Cigar;
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 				8018111CFDBB54A5702F371A /* CigarDetailViewDesign.swift in Sources */,
 				AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */,
 				AA90REPORTSHEETBUILD0001 /* CigarReportSheet.swift in Sources */,
+				AB10ADDCIGARBUILD0000001 /* AddCigarSheet.swift in Sources */,
 				9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */,
 				AA10AA10PHOTO0001BUILD01 /* PhotoButtons.swift in Sources */,
 				AA30IMAGESUPPORTBUILD001 /* ImageSupport.swift in Sources */,
@@ -545,7 +549,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 183;
+				CURRENT_PROJECT_VERSION = 184;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -568,7 +572,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 183;
+				CURRENT_PROJECT_VERSION = 184;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

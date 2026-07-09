@@ -28,6 +28,57 @@ class CigarService: ObservableObject {
             .execute()
     }
 
+    // MARK: - Legg til egen sigar
+
+    private struct CreateOwnCigarParams: Encodable {
+        let p_brand: String
+        let p_series: String?
+        let p_vitola: String?
+        let p_country: String?
+        let p_wrapper: String?
+        let p_ring_gauge: Int?
+        let p_length_inches: Double?
+        let p_note: String?
+        let p_suggest: Bool
+    }
+
+    /// Oppretter en privat sigar for den innloggede brukeren, og sender den
+    /// eventuelt til review-køen. Raden er usynlig for alle andre til den er
+    /// godkjent — ingen skriver rett inn i det delte oppslagsverket.
+    func createOwnCigar(
+        brand: String,
+        series: String,
+        vitola: String,
+        country: String,
+        wrapper: String,
+        ringGauge: Int?,
+        lengthInches: Double?,
+        note: String,
+        suggest: Bool
+    ) async throws -> Cigar {
+        func clean(_ s: String) -> String? {
+            let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? nil : t
+        }
+
+        let newId: UUID = try await supabase
+            .rpc("create_own_cigar", params: CreateOwnCigarParams(
+                p_brand:         brand.trimmingCharacters(in: .whitespacesAndNewlines),
+                p_series:        clean(series),
+                p_vitola:        clean(vitola),
+                p_country:       clean(country),
+                p_wrapper:       clean(wrapper),
+                p_ring_gauge:    ringGauge,
+                p_length_inches: lengthInches,
+                p_note:          clean(note),
+                p_suggest:       suggest
+            ))
+            .execute()
+            .value
+
+        return try await fetchCigar(id: newId)
+    }
+
     // MARK: - Søk etter sigarer (tekst-matching fra OCR)
     func searchCigars(query: String) async throws -> [Cigar] {
         // Bruker search_cigars_ranked() i Supabase (se migrations/002_ranked_search.sql,

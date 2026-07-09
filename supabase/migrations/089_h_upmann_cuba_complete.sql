@@ -1,0 +1,15 @@
+-- 089_h_upmann_cuba_complete.sql
+--
+-- Kubansk H. Upmann: fra 4 til 17 sigarer — hele den faste produksjonen.
+-- Meldt inn av testeren Eddie Onesti: Magnum 50 og 54 manglet, det samme
+-- gjorde Connossieur A, B og No. 2.
+--
+-- Kilde: https://www.cubancigarwebsite.com/brand/h-upmann
+-- Merkenotatet sier «light to medium strength» → styrke 2 for hele serien.
+-- flavor_notes står tomme; Habanos publiserer dem ikke.
+--
+-- Rettet: Connoisseur No. 1 (48 × 5,0"), Magnum 46 (46 × 5,6"),
+--         No. 2 → Upmann No. 2 (Piramides), Sir Winston (Julieta No. 2)
+-- Lagt til: Connossieur A, B, No. 2, Coronas Junior, Coronas Major, Epicures,
+--           Half Corona, Magnum 50, Magnum 54, Majestic, Noellas, Regalias,
+--           Royal Robusto
