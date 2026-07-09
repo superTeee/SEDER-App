@@ -281,23 +281,24 @@ class CigarService: ObservableObject {
         "Sjokolade": ["dark chocolate", "cocoa", "chocolate", "dark cocoa"]
     ]
 
-    func fetchCigarsFiltered(
-        wrapperCountry: [String] = [],
-        binder: [String] = [],
-        filler: [String] = [],
-        commonFormat: [String] = [],
-        countryOrigin: [String] = [],
-        strengthRange: ClosedRange<Double>? = nil,
-        bodyRange: ClosedRange<Double>? = nil,
-        sweetnessRange: ClosedRange<Double>? = nil,
-        flavorIntensityRange: ClosedRange<Double>? = nil,
-        smokingNotes: [String] = [],
-        flavorNoteGroups: [[String]] = [],
-        crossSection: [String] = []
-    ) async throws -> [Cigar] {
-        var builder = supabase
-            .from("cigars")
-            .select()
+    /// Legger på alle aktive filtre. Delt av `fetchCigarsFiltered` og
+    /// `countCigarsFiltered`, slik at listen og tellingen aldri kan komme i utakt.
+    private func applyFilters(
+        to query: PostgrestFilterBuilder,
+        wrapperCountry: [String],
+        binder: [String],
+        filler: [String],
+        commonFormat: [String],
+        countryOrigin: [String],
+        strengthRange: ClosedRange<Double>?,
+        bodyRange: ClosedRange<Double>?,
+        sweetnessRange: ClosedRange<Double>?,
+        flavorIntensityRange: ClosedRange<Double>?,
+        smokingNotes: [String],
+        flavorNoteGroups: [[String]],
+        crossSection: [String]
+    ) -> PostgrestFilterBuilder {
+        var builder = query
 
         if !wrapperCountry.isEmpty {
             let f = wrapperCountry.map { "wrapper_leaf.ilike.%\($0)%" }.joined(separator: ",")
@@ -348,15 +349,74 @@ class CigarService: ObservableObject {
             builder = builder.or(f)
         }
 
-        // ETTER filtre: sorter og begrens (konverterer til TransformBuilder)
+        return builder
+    }
+
+    /// Sigarer som matcher filtrene. Merk taket på 1000 — PostgREST returnerer
+    /// uansett ikke mer per kall.
+    func fetchCigarsFiltered(
+        wrapperCountry: [String] = [],
+        binder: [String] = [],
+        filler: [String] = [],
+        commonFormat: [String] = [],
+        countryOrigin: [String] = [],
+        strengthRange: ClosedRange<Double>? = nil,
+        bodyRange: ClosedRange<Double>? = nil,
+        sweetnessRange: ClosedRange<Double>? = nil,
+        flavorIntensityRange: ClosedRange<Double>? = nil,
+        smokingNotes: [String] = [],
+        flavorNoteGroups: [[String]] = [],
+        crossSection: [String] = []
+    ) async throws -> [Cigar] {
+        let builder = applyFilters(
+            to: supabase.from("cigars").select(),
+            wrapperCountry: wrapperCountry, binder: binder, filler: filler,
+            commonFormat: commonFormat, countryOrigin: countryOrigin,
+            strengthRange: strengthRange, bodyRange: bodyRange,
+            sweetnessRange: sweetnessRange, flavorIntensityRange: flavorIntensityRange,
+            smokingNotes: smokingNotes, flavorNoteGroups: flavorNoteGroups,
+            crossSection: crossSection)
+
         let results: [Cigar] = try await builder
             .order("brand")
             .order("series")
-            .limit(200)
+            .limit(1000)
             .execute()
             .value
 
         return results
+    }
+
+    /// Hvor mange sigarer filtrene faktisk treffer.
+    ///
+    /// Tidligere ble dette regnet ut som `fetchCigarsFiltered().count` — men den
+    /// spørringen hadde `.limit(200)`, så knappen sa «Vis 200 resultater» både
+    /// ved 1650 og 397 treff. Her spør vi databasen om antallet direkte
+    /// (`head: true, count: .exact`), uten å laste en eneste rad.
+    func countCigarsFiltered(
+        wrapperCountry: [String] = [],
+        binder: [String] = [],
+        filler: [String] = [],
+        commonFormat: [String] = [],
+        countryOrigin: [String] = [],
+        strengthRange: ClosedRange<Double>? = nil,
+        bodyRange: ClosedRange<Double>? = nil,
+        sweetnessRange: ClosedRange<Double>? = nil,
+        flavorIntensityRange: ClosedRange<Double>? = nil,
+        smokingNotes: [String] = [],
+        flavorNoteGroups: [[String]] = [],
+        crossSection: [String] = []
+    ) async throws -> Int {
+        let builder = applyFilters(
+            to: supabase.from("cigars").select("id", head: true, count: .exact),
+            wrapperCountry: wrapperCountry, binder: binder, filler: filler,
+            commonFormat: commonFormat, countryOrigin: countryOrigin,
+            strengthRange: strengthRange, bodyRange: bodyRange,
+            sweetnessRange: sweetnessRange, flavorIntensityRange: flavorIntensityRange,
+            smokingNotes: smokingNotes, flavorNoteGroups: flavorNoteGroups,
+            crossSection: crossSection)
+
+        return try await builder.execute().count ?? 0
     }
 
     // MARK: - Hent sigarer basert på vitola/format

@@ -743,7 +743,9 @@ struct ExploreView: View {
             return
         }
         do {
-            let results = try await cigarService.fetchCigarsFiltered(
+            // Teller i databasen. Å telle radene vi faktisk laster ville gitt
+            // samme tall for alle filtre som treffer mer enn takgrensen.
+            filterResultCount = try await cigarService.countCigarsFiltered(
                 wrapperCountry:      filterWrapper,
                 binder:              filterBinder,
                 filler:              filterFiller,
@@ -757,7 +759,6 @@ struct ExploreView: View {
                 flavorNoteGroups:    selectedFlavorNoteGroups,
                 crossSection:        filterCrossSection
             )
-            filterResultCount = results.count
         } catch {
             filterResultCount = nil
         }
