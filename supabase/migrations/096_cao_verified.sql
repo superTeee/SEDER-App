@@ -1,0 +1,63 @@
+-- 096_cao_verified.sql
+--
+-- CAO: 93 uverifiserte rader → 121 verifiserte.
+-- Kilde: https://www.caocigars.com/cigars/ og de 42 linje-sidene under den.
+--
+-- Etter kjøring: 121 rader, 41 serier, 0 uverifiserte.
+-- Ingen testerdata på CAO — ingen humidor-, logg- eller ønskeliste-referanser.
+--
+--
+-- HVORFOR KILDEN ER GOD
+--
+-- CAO legger målene i et eget HTML-element med maskinlesbare attributter:
+--
+--     <cigar-shape :length="7.5" :ringsize="54" :shape="'Parejo'">
+--
+-- Det er tall, ikke løpende tekst. Vi leser dem direkte, i stedet for å
+-- lete etter «7.5 x 54» i en beskrivelse. Sidene oppgir også dekkblad,
+-- binder og filler per linje.
+--
+--
+-- TO FELLER
+--
+-- 1. CAO skriver LENGDE × RINGMÅL. Padrón og Habanos skriver RINGMÅL × LENGDE.
+--    Leser man «5 X 54» som ringmål 5 får man tull. Vi bruker attributtene,
+--    ikke teksten, nettopp for å slippe å gjette hvilken vei det står.
+--
+-- 2. Løpende tekst inneholder også «25 X 52» — det er antall sigarer i esken,
+--    ikke en sigar. Et regex over sidetekst ville tatt den med.
+--
+--
+-- EN FEIL JEG SELV LAGDE
+--
+-- Uttrekket kappet blend-tekstene ved 60 tegn. Seks linjer fikk avkortet
+-- filler: Bones, Orellana, Flathead V23, FASA Sol, FASA Noche og FASA Sombra.
+-- «…Nicaraguan» ble til «…Nicar». De ble hentet på nytt og rettet med egne
+-- UPDATE-setninger etter innsettingen. Kontrollspørring bekrefter 0 avkortede.
+--
+--
+-- HVA SOM IKKE ER SATT
+--
+-- * `strength` og `body` står tomme. CAO oppgir ingen styrke på sidene sine.
+--   Tidligere hadde radene styrkeverdier — de var gjettet, og er nå fjernet.
+--   Appen viser «Ukjent» i stedet for et tall vi ikke kan stå inne for.
+--
+-- * `country_origin` står tomt. CAO oppgir hvor bladene kommer fra, men ikke
+--   hvor sigaren rulles. Linjene lages i Nicaragua, Honduras og Den
+--   dominikanske republikk, men siden sier ikke hvilken.
+--
+-- * `flavor_notes` står tomme. CAO publiserer dem ikke.
+--
+--
+-- FORM
+--
+-- `shape` = Figurado for Torpedo, Belicoso og Perfecto. Alt annet Parejo.
+-- `cross_section` = «Box Pressed» der CAO oppgir det, ellers «Round».
+-- `common_format` = «Cigarillo» for de 11 cigarillo-størrelsene.
+--
+--
+-- DUBLETTENE FRA FØR
+--
+-- Basen hadde både «Pilón», «Pilon Anejo» og «Pilón Añejo», og både «Vision»
+-- og «Vision 2022». CAO fører dem som separate linjer, så det var riktig —
+-- men skrivemåten var inkonsekvent. Nå følger alle CAOs egen.
