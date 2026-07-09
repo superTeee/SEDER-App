@@ -1,0 +1,86 @@
+-- 094_habanos_remaining_brands_complete.sql
+--
+-- Siste steg i Habanos-revisjonen: de 23 merkene som gjensto etter
+-- Montecristo (088), H. Upmann (089), Cohiba (091), Partagás (092)
+-- og Romeo y Julieta (093).
+--
+-- Kilde: https://www.cubancigarwebsite.com/brand/<merke>
+-- Kun «Current Production Cigars» er tatt med. Ikke utgåtte sigarer,
+-- ikke Edición Limitada / Regional Edition / andre spesialutgivelser.
+--
+-- Etter kjøring: 229 kubanske rader, 0 uverifiserte, 28 merker.
+--
+--
+-- HVA SOM BLE GJORT
+--
+-- 1. Slettet alle uverifiserte kubanske rader for de 23 merkene.
+--    Sjekket først at ingen av dem lå i en humidor, en loggføring eller
+--    en ønskeliste — `ON DELETE CASCADE` ville ellers tatt med seg
+--    testerdata. Resultatet var «ingen»: de 5 humidor-referansene og den
+--    ene logg-referansen på kubanske sigarer pekte alle på rader som
+--    allerede var verifisert (Montecristo og Romeo y Julieta).
+--
+-- 2. Normaliserte merkenavn til korrekt spansk skrivemåte, slik at
+--    ett merke = én rad i merkelisten:
+--      Bolivar                    → Bolívar
+--      Diplomaticos               → Diplomáticos
+--      Ramon Allones              → Ramón Allones
+--      Rafael Gonzalez            → Rafael González
+--      Por Larranaga              → Por Larrañaga
+--      Juan Lopez                 → Juan López
+--      Jose L. Piedra             → José L. Piedra
+--      San Cristobal de la Habana → San Cristóbal de la Habana
+--    De ikke-kubanske radene under samme navn (Bolívar Cofradia fra
+--    Den dominikanske republikk, Por Larrañaga fra samme, Punch og
+--    Hoyo de Monterrey fra Honduras) er urørt utover navnebyttet.
+--    «San Cristobal» fra Nicaragua er et annet merke og er ikke rørt.
+--
+-- 3. La inn 108 verifiserte sigarer:
+--      Hoyo de Monterrey          17
+--      Trinidad                    9
+--      Bolívar                     7
+--      Punch                       7
+--      Quintero                    6
+--      Cuaba                       5
+--      Ramón Allones               5
+--      San Cristóbal de la Habana  5
+--      José L. Piedra              5
+--      Vegueros                    5
+--      Fonseca                     4
+--      Rafael González             4
+--      Quai d'Orsay                4
+--      Por Larrañaga               4
+--      Guantanamera                4
+--      El Rey del Mundo            3
+--      Juan López                  3
+--      La Gloria Cubana            3
+--      Diplomáticos                2
+--      Vegas Robaina               2
+--      La Flor de Cano             2
+--      Sancho Panza                1
+--      Saint Luis Rey              1
+--
+--
+-- REGLER SOM BLE FULGT
+--
+-- * `series`        = det kommersielle sigarnavnet (Belicosos Finos)
+-- * `vitola`        = fabrikkvitolaen, vitola de galera (Campanas)
+-- * `common_format` = det generiske formatet (Pyramid)
+-- * `strength`/`body` settes fra merkets egen styrkebeskrivelse hos kilden:
+--     mild = 2, mild–medium = 2.5, medium = 3, medium–fyldig = 4, fyldig = 5
+-- * `flavor_notes` står tomme. Habanos publiserer dem ikke, og vi gjetter ikke.
+-- * `source_url` + `verified_at` settes på hver rad. Appen viser
+--   «Verifisert mot kilde» kun når `verified_at` er satt.
+-- * Kortfyll og maskinrulling står i beskrivelsen der kilden oppgir det
+--   (Quintero, La Flor de Cano, José L. Piedra, Guantanamera, Fonseca
+--   Delicias, Rafael González Panetelas Extra).
+-- * LCDH-eksklusive sigarer er markert i beskrivelsen.
+--
+--
+-- TRE SIGARER BLE BEVISST UTELATT
+--
+-- Kilden lister dem under Current Production, men merker dem
+-- «Not yet available». De legges inn når de faktisk er i handelen:
+--   Trinidad Villa (2025)
+--   Cuaba Britanicas Extras
+--   Quai d'Orsay Especial d'Orsay (2024, 50-årsjubileum)
