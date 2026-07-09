@@ -13,6 +13,36 @@ class FeedService {
         let p_offset: Int
     }
 
+    /// Postgres sender tidsstempler i flere varianter avhengig av kolonnetype og
+    /// om mikrosekunder er null. Én dekoder som takler alle tre — brukes av både
+    /// feed og kommentarer, i stedet for å gjenta strategien per kall.
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        let formatters: [DateFormatter] = [
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZZZZZ",
+            "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
+            "yyyy-MM-dd'T'HH:mm:ss"
+        ].map { format in
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = format
+            return formatter
+        }
+
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let raw = try container.decode(String.self)
+            for formatter in formatters {
+                if let date = formatter.date(from: raw) { return date }
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Ugyldig dato: \(raw)"
+            )
+        }
+        return decoder
+    }()
+
     // MARK: - Feed
 
     /// Henter feed (egne + venners poster), nyest først.
@@ -27,46 +57,31 @@ class FeedService {
             ))
             .execute()
 
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let str = try decoder.singleValueContainer().decode(String.self)
-            let fmts = [
-                "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZZZZZ",
-                "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
-                "yyyy-MM-dd'T'HH:mm:ss"
-            ]
-            for fmt in fmts {
-                let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX")
-                f.dateFormat = fmt
-                if let d = f.date(from: str) { return d }
-            }
-            throw DecodingError.dataCorruptedError(
-                in: try decoder.singleValueContainer(),
-                debugDescription: "Ugyldig dato: \(str)"
-            )
-        }
-
-        return try decoder.decode([FeedPost].self, from: response.data)
+        return try Self.decoder.decode([FeedPost].self, from: response.data)
     }
 
     // MARK: - Opprett post
 
-    /// Oppretter et nytt innlegg (uten bilde).
+    /// Oppretter et nytt innlegg og returnerer det ferdig beriket (forfatter, sigar).
     func createPost(userId: UUID, content: String?, tastingLogId: UUID? = nil, imageUrl: String? = nil) async throws -> FeedPost {
+        struct InsertedPost: Decodable { let id: UUID }
+
         let newPost = NewPost(userId: userId, tastingLogId: tastingLogId, content: content, imageUrl: imageUrl)
-        let response = try await supabase
+        let inserted: InsertedPost = try await supabase
             .from("posts")
             .insert(newPost)
-            .select()
+            .select("id")
             .single()
             .execute()
+            .value
 
-        // Hent hele innlegget med forfatterinfo via get_feed (nyeste post)
-        let posts = try await fetchFeed(limit: 1, offset: 0)
-        // Fallback: returner første post fra feed
-        if let first = posts.first { return first }
-
-        throw FeedError.postNotFound
+        // Hent det berikede innlegget via get_feed. Vi slår opp på ID i stedet for
+        // å anta at nyeste post er vår — to innlegg kan lande i samme sekund.
+        let recent = try await fetchFeed(limit: 10, offset: 0)
+        guard let post = recent.first(where: { $0.id == inserted.id }) else {
+            throw FeedError.postNotFound
+        }
+        return post
     }
 
     /// Laster opp bilde til Supabase Storage og returnerer offentlig URL.
@@ -117,26 +132,7 @@ class FeedService {
             .rpc("get_post_comments", params: ["p_post_id": postId.uuidString])
             .execute()
 
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let str = try decoder.singleValueContainer().decode(String.self)
-            let fmts = [
-                "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZZZZZ",
-                "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
-                "yyyy-MM-dd'T'HH:mm:ss"
-            ]
-            for fmt in fmts {
-                let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX")
-                f.dateFormat = fmt
-                if let d = f.date(from: str) { return d }
-            }
-            throw DecodingError.dataCorruptedError(
-                in: try decoder.singleValueContainer(),
-                debugDescription: "Ugyldig dato: \(str)"
-            )
-        }
-
-        return try decoder.decode([FeedComment].self, from: response.data)
+        return try Self.decoder.decode([FeedComment].self, from: response.data)
     }
 
     /// Legger til en kommentar på et innlegg.
