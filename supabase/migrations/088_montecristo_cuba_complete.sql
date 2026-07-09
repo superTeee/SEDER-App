@@ -1,0 +1,28 @@
+-- 088_montecristo_cuba_complete.sql
+--
+-- Kubansk Montecristo: fra 6 til 26 sigarer — hele den faste produksjonen.
+--
+-- Bakgrunn: testeren Eddie Onesti meldte at No. 1, 3 og 5 manglet, og at hele
+-- Línea Open ikke fantes. Han hadde rett. Vi hadde 6 av 26.
+--
+-- Kilde: Cuban Cigar Website, som speiler Habanos S.A. sin offisielle
+-- vitola-liste. https://www.cubancigarwebsite.com/brand/montecristo
+--
+-- Modell:
+--   vitola        = Habanos' fabrikkvitola  (Cervantes, Piramides, Marevas …)
+--   common_format = det vanlige formatnavnet (Lonsdale, Pyramid, Petit Corona …)
+--
+-- Styrke er hentet fra kildens merkenotat, ikke gjettet:
+--   hovedserien  medium-full  → 4
+--   Línea Open   medium       → 3
+--   Línea 1935   full         → 5
+--
+-- flavor_notes står TOMME med vilje. Habanos publiserer ikke smaksnoter, og
+-- vi dikter dem ikke opp. Alle 26 radene har source_url og verified_at.
+--
+-- Kjørt mot produksjon 9. juli 2026. Se SQL i git-historikken for full ordlyd.
+-- Rader oppdatert: No. 2, No. 4, Edmundo, Petit Edmundo, Wide Edmundo,
+--                  Especial No. 2 → Especiales No. 2
+-- Rader lagt til:  No. 1, No. 3, No. 5, Tubos, Petit Tubos, Joyitas, Especial,
+--                  "A", Double Edmundo, Petit No. 2, Media Corona, Herederos,
+--                  Eagle, Junior, Master, Regata, Slam, Dumas, Maltés, Leyenda
