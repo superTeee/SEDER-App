@@ -105,6 +105,17 @@ struct ExploreView: View {
         .map { (letter: $0.key, brands: $0.value.sorted()) }
     }
 
+    /// 80 treff spredt utover i én liste er uleselig. Gruppert på merke er det
+    /// 14 overskrifter å skumme, og merkenavnet står én gang i stedet for 80.
+    /// Alfabetisk, samme rekkefølge som merkelisten — brukeren vet hvor ting er.
+    private func groupedByBrand(_ cigars: [Cigar]) -> [(brand: String, cigars: [Cigar])] {
+        Dictionary(grouping: cigars, by: \.brand)
+            .map { (brand: $0.key, cigars: $0.value.sorted { lhs, rhs in
+                (lhs.series ?? lhs.vitola ?? "").localizedStandardCompare(rhs.series ?? rhs.vitola ?? "") == .orderedAscending
+            }) }
+            .sorted { $0.brand.localizedStandardCompare($1.brand) == .orderedAscending }
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -655,23 +666,29 @@ struct ExploreView: View {
             .padding(.vertical, 60)
             .padding(.horizontal, 32)
         } else {
-            sectionHeader("\(results.count) treff")
+            let sections = groupedByBrand(results)
 
-            VStack(spacing: 0) {
-                ForEach(results) { cigar in
-                    NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
-                        ExploreResultRow(cigar: cigar)
-                    }
-                    .cigarQuickActions(cigar)
-                    if cigar.id != results.last?.id {
-                        Divider().padding(.leading, 16)
+            sectionHeader("\(results.count) treff · \(sections.count) \(sections.count == 1 ? "merke" : "merker")")
+
+            ForEach(sections, id: \.brand) { section in
+                brandResultHeader(section.brand, count: section.cigars.count)
+
+                VStack(spacing: 0) {
+                    ForEach(section.cigars) { cigar in
+                        NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
+                            ExploreResultRow(cigar: cigar, showsBrand: false)
+                        }
+                        .cigarQuickActions(cigar)
+                        if cigar.id != section.cigars.last?.id {
+                            Divider().padding(.leading, 16)
+                        }
                     }
                 }
+                .background(Color("Card"))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
             }
-            .background(Color("Card"))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
         }
     }
 
@@ -685,6 +702,23 @@ struct ExploreView: View {
             .padding(.top, 20)
             .padding(.bottom, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Merkeoverskrift over en gruppe treff. Tallet til høyre forteller brukeren
+    /// hvor tyngdepunktet i treffet ligger — noe filteret aldri sa.
+    private func brandResultHeader(_ brand: String, count: Int) -> some View {
+        HStack {
+            Text(brand.uppercased())
+                .font(.footnote.bold())
+                .foregroundColor(Color(.secondaryLabel))
+            Spacer()
+            Text("\(count)")
+                .font(.footnote)
+                .foregroundColor(Color(.tertiaryLabel))
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 6)
     }
 
     // Hentingene bor nå i ExploreStore (parallelt, startet under splashen).
@@ -840,19 +874,46 @@ struct FlavorFilterOption: Identifiable, Hashable {
 struct ExploreResultRow: View {
     let cigar: Cigar
 
+    /// Står raden under en merkeoverskrift, er merkenavnet allerede sagt.
+    /// Da bruker raden plassen på serie og mål i stedet for å gjenta det.
+    var showsBrand: Bool = true
+
+    private var title: String {
+        showsBrand ? cigar.brand : (cigar.series ?? cigar.vitola ?? cigar.brand)
+    }
+
+    /// "Robustos · 50 × 4.9""
+    private var specLine: String? {
+        var parts: [String] = []
+        if !showsBrand, cigar.series != nil, let vitola = cigar.vitola {
+            parts.append(vitola)
+        }
+        if let rg = cigar.ringGauge, let length = cigar.lengthInches {
+            parts.append("\(rg) × \(String(format: "%.1f", length))\"")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(cigar.brand)
+                Text(title)
                     .font(.subheadline.bold())
                     .foregroundColor(Color(.label))
-                if let series = cigar.series {
-                    Text(series)
-                        .font(.subheadline)
-                        .foregroundColor(Color(.secondaryLabel))
-                }
-                if let vitola = cigar.vitola {
-                    Text(vitola)
+
+                if showsBrand {
+                    if let series = cigar.series {
+                        Text(series)
+                            .font(.subheadline)
+                            .foregroundColor(Color(.secondaryLabel))
+                    }
+                    if let vitola = cigar.vitola {
+                        Text(vitola)
+                            .font(.caption)
+                            .foregroundColor(Color(.tertiaryLabel))
+                    }
+                } else if let specLine {
+                    Text(specLine)
                         .font(.caption)
                         .foregroundColor(Color(.tertiaryLabel))
                 }
