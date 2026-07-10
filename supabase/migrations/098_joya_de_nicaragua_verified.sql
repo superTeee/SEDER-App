@@ -1,0 +1,46 @@
+-- 098_joya_de_nicaragua_verified.sql
+--
+-- Joya de Nicaragua: 61 rader → 68, alle verifisert mot produsent.
+-- Kilde: https://joyacigars.com/cigars/<slug>/ (14 serie-sider).
+--
+-- Etter kjøring: 68 rader, source_tier='manufacturer', 0 uverifiserte, 0 dubletter.
+-- Ingen testerdata på merket.
+--
+--
+-- KILDEN
+--
+-- WordPress-side. Serie-sidene er serverrendret. Målene ligger i <span>-er
+-- («6 x 60»), vitola-navnet i forelder-elementet, blend og styrke i egne
+-- label→verdi-par. Den egendefinerte post-typen `project` er tom via REST,
+-- så vi leser den rendrede HTML-en, ikke API-et.
+--
+-- Joya skriver LENGDE × RINGMÅL, som CAO — motsatt av Habanos og Padrón.
+--
+--
+-- STYRKE
+--
+-- Joya oppgir styrke som fylte prikker av fem. Vi leser dem som 1–5.
+-- Antaño Dark Corojo står med SEKS fylte prikker — «utenfor skalaen», en
+-- markedsføringsgest. Den er kappet til 5 (full), det skalaen tillater.
+-- Número Uno oppgir ingen styrke; feltet står tomt.
+--
+--
+-- CINCO DÉCADAS: HEMMELIG BLEND
+--
+-- Joya oppgir «CONFIDENTIAL» for dekkblad, binder og filler på Cinco Décadas.
+-- Det er deres eget ord, ikke manglende data. Feltene står tomme — vi gjetter
+-- ikke en blend produsenten med vilje holder skjult.
+--
+--
+-- OLIVA STÅR IGJEN
+--
+-- Denne runden skulle egentlig vært Oliva, men oliva.com hadde sertifikatfeil
+-- (TLS) og kunne ikke nås fra noe hold. Joya ble tatt i stedet. Oliva venter
+-- til siden er oppe igjen — den fortjener produsentkilden.
+--
+--
+-- FORM
+--
+-- shape = Figurado for Belicoso, Torpedo, Perfecto, Diadema. Ellers Parejo.
+-- Joya oppgir ikke tverrsnitt, så cross_section står tomt.
+-- flavor_notes står tomme; Joya publiserer dem ikke.
