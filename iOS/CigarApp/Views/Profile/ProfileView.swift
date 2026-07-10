@@ -188,6 +188,9 @@ struct ProfileSettingsView: View {
     @State private var showFeedbackSheet         = false
     @State private var showEditName              = false
     @State private var showEditLocation          = false
+    @State private var showAdminSheet            = false
+
+    @StateObject private var adminService = AdminService()
     @State private var isDeletingAccount         = false
     @State private var deleteAccountError: String?
 
@@ -271,6 +274,30 @@ struct ProfileSettingsView: View {
                     }
                 }
 
+                // Vises kun for admin. `is_admin()` spørres i basen — vi stoler
+                // ikke på en lokal flagg-verdi for å skjule noe som betyr noe.
+                if adminService.isAdmin {
+                    Section("Administrasjon") {
+                        Button {
+                            showAdminSheet = true
+                        } label: {
+                            HStack {
+                                Label("Kø", systemImage: "tray.full")
+                                Spacer()
+                                if adminService.antallIKo > 0 {
+                                    Text("\(adminService.antallIKo)")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 2)
+                                        .background(Color("Accent"))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Section {
                     Button(role: .destructive) {
                         showSignOutConfirm = true
@@ -320,6 +347,13 @@ struct ProfileSettingsView: View {
             .sheet(isPresented: $showEditLocation) {
                 EditLocationSheet()
                     .environmentObject(authService)
+            }
+            .sheet(isPresented: $showAdminSheet) {
+                AdminView()
+            }
+            .task {
+                await adminService.refreshAdminStatus()
+                await adminService.loadQueue()
             }
             .alert("Logg ut?", isPresented: $showSignOutConfirm) {
                 Button("Avbryt", role: .cancel) {}

@@ -13,35 +13,9 @@ class FeedService {
         let p_offset: Int
     }
 
-    /// Postgres sender tidsstempler i flere varianter avhengig av kolonnetype og
-    /// om mikrosekunder er null. Én dekoder som takler alle tre — brukes av både
-    /// feed og kommentarer, i stedet for å gjenta strategien per kall.
-    private static let decoder: JSONDecoder = {
-        let decoder = JSONDecoder()
-        let formatters: [DateFormatter] = [
-            "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZZZZZ",
-            "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
-            "yyyy-MM-dd'T'HH:mm:ss"
-        ].map { format in
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            formatter.dateFormat = format
-            return formatter
-        }
-
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
-            let raw = try container.decode(String.self)
-            for formatter in formatters {
-                if let date = formatter.date(from: raw) { return date }
-            }
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Ugyldig dato: \(raw)"
-            )
-        }
-        return decoder
-    }()
+    /// Postgres sender tidsstempler i tre varianter. Dekoderen som takler alle
+    /// bor i `SupabaseDecoder` — den ble delt da AdminService trengte den samme.
+    private static var decoder: JSONDecoder { SupabaseDecoder.shared }
 
     // MARK: - Feed
 
