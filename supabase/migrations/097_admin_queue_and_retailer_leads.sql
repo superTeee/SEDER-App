@@ -1,0 +1,86 @@
+-- 097_admin_queue_and_retailer_leads.sql
+--
+-- Admin-kø, brukermålinger, kildenivå — og den første ekte bruken av dem:
+-- Arturo Fuente krysset mot Sol Cigar.
+--
+--
+-- SKJEMA
+--
+-- cigars.source_tier          'manufacturer' | 'community' | 'retailer'
+--   verified_at sier AT raden er bekreftet. source_tier sier AV HVEM.
+--   Uten dette ville "Verifisert" bety to forskjellige ting.
+--   De 419 eksisterende verifiserte radene er merket 'manufacturer'.
+--
+-- admins(user_id)             Egen tabell, ikke et flagg på profiles.
+--   Et flagg på egen profil kan man sette selv. En rad i admins kan man ikke.
+--
+-- is_admin()                  SECURITY DEFINER, leser auth.uid().
+--
+-- cigar_measurements          Brukernes egne mål. Unique(cigar_id, user_id):
+--   én stemme per person per sigar.
+--
+-- admin_pending_reports()     Køen, med nok kontekst til å avgjøre uten oppslag.
+-- admin_pending_submissions()
+-- admin_resolve_report()      Lukker en sak. Endrer IKKE sigaren.
+-- admin_approve_submission()  Gjør privat sigar offentlig. Setter IKKE verified_at.
+-- admin_reject_submission()
+-- admin_fix_cigar()           Eneste vei til å rette mål. Krever kilde og nivå.
+--
+-- catalog_leads               Utvidet med ring_gauge, length_mm, series.
+--   RLS på, ingen policy. Appen kan ikke lese den.
+--
+--
+-- ARTURO FUENTE: HVA VI FANT
+--
+-- Arturo Fuente publiserer ingen mål på arturofuente.com. Ikke ett tall, på
+-- noen av de ni serie-sidene. Cigar Aficionados merkeside heller ikke.
+--
+-- Sol Cigar publiserer dem, i millimeter, serverrendret. 20 rader hentet.
+-- Produktlista lastes via POST /product/productList med categoryId fra
+-- `data-category-id` i kategorisidens HTML.
+--
+-- Av 20 rader lot 4 seg koble entydig — og alle 4 var allerede riktige:
+--
+--   Cubanitos          32 × 4.5"   Sol bekrefter
+--   Between the Lines  54 × 4.5"   Sol bekrefter
+--   King T             49 × 7.0"   Sol bekrefter
+--   OpusX Double Corona 49 × 7.6"  Sol bekrefter
+--
+-- 4 rader har én kandidat, men uenige tall. De ligger nå i cigar_reports:
+--
+--   Flor Fina 8-5-8     basen 6.0"   Sol 159 mm (6.26")   Augusto 6" (152 mm)
+--   Eye of the Shark    basen 5.3"   Sol 146 mm (5.75")
+--   Masterpiece         basen 9.0"   Sol 223 mm (8.78")
+--   Untold Story        basen 7.6"   Sol 190 mm (7.48")
+--
+-- 12 rader lot seg ikke koble. De ligger i catalog_leads som «finnes hos
+-- Sol Cigar, ikke i basen». Fem har flere kandidater med samme ringmål
+-- («Opus X Robusto» finnes fire ganger under ulike serier), sju finnes ikke.
+--
+-- Ingen rad ble rettet automatisk.
+--
+--
+-- TRE FEIL JEG GJORDE UNDERVEIS
+--
+-- 1. Jeg parret «Añejo No. 888» med «Opus X PerfecXion 8-8-8» fordi begge
+--    inneholder 888. To helt ulike sigarer. Samme feil med «No. 77 Shark»
+--    (64 × 5.9") og «Perfecxion #77 Shark» (52 × 5.5").
+--    Tekstlikhet er ikke identitet.
+--
+-- 2. Jeg bygget en teori på den feilkoblingen: at basen systematisk hadde
+--    avrundet millimeter ned til hele tommer. Masterpiece motbeviser den —
+--    der har basen rundet OPP (223 mm = 8.78" → 9.0").
+--
+-- 3. Jeg skrev nesten inn millimeter jeg hadde regnet baklengs fra tommer,
+--    i stedet for Sols egne tall. Rothschilds er 114 mm, ikke 4.5 × 25.4.
+--
+--
+-- HVORFOR verified_at IKKE SETTES PÅ BUTIKKDATA
+--
+-- `verified_at` betyr i dag «kontrollert mot produsentens egen katalog».
+-- 419 rader bærer det løftet. Setter vi det på butikkdata endres betydningen
+-- bakover for alt. Sol og Augusto er uenige om 8-5-8 — sju millimeter — så
+-- butikker kan ta feil, og vi vet ikke hvor ofte.
+--
+-- Butikkdata får derfor source_tier = 'retailer' og source_url, men
+-- verified_at står tomt. Appen skal vise tre tilstander, ikke to.
