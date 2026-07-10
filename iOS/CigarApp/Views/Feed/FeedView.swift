@@ -86,17 +86,11 @@ struct FeedView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(posts) { post in
-                    NavigationLink {
-                        PostDetailView(post: post)
-                            .environmentObject(authService)
-                    } label: {
-                        FeedPostCard(
-                            post: post,
-                            onLike: { await toggleLike(post) }
-                        )
-                        .environmentObject(authService)
-                    }
-                    .buttonStyle(.plain)
+                    FeedPostCard(
+                        post: post,
+                        onLike: { await toggleLike(post) }
+                    )
+                    .environmentObject(authService)
                     .overlay(alignment: .topTrailing) {
                         PostMenuButton(
                             post: post,
@@ -325,6 +319,15 @@ struct FeedPostCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
+            // Kun innholdet navigerer til detaljvisning. Handlingsraden under
+            // ligger UTENFOR denne lenken, ellers svelger NavigationLink
+            // trykkene på like/kommentar/del-knappene.
+            NavigationLink {
+                PostDetailView(post: post)
+                    .environmentObject(authService)
+            } label: {
+              VStack(alignment: .leading, spacing: 0) {
+
             // ── Header: forfatter + tid ──────────────────────
             HStack(spacing: 10) {
                 AvatarView(url: post.authorAvatarUrl, name: post.authorName, size: 36)
@@ -396,6 +399,10 @@ struct FeedPostCard: View {
                     .padding(.bottom, 14)
             }
 
+              }
+            }
+            .buttonStyle(.plain)
+
             Divider().padding(.horizontal, 14)
 
             // ── Handlingsrad: like, kommentar, del ───────────
@@ -419,17 +426,23 @@ struct FeedPostCard: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
 
-                // Kommentar (navigasjon håndteres av NavigationLink i FeedView)
-                HStack(spacing: 5) {
-                    Image(systemName: "bubble.right")
-                        .font(.system(size: 16))
-                        .foregroundColor(Color("TextSecondary"))
-                    if post.commentCount > 0 {
-                        Text("\(post.commentCount)")
-                            .font(.caption.weight(.medium))
+                // Kommentar — åpner detaljvisningen med kommentarfeltet
+                NavigationLink {
+                    PostDetailView(post: post)
+                        .environmentObject(authService)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "bubble.right")
+                            .font(.system(size: 16))
                             .foregroundColor(Color("TextSecondary"))
+                        if post.commentCount > 0 {
+                            Text("\(post.commentCount)")
+                                .font(.caption.weight(.medium))
+                                .foregroundColor(Color("TextSecondary"))
+                        }
                     }
                 }
+                .buttonStyle(.plain)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
 
