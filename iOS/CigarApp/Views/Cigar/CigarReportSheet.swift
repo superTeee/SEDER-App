@@ -192,16 +192,55 @@ struct CigarReportSheet: View {
 // Vises under sigar-tittelen. En rad uten `verified_at` er ikke sjekket mot en
 // kilde, og da sier vi det heller enn å presentere gjetning som fakta.
 
+// MARK: - VerificationBadge
+//
+// Tre tilstander, ikke to. «Verifisert» betydde én ting: kontrollert mot
+// produsentens egen katalog. Da vi begynte å hente mål fra butikker, kunne vi
+// enten utvide løftet — og gjøre det usant for de 419 radene som allerede bar
+// det — eller si tydelig hvem som står bak tallene. Vi valgte det siste.
+//
+// Butikker tar feil. Sol Cigar og Augusto er uenige om hvor lang en
+// Arturo Fuente 8-5-8 er, med sju millimeter. Brukeren fortjener å vite
+// hvem vi har spurt, ikke bare at vi har spurt noen.
+
 struct VerificationBadge: View {
     let cigar: Cigar
     var onReport: () -> Void
 
+    private var ikon: String {
+        switch cigar.verification {
+        case .manufacturer: return "checkmark.seal.fill"
+        case .community:    return "person.2.fill"
+        case .retailer:     return "storefront"
+        case .unverified:   return "questionmark.circle"
+        }
+    }
+
+    private var tekst: String {
+        switch cigar.verification {
+        case .manufacturer:      return "Verifisert mot produsent"
+        case .community:         return "Bekreftet av brukere"
+        case .retailer(let host): return "Kilde: \(host ?? "forhandler")"
+        case .unverified:        return "Ikke verifisert"
+        }
+    }
+
+    private var farge: Color {
+        switch cigar.verification {
+        case .manufacturer: return Color("Accent")
+        case .community:    return Color("Accent")
+        case .retailer:     return Color(.secondaryLabel)
+        case .unverified:   return Color(.secondaryLabel)
+        }
+    }
+
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: cigar.isVerified ? "checkmark.seal.fill" : "questionmark.circle")
+            Image(systemName: ikon)
                 .font(.system(size: 12))
-            Text(cigar.isVerified ? "Verifisert mot kilde" : "Ikke verifisert")
+            Text(tekst)
                 .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
 
             Text("·")
                 .font(.system(size: 12))
@@ -210,6 +249,6 @@ struct VerificationBadge: View {
             Button("Meld feil", action: onReport)
                 .font(.system(size: 12, weight: .medium))
         }
-        .foregroundColor(cigar.isVerified ? Color("Accent") : Color(.secondaryLabel))
+        .foregroundColor(farge)
     }
 }

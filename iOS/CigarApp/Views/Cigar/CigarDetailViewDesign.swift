@@ -716,6 +716,7 @@ struct CigarDetailViewDesign: View {
         createdAt: nil,
         sourceUrl: nil,
         verifiedAt: nil,
+        sourceTier: nil,
         createdBy: nil,
         isPublic: true
     )

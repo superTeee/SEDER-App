@@ -38,6 +38,7 @@ struct Cigar: Codable, Identifiable, Hashable {
     // produsentens katalog fra en rad noen hadde gjettet seg fram til.
     let sourceUrl: String?          // Hvor spesifikasjonene kommer fra
     let verifiedAt: Date?           // Når de sist ble sjekket mot kilden
+    let sourceTier: String?         // Hvem som bekreftet dem
 
     // Egne sigarer. En privat rad (is_public = false) er brukerens egen, opprettet
     // fordi sigaren manglet i basen. Den virker i humidor og journal med én gang,
@@ -48,6 +49,30 @@ struct Cigar: Codable, Identifiable, Hashable {
     /// Er spesifikasjonene sjekket mot en kilde? Er de ikke det, skal appen si
     /// det til brukeren i stedet for å presentere gjetning som fakta.
     var isVerified: Bool { verifiedAt != nil }
+
+    /// Hvem som står bak tallene. `verifiedAt` sier AT raden er bekreftet,
+    /// dette sier AV HVEM — og det er ikke det samme løftet.
+    var verification: Verification {
+        switch sourceTier {
+        case "manufacturer" where isVerified: return .manufacturer
+        case "community"    where isVerified: return .community
+        case "retailer":                      return .retailer(host: sourceHost)
+        default:                              return .unverified
+        }
+    }
+
+    /// «https://solcigar.no/arturo-fuente-8-5-8» → «solcigar.no»
+    private var sourceHost: String? {
+        guard let sourceUrl, let host = URL(string: sourceUrl)?.host else { return nil }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+
+    enum Verification: Equatable {
+        case manufacturer            // produsentens egen katalog
+        case community               // nok brukere har målt den samme
+        case retailer(host: String?) // en navngitt butikk, ikke produsenten
+        case unverified              // ingen har sjekket
+    }
 
     /// Privat rad som kun eieren ser.
     var isPrivate: Bool { isPublic == false }
@@ -84,6 +109,7 @@ struct Cigar: Codable, Identifiable, Hashable {
         case createdAt          = "created_at"
         case sourceUrl          = "source_url"
         case verifiedAt         = "verified_at"
+        case sourceTier         = "source_tier"
         case createdBy          = "created_by"
         case isPublic           = "is_public"
     }
