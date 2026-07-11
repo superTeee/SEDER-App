@@ -44,26 +44,26 @@ struct CigarQuickActions: ViewModifier {
                 }
             }
             .sheet(isPresented: $showAddHumidor) {
-                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId in
+                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store in
                     guard let uid = authService.userId else { return }
                     Task {
                         await attempt("Legg i humidor") {
                             try await humidorService.addToHumidor(
                                 cigarId: cigar.id, userId: uid, humidorId: humidorId,
-                                quantity: qty, purchasedAt: purchasedAt, addedToHumidorAt: addedAt)
+                                quantity: qty, purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store)
                         }
                     }
                 }
             }
             .sheet(isPresented: $showLogSmoked) {
-                SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType in
+                SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
                     guard let uid = authService.userId else { return }
                     Task {
                         let logId = await attempt("Marker som røkt") {
                             try await humidorService.logTastingForCigar(
                                 cigarId: cigar.id, userId: uid, smokedAt: smokedAt, rating: rating,
                                 smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
-                                flavorRating: flavor, notes: notes, cutType: cutType)
+                                flavorRating: flavor, notes: notes, cutType: cutType, store: store)
                         }
                         if let logId, let data = photoData {
                             await attempt("Last opp loggbilde") {

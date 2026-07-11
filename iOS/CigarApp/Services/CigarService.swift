@@ -608,7 +608,8 @@ class HumidorService: ObservableObject {
         humidorId: UUID? = nil,
         quantity: Int = 1,
         purchasedAt: Date? = nil,
-        addedToHumidorAt: Date? = nil
+        addedToHumidorAt: Date? = nil,
+        store: String? = nil
     ) async throws -> HumidorEntry {
         let entry = NewHumidorEntry(
             userId: userId,
@@ -618,7 +619,8 @@ class HumidorService: ObservableObject {
             purchaseDate: purchasedAt,
             addedToHumidorAt: addedToHumidorAt,
             purchasePrice: nil,
-            storageNotes: nil
+            storageNotes: nil,
+            store: store?.isEmpty == false ? store : nil
         )
 
         let inserted: HumidorEntry = try await supabase
@@ -664,7 +666,8 @@ class HumidorService: ObservableObject {
         burnRating: Int?,
         flavorRating: Int?,
         notes: String?,
-        cutType: CutType? = nil
+        cutType: CutType? = nil,
+        store: String? = nil
     ) async throws -> UUID {
         guard let cigar = humidorEntry.cigar else { throw URLError(.badServerResponse) }
 
@@ -681,7 +684,8 @@ class HumidorService: ObservableObject {
             flavorRating: flavorRating,
             personalNotes: notes?.isEmpty == false ? notes : nil,
             photoUrl: nil,
-            cutType: cutType?.rawValue
+            cutType: cutType?.rawValue,
+            store: store?.isEmpty == false ? store : nil
         )
         struct InsertedLog: Decodable { let id: UUID }
         let inserted: InsertedLog = try await supabase
@@ -716,7 +720,8 @@ class HumidorService: ObservableObject {
         burnRating: Int?,
         flavorRating: Int?,
         notes: String?,
-        cutType: CutType? = nil
+        cutType: CutType? = nil,
+        store: String? = nil
     ) async throws -> UUID {
         let log = NewTastingLog(
             userId: userId,
@@ -730,7 +735,8 @@ class HumidorService: ObservableObject {
             flavorRating: flavorRating,
             personalNotes: notes?.isEmpty == false ? notes : nil,
             photoUrl: nil,
-            cutType: cutType?.rawValue
+            cutType: cutType?.rawValue,
+            store: store?.isEmpty == false ? store : nil
         )
         struct InsertedLog: Decodable { let id: UUID }
         let inserted: InsertedLog = try await supabase

@@ -107,6 +107,7 @@ struct HumidorEntry: Identifiable, Encodable {
     let addedToHumidorAt: Date?
     let purchasePrice: Double?
     let storageNotes: String?
+    let store: String?          // Hvor sigaren ble kjøpt (butikk)
     let createdAt: Date?
     var photoURL: String?
     var cigar: Cigar?
@@ -121,6 +122,7 @@ struct HumidorEntry: Identifiable, Encodable {
         case addedToHumidorAt   = "added_to_humidor_at"
         case purchasePrice      = "purchase_price"
         case storageNotes       = "storage_notes"
+        case store
         case createdAt          = "created_at"
         case photoURL           = "photo_url"
         case cigar              = "cigars"
@@ -141,6 +143,7 @@ extension HumidorEntry: Decodable {
         addedToHumidorAt = try c.decodeIfPresent(Date.self,   forKey: .addedToHumidorAt)
         purchasePrice   = try c.decodeIfPresent(Double.self,  forKey: .purchasePrice)
         storageNotes    = try c.decodeIfPresent(String.self,  forKey: .storageNotes)
+        store           = try c.decodeIfPresent(String.self,  forKey: .store)
         createdAt       = try c.decodeIfPresent(Date.self,    forKey: .createdAt)
         photoURL        = try c.decodeIfPresent(String.self,  forKey: .photoURL)
         cigar           = try c.decodeIfPresent(Cigar.self,   forKey: .cigar)
@@ -183,6 +186,7 @@ struct NewHumidorEntry: Encodable {
     let addedToHumidorAt: Date?
     let purchasePrice: Double?
     let storageNotes: String?
+    let store: String?
 
     enum CodingKeys: String, CodingKey {
         case userId             = "user_id"
@@ -193,6 +197,7 @@ struct NewHumidorEntry: Encodable {
         case addedToHumidorAt   = "added_to_humidor_at"
         case purchasePrice      = "purchase_price"
         case storageNotes       = "storage_notes"
+        case store
     }
 }
 
@@ -243,6 +248,7 @@ struct TastingLog: Codable, Identifiable {
     var personalNotes: String?     // Fritekst-kommentar
     var photoUrl: String?          // URL til bilde tatt under røykingen
     var cutType: CutType?          // Klippetypen brukt på sigaren
+    var store: String?             // Hvor sigaren ble kjøpt (butikk)
     let createdAt: Date?
 
     var cigar: Cigar?
@@ -261,6 +267,7 @@ struct TastingLog: Codable, Identifiable {
         case personalNotes      = "personal_notes"
         case photoUrl           = "photo_url"
         case cutType            = "cut_type"
+        case store
         case createdAt          = "created_at"
         case cigar              = "cigars"
     }
@@ -292,6 +299,7 @@ struct NewTastingLog: Encodable {
     let personalNotes: String?
     let photoUrl: String?
     let cutType: String?    // raw value fra CutType enum
+    let store: String?      // Hvor sigaren ble kjøpt (butikk)
 
     enum CodingKeys: String, CodingKey {
         case userId             = "user_id"
@@ -306,5 +314,6 @@ struct NewTastingLog: Encodable {
         case personalNotes      = "personal_notes"
         case photoUrl           = "photo_url"
         case cutType            = "cut_type"
+        case store
     }
 }

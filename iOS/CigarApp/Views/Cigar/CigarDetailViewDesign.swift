@@ -94,7 +94,7 @@ struct CigarDetailViewDesign: View {
         } message: { Text("Er du sikker på at du vil fjerne denne sigaren?") }
         .sheet(isPresented: $showSmokingSheet) {
             if let currentEntry = entry {
-                SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType in
+                SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
                     guard let userId = authService.userId else { return }
                     Task {
                         do {
@@ -108,7 +108,8 @@ struct CigarDetailViewDesign: View {
                                 burnRating: burn,
                                 flavorRating: flavor,
                                 notes: notes,
-                                cutType: cutType
+                                cutType: cutType,
+                                store: store
                             )
                             if let data = photoData {
                                 let ts = TastingService()
@@ -124,14 +125,14 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(isPresented: $showAddToHumidorSheet) {
-            AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId in
+            AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store in
                 guard let userId = authService.userId else { return }
                 isSaving = true
                 Task {
                     do {
                         let newEntry = try await humidorService.addToHumidor(
                             cigarId: cigar.id, userId: userId, humidorId: humidorId, quantity: qty,
-                            purchasedAt: purchasedAt, addedToHumidorAt: addedAt)
+                            purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store)
                         self.entry = newEntry
                         self.quantity = newEntry.quantity
                         humidorHasNew = true
@@ -141,14 +142,14 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(isPresented: $showLogSmokedSheet) {
-            SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType in
+            SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
                 guard let userId = authService.userId else { return }
                 Task {
                     do {
                         let logId = try await humidorService.logTastingForCigar(
                             cigarId: cigar.id, userId: userId, smokedAt: smokedAt,
                             rating: rating, smokeAgain: smokeAgain, drawRating: draw,
-                            burnRating: burn, flavorRating: flavor, notes: notes, cutType: cutType)
+                            burnRating: burn, flavorRating: flavor, notes: notes, cutType: cutType, store: store)
                         if let data = photoData {
                             let ts = TastingService()
                             await attempt("Last opp loggbilde") {
@@ -730,6 +731,7 @@ struct CigarDetailViewDesign: View {
         addedToHumidorAt: Calendar.current.date(byAdding: .month, value: -2, to: Date()),
         purchasePrice: nil,
         storageNotes: nil,
+        store: nil,
         createdAt: Date(),
         photoURL: nil,
         cigar: mockCigar

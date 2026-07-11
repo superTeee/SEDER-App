@@ -315,6 +315,16 @@ struct HumidorRow: View {
                         .foregroundColor(Color("TextSecondary").opacity(0.7))
                         .padding(.top, 2)
                 }
+                if let store = entry.store, !store.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bag")
+                            .font(.system(size: 9))
+                        Text("Kjøpt hos \(store)")
+                            .font(.caption2)
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(Color("TextSecondary").opacity(0.7))
+                }
             }
 
             Spacer()

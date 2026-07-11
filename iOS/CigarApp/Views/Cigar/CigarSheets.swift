@@ -13,12 +13,13 @@ struct AddToHumidorSheet: View {
 
     let cigar: Cigar
     var userId: UUID? = nil
-    let onSave: (Date, Date, Int, UUID?) -> Void
+    let onSave: (Date, Date, Int, UUID?, String) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var purchasedAt: Date = Date()
     @State private var addedAt: Date = Date()
     @State private var quantity: Int = 1
+    @State private var store: String = ""
     @State private var showPurchasePicker = false
     @State private var showHumidorPicker = false
 
@@ -126,6 +127,11 @@ struct AddToHumidorSheet: View {
                 Section("Antall") {
                     Stepper("\(quantity) stk", value: $quantity, in: 1...100)
                 }
+
+                Section("Kjøpt hos") {
+                    TextField("Butikk (valgfritt)", text: $store)
+                        .textInputAutocapitalization(.words)
+                }
             }
             .navigationTitle("Legg i humidor")
             .navigationBarTitleDisplayMode(.inline)
@@ -135,7 +141,7 @@ struct AddToHumidorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Legg til") {
-                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId)
+                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId, store)
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -176,8 +182,8 @@ struct AddToHumidorSheet: View {
 struct SmokingLogSheet: View {
 
     let cigar: Cigar
-    /// (smokedAt, score, smokeAgain, draw, burn, flavor, notes, photoData, cutType)
-    let onSave: (Date, Int?, Bool?, Int?, Int?, Int?, String?, Data?, CutType?) -> Void
+    /// (smokedAt, score, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store)
+    let onSave: (Date, Int?, Bool?, Int?, Int?, Int?, String?, Data?, CutType?, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var smokedAt: Date        = Date()
@@ -188,6 +194,7 @@ struct SmokingLogSheet: View {
     @State private var burnRating: Int       = 0
     @State private var flavorRating: Int     = 0
     @State private var notes: String         = ""
+    @State private var store: String         = ""
     @State private var showSubRatings: Bool  = false
     @State private var selectedCutType: CutType? = nil
 
@@ -471,6 +478,22 @@ struct SmokingLogSheet: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
 
+                    // ── Kjøpt hos ─────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Kjøpt hos")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        TextField("Butikk (valgfritt)", text: $store)
+                            .textInputAutocapitalization(.words)
+                            .padding(12)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 4)
+
                     // ── Handlingsknapper ──────────────────────────────
                     VStack(spacing: 10) {
                         Button {
@@ -483,7 +506,8 @@ struct SmokingLogSheet: View {
                                 flavorRating > 0 ? flavorRating : nil,
                                 notes.isEmpty ? nil : notes,
                                 photoData,
-                                selectedCutType
+                                selectedCutType,
+                                store.isEmpty ? nil : store
                             )
                             dismiss()
                         } label: {
@@ -497,7 +521,7 @@ struct SmokingLogSheet: View {
                         }
 
                         Button {
-                            onSave(smokedAt, nil, smokeAgain, nil, nil, nil, notes.isEmpty ? nil : notes, photoData, selectedCutType)
+                            onSave(smokedAt, nil, smokeAgain, nil, nil, nil, notes.isEmpty ? nil : notes, photoData, selectedCutType, store.isEmpty ? nil : store)
                             dismiss()
                         } label: {
                             Text("Logg uten score")

@@ -286,6 +286,18 @@ struct JournalRow: View {
                     .padding(.top, 4)
             }
 
+            if let store = log.store, !store.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "bag")
+                        .font(.system(size: 10))
+                    Text(store)
+                        .font(.caption)
+                        .lineLimit(1)
+                }
+                .foregroundColor(Color("TextSecondary"))
+                .padding(.top, 2)
+            }
+
         }
         .padding(.vertical, 4)
     }
