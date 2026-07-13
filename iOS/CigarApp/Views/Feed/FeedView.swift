@@ -720,6 +720,10 @@ struct PostDetailView: View {
                     }
                 }
                 .padding(16)
+                // Lås kortet til container-bredden. Uten dette lar scaledToFill-bildet
+                // kortet vokse forbi skjermkanten, og VStack(alignment: .leading) i
+                // ScrollView-en pinner det til venstre — det var «skjøvet til venstre»-feilen.
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color("Card"))
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .padding(.horizontal, 16)
