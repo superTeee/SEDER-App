@@ -586,6 +586,25 @@ class CigarService: ObservableObject {
 @MainActor
 class HumidorService: ObservableObject {
 
+    // Brukerens egne tidligere butikker — til «Kjøpt hos»-forslag.
+    // Slår sammen distinkte butikknavn fra humidor og røykelogger, så «Tax-free
+    // Gardermoen» dukker opp igjen neste gang uten at brukeren må skrive det på ny.
+    func fetchStoreSuggestions(userId: UUID) async -> [String] {
+        struct Row: Decodable { let store: String? }
+        async let humidorRows: [Row] = (try? await supabase
+            .from("humidor").select("store")
+            .eq("user_id", value: userId.uuidString)
+            .execute().value) ?? []
+        async let logRows: [Row] = (try? await supabase
+            .from("tasting_logs").select("store")
+            .eq("user_id", value: userId.uuidString)
+            .execute().value) ?? []
+        let all = (await humidorRows + logRows)
+            .compactMap { $0.store?.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return Array(Set(all)).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
     // Hent alle sigarer i humidoren
     func fetchHumidor(userId: UUID) async throws -> [HumidorEntry] {
         let results: [HumidorEntry] = try await supabase

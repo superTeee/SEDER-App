@@ -56,7 +56,7 @@ struct CigarQuickActions: ViewModifier {
                 }
             }
             .sheet(isPresented: $showLogSmoked) {
-                SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
+                SmokingLogSheet(cigar: cigar, userId: authService.userId) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
                     guard let uid = authService.userId else { return }
                     Task {
                         let logId = await attempt("Marker som røkt") {

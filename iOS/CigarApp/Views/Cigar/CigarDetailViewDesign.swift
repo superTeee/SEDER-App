@@ -94,7 +94,7 @@ struct CigarDetailViewDesign: View {
         } message: { Text("Er du sikker på at du vil fjerne denne sigaren?") }
         .sheet(isPresented: $showSmokingSheet) {
             if let currentEntry = entry {
-                SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
+                SmokingLogSheet(cigar: cigar, userId: authService.userId) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
                     guard let userId = authService.userId else { return }
                     Task {
                         do {
@@ -142,7 +142,7 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(isPresented: $showLogSmokedSheet) {
-            SmokingLogSheet(cigar: cigar) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
+            SmokingLogSheet(cigar: cigar, userId: authService.userId) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
                 guard let userId = authService.userId else { return }
                 Task {
                     do {

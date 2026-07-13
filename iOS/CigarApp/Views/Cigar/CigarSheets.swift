@@ -7,6 +7,59 @@ import UIKit
 // Presenteres fra CigarDetailViewDesign, HumidorView og long-press-hurtigmenyen
 // (CigarQuickActions) — derfor bor de her, ikke inne i ett enkelt view.
 
+// MARK: - Butikk-forslag
+// Kjent norsk sortiment + brukerens egne tidligere butikker. Fritekst-feltet
+// beholder friheten (utland, tax-free, gaver) — forslagene gjør det bare raskt
+// og konsistent for det vanlige norske kjøpet.
+
+enum KnownStores {
+    static let norway = ["Sol Cigar", "Augusto Cigars", "M. Sørensen", "No Smoke", "Nordic Cigars"]
+
+    /// Brukerens egne butikker først (mest relevant), så de norske som ikke alt er med.
+    static func merged(withUser userStores: [String]) -> [String] {
+        var out = userStores
+        for s in norway where !out.contains(where: { $0.localizedCaseInsensitiveCompare(s) == .orderedSame }) {
+            out.append(s)
+        }
+        return out
+    }
+}
+
+/// Horisontal rad med tappbare butikk-forslag, filtrert på det brukeren skriver.
+struct StoreSuggestionChips: View {
+    @Binding var store: String
+    let suggestions: [String]
+
+    private var filtered: [String] {
+        let q = store.trimmingCharacters(in: .whitespaces)
+        return suggestions.filter { s in
+            q.isEmpty || (s.localizedCaseInsensitiveContains(q)
+                          && s.localizedCaseInsensitiveCompare(q) != .orderedSame)
+        }
+    }
+
+    var body: some View {
+        if !filtered.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(filtered.prefix(8), id: \.self) { name in
+                        Button { store = name } label: {
+                            Text(name)
+                                .font(.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color("Accent").opacity(0.10))
+                                .foregroundColor(Color("Accent"))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Legg i humidor Sheet
 
 struct AddToHumidorSheet: View {
@@ -20,6 +73,7 @@ struct AddToHumidorSheet: View {
     @State private var addedAt: Date = Date()
     @State private var quantity: Int = 1
     @State private var store: String = ""
+    @State private var storeSuggestions: [String] = KnownStores.norway
     @State private var showPurchasePicker = false
     @State private var showHumidorPicker = false
 
@@ -131,6 +185,8 @@ struct AddToHumidorSheet: View {
                 Section("Kjøpt hos") {
                     TextField("Butikk (valgfritt)", text: $store)
                         .textInputAutocapitalization(.words)
+                    StoreSuggestionChips(store: $store, suggestions: storeSuggestions)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 8, trailing: 8))
                 }
             }
             .navigationTitle("Legg i humidor")
@@ -162,6 +218,8 @@ struct AddToHumidorSheet: View {
         guard let userId else { return }
         humidors = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
         if selectedHumidorId == nil { selectedHumidorId = humidors.first?.id }
+        let mine = await humidorService.fetchStoreSuggestions(userId: userId)
+        storeSuggestions = KnownStores.merged(withUser: mine)
     }
 
     // Etter at en ny humidor er opprettet: hent lista på nytt og velg den nye.
@@ -182,6 +240,7 @@ struct AddToHumidorSheet: View {
 struct SmokingLogSheet: View {
 
     let cigar: Cigar
+    var userId: UUID? = nil
     /// (smokedAt, score, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store)
     let onSave: (Date, Int?, Bool?, Int?, Int?, Int?, String?, Data?, CutType?, String?) -> Void
 
@@ -195,7 +254,9 @@ struct SmokingLogSheet: View {
     @State private var flavorRating: Int     = 0
     @State private var notes: String         = ""
     @State private var store: String         = ""
+    @State private var storeSuggestions: [String] = KnownStores.norway
     @State private var showSubRatings: Bool  = false
+    private let humidorService = HumidorService()
     @State private var selectedCutType: CutType? = nil
 
     // Foto
@@ -490,6 +551,8 @@ struct SmokingLogSheet: View {
                             .padding(12)
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                        StoreSuggestionChips(store: $store, suggestions: storeSuggestions)
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 4)
@@ -539,6 +602,11 @@ struct SmokingLogSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
+            }
+            .task {
+                guard let userId else { return }
+                let mine = await humidorService.fetchStoreSuggestions(userId: userId)
+                storeSuggestions = KnownStores.merged(withUser: mine)
             }
         }
     }
