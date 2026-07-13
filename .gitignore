@@ -27,3 +27,6 @@ supabase/.temp
 # Secrets (never commit real keys beyond the public anon key already in SupabaseConfig.swift)
 *.env
 .env.local
+
+# API-nøkler – aldri i git
+.env
