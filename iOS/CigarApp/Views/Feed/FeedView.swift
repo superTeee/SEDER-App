@@ -376,20 +376,21 @@ struct FeedPostCard: View {
             // ── Bilde ────────────────────────────────────────
             let photoUrl = post.imageUrl ?? post.tastingPhotoUrl
             if let urlStr = photoUrl, let url = URL(string: urlStr) {
-                Group {
-                    KFImage(url)
-                        .resizable()
-                        .placeholder {
-                            Rectangle().fill(Color("Surface")).frame(height: 220)
-                                .overlay(ProgressView())
-                        }
-                        .fade(duration: 0.15)
-                        .scaledToFill()
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 220)
-                .clipped()
-                .padding(.bottom, 8)
+                // Beholder bestemmer størrelsen; bildet ligger som overlay (påvirker
+                // ikke bredden). Samme fiks som i PostDetailView — hindrer at
+                // scaledToFill skyver kortet forbi skjermkanten.
+                Color("Surface")
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 220)
+                    .overlay(
+                        KFImage(url)
+                            .resizable()
+                            .placeholder { ProgressView() }
+                            .fade(duration: 0.15)
+                            .scaledToFill()
+                    )
+                    .clipped()
+                    .padding(.bottom, 8)
             }
 
             // ── Tekst ─────────────────────────────────────────
@@ -534,11 +535,16 @@ struct CreatePostView: View {
 
                     // ── Valgt bilde ────────────────────────────
                     if let photoImage {
-                        photoImage
-                            .resizable()
-                            .scaledToFill()
+                        // Beholder bestemmer størrelsen; bildet som overlay hindrer at
+                        // scaledToFill skyver skjermen til venstre (samme fiks som i feeden).
+                        Color("Surface")
                             .frame(maxWidth: .infinity)
                             .frame(height: 200)
+                            .overlay(
+                                photoImage
+                                    .resizable()
+                                    .scaledToFill()
+                            )
                             .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .padding(.horizontal, 16)
@@ -703,16 +709,23 @@ struct PostDetailView: View {
                     }
 
                     if let urlStr = post.imageUrl ?? post.tastingPhotoUrl, let url = URL(string: urlStr) {
-                        Group {
-                            KFImage(url)
-                                .resizable()
-                                .fade(duration: 0.15)
-                                .scaledToFill()
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 240)
-                        .clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        // Beholderen (Color) bestemmer størrelsen — full bredde, 240 høy.
+                        // Bildet ligger som overlay oppå: scaledToFill fyller beholderen,
+                        // men overlay-en påvirker ALDRI forelderens layout-bredde. Det var
+                        // dette som var feil før: scaledToFill meldte en bredde større enn
+                        // skjermen, clipped() klipper bare tegningen, ikke layout-størrelsen,
+                        // så hele kortet (og skjermen) ble skjøvet til venstre.
+                        Color("Surface")
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 240)
+                            .overlay(
+                                KFImage(url)
+                                    .resizable()
+                                    .fade(duration: 0.15)
+                                    .scaledToFill()
+                            )
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
 
                     if let text = post.content, !text.isEmpty {
