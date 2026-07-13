@@ -612,7 +612,9 @@ struct ExploreView: View {
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 11)
+                            .contentShape(Rectangle())   // hele raden trykkbar
                         }
+                        .buttonStyle(.plain)
 
                         if brand.id != section.brands.last?.id {
                             Divider().padding(.leading, 16)
@@ -933,6 +935,7 @@ struct ExploreResultRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .contentShape(Rectangle())   // hele raden er trykkbar, ikke bare teksten
     }
 }
 
@@ -1628,6 +1631,7 @@ struct TopCigarRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .contentShape(Rectangle())   // hele raden trykkbar
     }
 }
 
@@ -1656,6 +1660,8 @@ struct BrandCigarRow: View {
                     .foregroundColor(Color(.secondaryLabel))
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)   // fyll bredden
         .padding(.vertical, 2)
+        .contentShape(Rectangle())   // hele raden trykkbar
     }
 }

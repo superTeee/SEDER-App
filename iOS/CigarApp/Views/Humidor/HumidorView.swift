@@ -343,6 +343,7 @@ struct HumidorRow: View {
             }
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())   // hele raden trykkbar
     }
 
     private var daysInHumidor: Int? {

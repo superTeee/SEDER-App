@@ -168,6 +168,8 @@ struct CigarRow: View {
                     .foregroundColor(Color("TextSecondary"))
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)   // fyll bredden
         .padding(.vertical, 4)
+        .contentShape(Rectangle())   // hele raden trykkbar
     }
 }

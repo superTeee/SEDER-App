@@ -357,6 +357,7 @@ struct UserProfileView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .padding(.horizontal, 2)
+        .contentShape(Rectangle())   // hele cellen trykkbar
     }
 
     // MARK: - Smaksprofil
