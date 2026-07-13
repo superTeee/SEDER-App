@@ -212,7 +212,7 @@ struct VerificationBadge: View {
         case .manufacturer: return "checkmark.seal.fill"
         case .community:    return "person.2.fill"
         case .retailer:     return "storefront"
-        case .unverified:   return "questionmark.circle"
+        case .unverified:   return "info.circle"
         }
     }
 
@@ -221,7 +221,7 @@ struct VerificationBadge: View {
         case .manufacturer:      return "Verifisert mot produsent"
         case .community:         return "Bekreftet av brukere"
         case .retailer(let host): return "Kilde: \(host ?? "forhandler")"
-        case .unverified:        return "Ikke verifisert"
+        case .unverified:        return "Ikke bekreftet ennå"
         }
     }
 
@@ -230,7 +230,7 @@ struct VerificationBadge: View {
         case .manufacturer: return Color("Accent")
         case .community:    return Color("Accent")
         case .retailer:     return Color(.secondaryLabel)
-        case .unverified:   return Color(.secondaryLabel)
+        case .unverified:   return Color(.tertiaryLabel)   // recessivt, ingen alarm
         }
     }
 
@@ -248,6 +248,7 @@ struct VerificationBadge: View {
 
             Button("Meld feil", action: onReport)
                 .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color(.secondaryLabel))   // alltid lesbar, uansett badge-tilstand
         }
         .foregroundColor(farge)
     }
