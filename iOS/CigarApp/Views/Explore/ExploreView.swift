@@ -983,12 +983,21 @@ struct AdvancedFilterSheet: View {
     @State private var showAllFiller   = false
     @State private var showAllNotes    = false
     @State private var showAllSection  = false
+    @State private var showVitolaGuide = false
 
     private let initialCount = 6
 
     private let crossSectionOptions = ["Box Pressed", "Oval", "Hexagonal"]
     private let originOptions   = ["Nicaragua", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador", "Peru", "Costa Rica", "Panama", "USA"]
     private let vitolaOptions   = ["Toro", "Robusto", "Gordo", "Corona Gorda", "Churchill", "Corona", "Lancero", "Torpedo", "Belicoso", "Figurado", "Panatela", "Petit Corona"]
+    // Typiske mål per format (ringmål × lengde) — en pekepinn, ikke en fasit.
+    // Figurado utelates: det er en form-familie, ikke ett bestemt mål.
+    private let vitolaSizes: [String: String] = [
+        "Toro": "50 × 6\"", "Robusto": "50 × 5\"", "Gordo": "60 × 6\"",
+        "Corona Gorda": "46 × 5.6\"", "Churchill": "48 × 7\"", "Corona": "42 × 5.5\"",
+        "Lancero": "38 × 7.5\"", "Torpedo": "52 × 6.1\"", "Belicoso": "52 × 5.5\"",
+        "Panatela": "38 × 6\"", "Petit Corona": "42 × 4.5\""
+    ]
     private let wrapperOptions  = ["Connecticut Shade", "Ecuador Connecticut", "San Andrés", "Cameroon", "Sumatra", "Broadleaf", "Habano", "Colorado Claro", "Maduro", "Corojo"]
     private let binderOptions   = ["Nicaraguan", "Dominican", "Honduran", "Mexican San Andrés", "Ecuadorian", "Connecticut", "Sumatran", "Cameroon"]
     private let fillerOptions   = ["Nicaraguan", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador", "Peru", "Pennsylvania"]
@@ -1034,7 +1043,9 @@ struct AdvancedFilterSheet: View {
                 VStack(spacing: 0) {
                     // Vitola først: formatet er det folk velger etter — hvor lang
                     // tid de har, ikke hvilket land dekkbladet kommer fra.
-                    chipSection(title: "VITOLA",  options: vitolaOptions,  selection: $vitola,         showAll: $showAllVitola)
+                    chipSection(title: "VITOLA",  options: vitolaOptions,  selection: $vitola,         showAll: $showAllVitola,
+                                subtitles: vitolaSizes,
+                                infoAction: { showVitolaGuide = true })
                     sectionDivider()
                     crossSectionFilterSection
                     sectionDivider()
@@ -1088,6 +1099,9 @@ struct AdvancedFilterSheet: View {
         .padding(.horizontal, 8)          // 8px luft på hver side av arket
         .frame(maxWidth: .infinity)
         .background(Color("Card"))
+        .sheet(isPresented: $showVitolaGuide) {
+            VitolaGuideSheet()
+        }
     }
 
     // ── Tverrsnitt (box pressed / oval / hexagonal) ──
@@ -1121,20 +1135,34 @@ struct AdvancedFilterSheet: View {
         title: String,
         options: [String],
         selection: Binding<[String]>,
-        showAll: Binding<Bool>
+        showAll: Binding<Bool>,
+        subtitles: [String: String] = [:],
+        infoAction: (() -> Void)? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(Color(.secondaryLabel))
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(.secondaryLabel))
+                // «i»-knapp: åpner en grafisk oversikt over formatene.
+                if let infoAction {
+                    Button(action: infoAction) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color("Accent"))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
 
             MultiChipFlowLayout(
                 options: showAll.wrappedValue ? options : Array(options.prefix(initialCount)),
                 selection: selection,
                 selectedBg: chipSelectedBg,
-                strokeColor: chipStroke
+                strokeColor: chipStroke,
+                subtitles: subtitles
             )
             .padding(.horizontal, 16)
 
@@ -1209,6 +1237,125 @@ struct AdvancedFilterSheet: View {
     }
 }
 
+// MARK: - VitolaGuideSheet
+//
+// Grafisk oversikt over de vanligste formatene. Silhuettene er tegnet i SAMME
+// målestokk (samme punkter-per-tomme for både lengde og tykkelse), så en Lancero
+// faktisk ser lang og tynn ut ved siden av en tjukk, kort Gordo. Det er poenget:
+// tall forteller lite til den som ikke kjenner formatene — proporsjoner gjør det.
+
+struct VitolaGuideSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private struct Vitola: Identifiable {
+        let name: String
+        let ring: Int
+        let length: Double
+        let pointed: Bool     // spiss hode (Torpedo/Belicoso)
+        var id: String { name }
+        var maal: String { "\(ring) × \(length.formatted(.number.precision(.fractionLength(0...1))))\"" }
+    }
+
+    // Sortert lengst → kortest, så det leses som en størrelsestabell.
+    private let vitolaer: [Vitola] = [
+        .init(name: "Lancero",      ring: 38, length: 7.5, pointed: false),
+        .init(name: "Churchill",    ring: 48, length: 7.0, pointed: false),
+        .init(name: "Torpedo",      ring: 52, length: 6.1, pointed: true),
+        .init(name: "Toro",         ring: 50, length: 6.0, pointed: false),
+        .init(name: "Panatela",     ring: 38, length: 6.0, pointed: false),
+        .init(name: "Gordo",        ring: 60, length: 6.0, pointed: false),
+        .init(name: "Corona Gorda", ring: 46, length: 5.6, pointed: false),
+        .init(name: "Belicoso",     ring: 52, length: 5.5, pointed: true),
+        .init(name: "Corona",       ring: 42, length: 5.5, pointed: false),
+        .init(name: "Robusto",      ring: 50, length: 5.0, pointed: false),
+        .init(name: "Petit Corona", ring: 42, length: 4.5, pointed: false)
+    ]
+
+    private let ppi: CGFloat = 20             // punkter per tomme (samme for begge akser)
+    private let maxLength: CGFloat = 7.5
+    private var tobacco: Color { Color(hex: "#8F7B51") }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Formatet er ringmål (tykkelse i 1/64\") × lengde. Her er de vanligste, tegnet i samme målestokk så du ser forskjellen. Målene er typiske — enkeltsigarer varierer.")
+                        .font(.footnote)
+                        .foregroundColor(Color(.secondaryLabel))
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 18)
+
+                    ForEach(vitolaer) { v in
+                        HStack(spacing: 14) {
+                            // Silhuett — venstrejustert i fast bredde så teksten flukter.
+                            CigarSilhouette(pointed: v.pointed)
+                                .fill(tobacco)
+                                .frame(width: CGFloat(v.length) * ppi,
+                                       height: CGFloat(v.ring) / 64 * ppi)
+                                .frame(width: maxLength * ppi, height: 26, alignment: .leading)
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(v.name)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(Color(.label))
+                                Text(v.maal)
+                                    .font(.caption)
+                                    .foregroundColor(Color(.secondaryLabel))
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 9)
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+            .background(Color("Background"))
+            .navigationTitle("Vitola-guide")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Lukk") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// Cigarsilhuett: avrundet fot til venstre, avrundet eller spisst hode til høyre.
+struct CigarSilhouette: Shape {
+    var pointed: Bool
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let r = rect.height / 2
+        let head = rect.height          // hvor langt spissen strekker seg inn
+
+        p.move(to: CGPoint(x: rect.minX + r, y: rect.minY))
+
+        if pointed {
+            p.addLine(to: CGPoint(x: rect.maxX - head, y: rect.minY))
+            p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.midY),
+                           control: CGPoint(x: rect.maxX - head * 0.35, y: rect.minY))
+            p.addQuadCurve(to: CGPoint(x: rect.maxX - head, y: rect.maxY),
+                           control: CGPoint(x: rect.maxX - head * 0.35, y: rect.maxY))
+            p.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        } else {
+            p.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
+            p.addArc(center: CGPoint(x: rect.maxX - r, y: rect.midY), radius: r,
+                     startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false)
+            p.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        }
+
+        // Avrundet fot (venstre)
+        p.addArc(center: CGPoint(x: rect.minX + r, y: rect.midY), radius: r,
+                 startAngle: .degrees(90), endAngle: .degrees(270), clockwise: false)
+        p.closeSubpath()
+        return p
+    }
+}
+
 // MARK: - MultiChipFlowLayout (multi-select, wrapping rows)
 
 // MARK: - FilterChip
@@ -1222,22 +1369,36 @@ struct AdvancedFilterSheet: View {
 
 struct FilterChip: View {
     let title: String
+    /// Valgfri størrelse, f.eks. «50 × 5"». Vises dempet etter navnet, så et
+    /// format som «Robusto» blir konkret for de som ikke kjenner formatene.
+    var subtitle: String? = nil
     let isSelected: Bool
     let selectedBg: Color
     let strokeColor: Color
 
+    /// Navnet + (evt.) størrelsen som én linje. `bold` styrer navnets vekt —
+    /// den usynlige kopien bruker alltid halvfet så bredden ikke hopper ved trykk.
+    private func label(bold: Bool) -> Text {
+        var text = Text(title)
+            .font(.system(size: 15, weight: bold ? .semibold : .regular))
+            .foregroundColor(Color(.label))
+        if let subtitle {
+            text = text + Text("  \(subtitle)")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(Color(.secondaryLabel))
+        }
+        return text
+    }
+
     var body: some View {
-        Text(title)
-            .font(.system(size: 15, weight: .semibold))
+        label(bold: true)
             .lineLimit(1)
             .fixedSize()
             .hidden()
             .overlay(
-                Text(title)
-                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                label(bold: isSelected)
                     .lineLimit(1)
                     .fixedSize()
-                    .foregroundColor(Color(.label))
             )
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
@@ -1296,12 +1457,15 @@ struct MultiChipFlowLayout: View {
     @Binding var selection: [String]
     let selectedBg: Color
     var strokeColor: Color = Color(red: 202/255, green: 189/255, blue: 162/255)
+    /// Valgfri størrelse per valg (kun VITOLA bruker den i dag).
+    var subtitles: [String: String] = [:]
 
     var body: some View {
         ChipFlowLayout(spacing: 8) {
             ForEach(options, id: \.self) { opt in
                 let isSelected = selection.contains { $0.lowercased() == opt.lowercased() }
                 FilterChip(title: opt,
+                           subtitle: subtitles[opt],
                            isSelected: isSelected,
                            selectedBg: selectedBg,
                            strokeColor: strokeColor)
