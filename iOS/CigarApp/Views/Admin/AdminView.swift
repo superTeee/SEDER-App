@@ -14,44 +14,34 @@ struct AdminView: View {
     @StateObject private var admin = AdminService()
     @Environment(\.dismiss) private var dismiss
 
+    /// To visninger deler samme skjerm: køen (det brukerne melder) og datahull
+    /// (det katalogen selv mangler). En segmentert veksler skiller dem.
+    enum Fane: String, CaseIterable, Identifiable {
+        case ko      = "Kø"
+        case datahull = "Datahull"
+        var id: String { rawValue }
+    }
+    @State private var fane: Fane = .ko
+
     var body: some View {
         NavigationStack {
-            Group {
-                if admin.isLoading && admin.antallIKo == 0 {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if admin.antallIKo == 0 {
-                    tomKo
-                } else {
-                    List {
-                        if !admin.reports.isEmpty {
-                            Section("Feilmeldinger") {
-                                ForEach(admin.reports) { rapport in
-                                    ReportRow(rapport: rapport) { status in
-                                        Task { await admin.resolveReport(rapport.id, status: status) }
-                                    }
-                                }
-                            }
-                        }
-                        if !admin.submissions.isEmpty {
-                            Section("Foreslåtte sigarer") {
-                                ForEach(admin.submissions) { forslag in
-                                    SubmissionRow(forslag: forslag) { godkjent in
-                                        Task {
-                                            if godkjent { await admin.approveSubmission(forslag.id) }
-                                            else        { await admin.rejectSubmission(forslag.id) }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+            VStack(spacing: 0) {
+                Picker("Visning", selection: $fane) {
+                    ForEach(Fane.allCases) { f in Text(f.rawValue).tag(f) }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+
+                Group {
+                    switch fane {
+                    case .ko:       koView
+                    case .datahull: DatahullView(admin: admin)
                     }
-                    .listStyle(.insetGrouped)
-                    .refreshable { await admin.loadQueue() }
                 }
             }
             .background(Color("Background"))
-            .navigationTitle("Kø")
+            .navigationTitle(fane.rawValue)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -62,6 +52,44 @@ struct AdminView: View {
         .task {
             await admin.refreshAdminStatus()
             await admin.loadQueue()
+        }
+    }
+
+    // MARK: - Kø
+
+    @ViewBuilder
+    private var koView: some View {
+        if admin.isLoading && admin.antallIKo == 0 {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if admin.antallIKo == 0 {
+            tomKo
+        } else {
+            List {
+                if !admin.reports.isEmpty {
+                    Section("Feilmeldinger") {
+                        ForEach(admin.reports) { rapport in
+                            ReportRow(rapport: rapport) { status in
+                                Task { await admin.resolveReport(rapport.id, status: status) }
+                            }
+                        }
+                    }
+                }
+                if !admin.submissions.isEmpty {
+                    Section("Foreslåtte sigarer") {
+                        ForEach(admin.submissions) { forslag in
+                            SubmissionRow(forslag: forslag) { godkjent in
+                                Task {
+                                    if godkjent { await admin.approveSubmission(forslag.id) }
+                                    else        { await admin.rejectSubmission(forslag.id) }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .refreshable { await admin.loadQueue() }
         }
     }
 
@@ -189,5 +217,119 @@ private struct SubmissionRow: View {
             Button { onSvar(true) } label: { Label("Godkjenn", systemImage: "checkmark") }
                 .tint(.green)
         }
+    }
+}
+
+// MARK: - Datahull
+//
+// Motsatt av køen: her leter vi ikke etter feil brukerne har meldt, men etter
+// tomme felt katalogen selv har. Verst først (basen sorterer). Trykk på en rad
+// åpner et ark som bare viser hullene — én ting av gangen, ikke hele sigaren.
+
+private struct DatahullView: View {
+    @ObservedObject var admin: AdminService
+    @State private var valgt: CigarGap?
+
+    var body: some View {
+        Group {
+            if admin.isLoading && admin.gaps.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if admin.gaps.isEmpty {
+                tomt
+            } else {
+                List {
+                    Section {
+                        ForEach(admin.gaps) { hull in
+                            Button { valgt = hull } label: { GapRow(hull: hull) }
+                                .buttonStyle(.plain)
+                        }
+                    } header: {
+                        Text("\(admin.gaps.count) sigarer mangler noe")
+                    } footer: {
+                        Text("Verst først. Trykk for å tette hullene. Fylling retter ikke eksisterende verdier — den fyller bare tomme felt.")
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .refreshable { await admin.loadGaps() }
+            }
+        }
+        .task { if admin.gaps.isEmpty { await admin.loadGaps() } }
+        .sheet(item: $valgt) { hull in
+            CigarFillSheet(hull: hull, admin: admin)
+        }
+    }
+
+    private var tomt: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "checkmark.seal")
+                .font(.system(size: 34))
+                .foregroundColor(Color(.tertiaryLabel))
+            Text("Ingen hull")
+                .font(.headline)
+                .foregroundColor(Color(.secondaryLabel))
+            Text("Alle offentlige sigarer har de feltene appen viser.")
+                .font(.subheadline)
+                .foregroundColor(Color(.tertiaryLabel))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct GapRow: View {
+    let hull: CigarGap
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(hull.visningsnavn)
+                    .font(.subheadline.bold())
+                    .foregroundColor(Color(.label))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundColor(Color(.tertiaryLabel))
+            }
+
+            // Hvilke felt mangler — som chips, samme visuelle språk som køen.
+            FlowChips(felt: hull.manglendeFelt)
+
+            Text("\(hull.gapCount) \(hull.gapCount == 1 ? "hull" : "hull")")
+                .font(.caption2)
+                .foregroundColor(Color(.tertiaryLabel))
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+/// Chips som brytes til ny linje. Enkel HStack-basert flyt for et fåtall felt.
+private struct FlowChips: View {
+    let felt: [GapField]
+
+    var body: some View {
+        // Maks seks felt, så to rader à tre holder alltid.
+        let rader = stride(from: 0, to: felt.count, by: 3).map {
+            Array(felt[$0 ..< min($0 + 3, felt.count)])
+        }
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(rader.enumerated()), id: \.offset) { _, rad in
+                HStack(spacing: 6) {
+                    ForEach(rad) { f in chip(f) }
+                }
+            }
+        }
+    }
+
+    private func chip(_ f: GapField) -> some View {
+        Label(f.label, systemImage: f.systemImage)
+            .font(.caption2.weight(.medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color("Accent").opacity(0.12))
+            .foregroundColor(Color("Accent"))
+            .clipShape(Capsule())
     }
 }

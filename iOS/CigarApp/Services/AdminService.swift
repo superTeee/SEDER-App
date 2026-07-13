@@ -20,6 +20,7 @@ final class AdminService: ObservableObject {
     @Published private(set) var isAdmin = false
     @Published private(set) var reports: [AdminReport] = []
     @Published private(set) var submissions: [AdminSubmission] = []
+    @Published private(set) var gaps: [CigarGap] = []
     @Published private(set) var isLoading = false
 
     var antallIKo: Int { reports.count + submissions.count }
@@ -51,6 +52,37 @@ final class AdminService: ObservableObject {
 
         reports     = r ?? []
         submissions = s ?? []
+    }
+
+    // MARK: - Datahull
+    //
+    // Offentlige rader som mangler noe appen viser. Verst først. Egen last, så
+    // køen ikke må vente på 300 rader hver gang admin åpner skjermen.
+
+    func loadGaps() async {
+        guard isAdmin else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        let g: [CigarGap]? = await attempt("admin_data_gaps") {
+            let svar = try await supabase.rpc("admin_data_gaps").execute()
+            return try SupabaseDecoder.shared.decode([CigarGap].self, from: svar.data)
+        }
+        gaps = g ?? []
+    }
+
+    /// Fyller tomme felt på én sigar. Sender bare feltene admin faktisk fylte
+    /// ut — resten utelates fra JSON og lar basen stå. Returnerer true ved suksess.
+    @discardableResult
+    func fillCigar(_ id: UUID, patch: CigarFillPatch) async -> Bool {
+        let ok = await attempt("admin_fill_cigar") {
+            try await supabase
+                .rpc("admin_fill_cigar", params: patch.params(cigarId: id))
+                .execute()
+        }
+        // Fjern raden fra lista først når basen sa ja.
+        if ok != nil { gaps.removeAll { $0.id == id } }
+        return ok != nil
     }
 
     // MARK: - Handlinger
@@ -169,5 +201,127 @@ struct AdminSubmission: Codable, Identifiable, Hashable {
         case ringGauge     = "ring_gauge"
         case lengthInches  = "length_inches"
         case countryOrigin = "country_origin"
+    }
+}
+
+// MARK: - Datahull
+
+/// Ett hull-felt. rawValue matcher strengene basen legger i `missing`.
+enum GapField: String, CaseIterable, Identifiable, Hashable {
+    case dimensions
+    case origin
+    case wrapper
+    case strength
+    case flavor
+    case description
+
+    var id: String { rawValue }
+
+    /// Norsk etikett (appen er på norsk).
+    var label: String {
+        switch self {
+        case .dimensions:  return "Mål"
+        case .origin:      return "Opprinnelse"
+        case .wrapper:     return "Dekkblad"
+        case .strength:    return "Styrke"
+        case .flavor:      return "Smaksnoter"
+        case .description: return "Beskrivelse"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .dimensions:  return "ruler"
+        case .origin:      return "mappin.and.ellipse"
+        case .wrapper:     return "leaf"
+        case .strength:    return "flame"
+        case .flavor:      return "nose"
+        case .description: return "text.alignleft"
+        }
+    }
+}
+
+/// En offentlig sigar med minst ett tomt felt. Kommer fra admin_data_gaps().
+struct CigarGap: Codable, Identifiable, Hashable {
+    let id: UUID
+    let cigarNavn: String?
+    let brand: String
+    let ringGauge: Int?
+    let lengthInches: Double?
+    let countryOrigin: String?
+    let wrapperLeaf: String?
+    let strength: Double?
+    let hasFlavor: Bool
+    let hasDescription: Bool
+    let missing: [String]
+    let gapCount: Int
+    let sourceTier: String?
+    let verified: Bool
+
+    /// Feltene som mangler, som typede verdier. Ukjente strenger hoppes over.
+    var manglendeFelt: [GapField] {
+        missing.compactMap { GapField(rawValue: $0) }
+    }
+
+    var visningsnavn: String {
+        cigarNavn?.isEmpty == false ? cigarNavn! : brand
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case cigarNavn      = "cigar_navn"
+        case brand
+        case ringGauge      = "ring_gauge"
+        case lengthInches   = "length_inches"
+        case countryOrigin  = "country_origin"
+        case wrapperLeaf    = "wrapper_leaf"
+        case strength
+        case hasFlavor      = "has_flavor"
+        case hasDescription = "has_description"
+        case missing
+        case gapCount       = "gap_count"
+        case sourceTier     = "source_tier"
+        case verified
+    }
+}
+
+/// Det admin fyller inn. Bare felt satt til non-nil sendes til basen — resten
+/// utelates fra JSON (encodeIfPresent) og lar raden stå. `sourceUrl` er påkrevd.
+struct CigarFillPatch {
+    var sourceUrl: String
+    var ringGauge: Int?
+    var lengthInches: Double?
+    var countryOrigin: String?
+    var wrapperLeaf: String?
+    var strength: Double?
+    var flavorNotes: [String]?
+    var description: String?
+
+    func params(cigarId: UUID) -> FillParams {
+        FillParams(
+            p_cigar_id: cigarId.uuidString,
+            p_source_url: sourceUrl,
+            p_ring_gauge: ringGauge,
+            p_length_inches: lengthInches,
+            p_country_origin: countryOrigin,
+            p_wrapper_leaf: wrapperLeaf,
+            p_strength: strength,
+            p_flavor_notes: flavorNotes,
+            p_description: description
+        )
+    }
+
+    struct FillParams: Encodable {
+        let p_cigar_id: String
+        let p_source_url: String
+        let p_ring_gauge: Int?
+        let p_length_inches: Double?
+        let p_country_origin: String?
+        let p_wrapper_leaf: String?
+        let p_strength: Double?
+        let p_flavor_notes: [String]?
+        let p_description: String?
+        // Standard-synthesert encode bruker encodeIfPresent for optionals:
+        // nil-felt havner ikke i JSON, og basen bruker default (null).
     }
 }

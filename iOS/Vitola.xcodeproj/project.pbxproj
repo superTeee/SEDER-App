@@ -28,6 +28,7 @@
 		AC10ADMINSERVICEBUILD00000001 /* AdminService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC10ADMINSERVICEFILE000000001 /* AdminService.swift */; };
 		AC20SUPADECODER0BUILD00000001 /* SupabaseDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */; };
 		AC30ADMINVIEW000BUILD00000001 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30ADMINVIEW000FILE000000001 /* AdminView.swift */; };
+		AC30FILLSHEET000BUILD0000001 /* CigarFillSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */; };
 		AA80ATTEMPTBUILD00000001 /* Attempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80ATTEMPTFILE000000001 /* Attempt.swift */; };
 		AA60EXPLORESTOREBUILD001 /* ExploreStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */; };
 		6D9D07638987891501525A6A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */; };
@@ -88,6 +89,7 @@
 		AC10ADMINSERVICEFILE000000001 /* AdminService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdminService.swift"; sourceTree = "<group>"; };
 		AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SupabaseDecoder.swift"; sourceTree = "<group>"; };
 		AC30ADMINVIEW000FILE000000001 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Admin/AdminView.swift"; sourceTree = "<group>"; };
+		AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Admin/CigarFillSheet.swift"; sourceTree = "<group>"; };
 		AA80ATTEMPTFILE000000001 /* Attempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attempt.swift; sourceTree = "<group>"; };
 		AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreStore.swift; sourceTree = "<group>"; };
 		4ADD7BE75C71D3917352206D /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
@@ -332,6 +334,7 @@
 				5A25E33360319C9EE1C977F4 /* Scan */,
 				85F5803D59AEA8A5B19AF42F /* Shared */,
 				AC30ADMINVIEW000FILE000000001 /* AdminView.swift */,
+				AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */,
 				909149207DD9D2747DEE4727 /* ContentView.swift */,
 			);
 			path = Views;
@@ -456,6 +459,7 @@
 				6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */,
 				AA80ATTEMPTBUILD00000001 /* Attempt.swift in Sources */,
 				AC30ADMINVIEW000BUILD00000001 /* AdminView.swift in Sources */,
+				AC30FILLSHEET000BUILD0000001 /* CigarFillSheet.swift in Sources */,
 				AC20SUPADECODER0BUILD00000001 /* SupabaseDecoder.swift in Sources */,
 				AC10ADMINSERVICEBUILD00000001 /* AdminService.swift in Sources */,
 				AA60EXPLORESTOREBUILD001 /* ExploreStore.swift in Sources */,
@@ -561,7 +565,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 195;
+				CURRENT_PROJECT_VERSION = 196;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -584,7 +588,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 195;
+				CURRENT_PROJECT_VERSION = 196;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
