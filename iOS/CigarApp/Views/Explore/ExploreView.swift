@@ -890,42 +890,49 @@ struct ExploreResultRow: View {
         showsBrand ? cigar.brand : (cigar.series ?? cigar.vitola ?? cigar.brand)
     }
 
-    /// "Robustos · 50 × 4.9""
-    private var specLine: String? {
-        var parts: [String] = []
-        if !showsBrand, cigar.series != nil, let vitola = cigar.vitola {
-            parts.append(vitola)
-        }
-        if let dimensions = cigar.dimensionsLabel {
-            parts.append(dimensions)
-        }
+    /// Den spesifikke vitolaen som egen linje — men bare når den ikke allerede
+    /// er tittelen, og ikke når den er identisk med formatet (da sier chip-en det).
+    private var vitolaLine: String? {
+        guard cigar.series != nil, let vitola = cigar.vitola else { return nil }
+        if vitola.caseInsensitiveCompare(cigar.commonFormat ?? "") == .orderedSame { return nil }
+        return vitola
+    }
+
+    /// «Robusto · 50 × 4.9"» — formatnavnet koblet til målene, så et format
+    /// som «Robusto» blir konkret for de som ikke vet hva det betyr.
+    private var formatChip: String? {
+        let parts = [cigar.commonFormat, cigar.dimensionsLabel].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     var body: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.bold())
                     .foregroundColor(Color(.label))
 
-                if showsBrand {
-                    if let series = cigar.series {
-                        Text(series)
-                            .font(.subheadline)
-                            .foregroundColor(Color(.secondaryLabel))
-                    }
-                    if let vitola = cigar.vitola {
-                        Text(vitola)
-                            .font(.caption)
-                            .foregroundColor(Color(.tertiaryLabel))
-                    }
-                } else if let specLine {
-                    // Samme vekt som metadata i merkelista — treffene skal ikke
-                    // være vanskeligere å lese enn resten av Utforsk.
-                    Text(specLine)
-                        .font(.caption)
+                if showsBrand, let series = cigar.series {
+                    Text(series)
+                        .font(.subheadline)
                         .foregroundColor(Color(.secondaryLabel))
+                }
+                if let vitolaLine {
+                    Text(vitolaLine)
+                        .font(.caption)
+                        .foregroundColor(Color(.tertiaryLabel))
+                }
+
+                // Format-chip: navn + mål, så «Robusto» blir konkret.
+                if let formatChip {
+                    Text(formatChip)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color("Accent").opacity(0.12))
+                        .foregroundColor(Color("Accent"))
+                        .clipShape(Capsule())
+                        .padding(.top, 1)
                 }
             }
             Spacer()
