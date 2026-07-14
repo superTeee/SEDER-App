@@ -44,7 +44,8 @@ struct SplashCanvas: View {
             Image("VitolaLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 200)
+                .frame(width: 180)          // 10% mindre (var 200)
+                .offset(y: -32)             // 32px høyere opp
                 .opacity(logoVisible ? 1 : 0)
         }
         .task {
