@@ -1041,6 +1041,8 @@ struct AdvancedFilterSheet: View {
 
             ScrollView {
                 VStack(spacing: 0) {
+                    // 24px ekstra luft mellom sheet-tittelen og første seksjon.
+                    Spacer().frame(height: 24)
                     // Vitola først: formatet er det folk velger etter — hvor lang
                     // tid de har, ikke hvilket land dekkbladet kommer fra.
                     chipSection(title: "VITOLA",  options: vitolaOptions,  selection: $vitola,         showAll: $showAllVitola,

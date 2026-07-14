@@ -71,21 +71,30 @@ struct HumidorView: View {
 
                     // Innhold basert på valgt tab
                     if selectedTab == .humidor {
-                        List {
-                            if authService.userId != nil && !isLoading {
-                                ForEach(humidors) { humidor in
-                                    NavigationLink(destination: HumidorDetailView(
-                                        humidor: humidor,
-                                        allHumidors: humidors,
-                                        onChanged: { Task { await loadHumidor() } }
-                                    )) {
-                                        HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor))
+                        // Fullbredde-kort i samme stil som journal-kortene, ikke liste-rader.
+                        ScrollView {
+                            LazyVStack(spacing: 10) {
+                                if authService.userId != nil && !isLoading {
+                                    ForEach(humidors) { humidor in
+                                        NavigationLink(destination: HumidorDetailView(
+                                            humidor: humidor,
+                                            allHumidors: humidors,
+                                            onChanged: { Task { await loadHumidor() } }
+                                        )) {
+                                            HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor))
+                                                .padding(12)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color("Card"))
+                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .listRowBackground(Color("Card"))
                                 }
                             }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
+                            .padding(.bottom, 32)
                         }
-                        .scrollContentBackground(.hidden)
                         .background(Color("Background"))
                         .overlay {
                             if authService.userId == nil {

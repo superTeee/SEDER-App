@@ -522,12 +522,15 @@ class CigarService: ObservableObject {
     // Henter sigarer med høyest avg_rating — oppdateres automatisk
     // etterhvert som brukere scorer sigarer via tasting_logs.
     func fetchTopRatedCigars(limit: Int = 5) async throws -> [Cigar] {
+        // Snitt regnes fra reelle brukerratinger (tasting_logs), ikke seed-verdien
+        // cigars.avg_rating. Krever minst 1 reell stemme — hev terskelen når
+        // brukermassen vokser. Se migrasjon 107.
+        struct Params: Encodable {
+            let p_limit: Int
+            let p_min_votes: Int
+        }
         let results: [Cigar] = try await supabase
-            .from("cigars")
-            .select()
-            .gt("avg_rating", value: 0)
-            .order("avg_rating", ascending: false)
-            .limit(limit)
+            .rpc("top_rated_cigars", params: Params(p_limit: limit, p_min_votes: 1))
             .execute()
             .value
         return results

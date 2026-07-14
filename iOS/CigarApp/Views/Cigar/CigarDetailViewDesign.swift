@@ -340,6 +340,19 @@ struct CigarDetailViewDesign: View {
             mainNotesCard
             constructionSection
                 .padding(.horizontal, 6)
+
+            // Verifisering: mellom konstruksjon (Filler) og vurdering (Styrke).
+            if cigar.isPrivate {
+                PrivateCigarBadge()
+                    .padding(.horizontal, 6)
+            } else {
+                VerificationBadge(cigar: cigar) {
+                    guard authService.userId != nil else { showLoginSheet = true; return }
+                    showReportSheet = true
+                }
+                .padding(.horizontal, 6)
+            }
+
             ratingsSection
                 .padding(.horizontal, 6)
             if let description = cigar.description, !description.isEmpty {
@@ -458,18 +471,6 @@ struct CigarDetailViewDesign: View {
                             text: added.formatted(.dateTime.day().month(.wide).year()))
                 }
             }
-
-            // Verifisering rett under målene — det nederste i topp-infoen. Sier
-            // ærlig fra om spesifikasjonene er sjekket mot en kilde, og lar
-            // brukeren rette oss når de ikke er det.
-            if cigar.isPrivate {
-                PrivateCigarBadge()
-            } else {
-                VerificationBadge(cigar: cigar) {
-                    guard authService.userId != nil else { showLoginSheet = true; return }
-                    showReportSheet = true
-                }
-            }
         }
     }
 
@@ -504,29 +505,37 @@ struct CigarDetailViewDesign: View {
             .padding(.top, 17)
             .padding(.bottom, 20)
 
-            // Smaksikoner
-            let notes = cigar.flavorNotes ?? []
-            let icons = notesWithIcons(notes)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 4), spacing: 18) {
-                ForEach(Array(icons.enumerated()), id: \.offset) { _, pair in
-                    VStack(spacing: 5) {
-                        Image(pair.icon)
-                            .renderingMode(.template)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 40, height: 40)
-                            .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : flavorIconColor)
-                        Text(pair.label)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(pair.isEmpty ? textSubtle.opacity(0.35) : textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+            // Smaksikoner — vises kun når sigaren faktisk har noter. Mangler de,
+            // sier vi det heller enn å vise dempede eksempel-ikoner.
+            let icons = notesWithIcons(cigar.flavorNotes ?? [])
+            if icons.isEmpty {
+                Text("Ingen smaksnoter registrert ennå.")
+                    .font(.system(size: 14))
+                    .foregroundColor(textSubtle)
+                    .padding(.horizontal, 19)
+                    .padding(.bottom, 22)
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 4), spacing: 18) {
+                    ForEach(Array(icons.enumerated()), id: \.offset) { _, pair in
+                        VStack(spacing: 5) {
+                            Image(pair.icon)
+                                .renderingMode(.template)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 40, height: 40)
+                                .foregroundColor(flavorIconColor)
+                            Text(pair.label)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
                 }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 22)
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 22)
         }
         .background(surfacePrimary)
         .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -541,14 +550,8 @@ struct CigarDetailViewDesign: View {
     }
 
     private func notesWithIcons(_ notes: [String]) -> [NoteIcon] {
-        // Tom-tilstand: vis noen representative ikoner dempet
-        let placeholders = ["cocoa", "cedar", "leather", "pepper"]
-        func empty() -> [NoteIcon] {
-            placeholders.map { NoteIcon(label: FlavorIcon.displayLabel(for: $0), icon: $0, isEmpty: true) }
-        }
-        if notes.isEmpty { return empty() }
-
-        // Map til ikon, deduper på ikon-familie, maks 5, norske etiketter
+        // Map til ikon, deduper på ikon-familie, maks 8, norske etiketter.
+        // Ingen noter (eller ingen som mapper) → tom liste, og kortet viser tekst.
         var seen = Set<String>()
         var result: [NoteIcon] = []
         for note in notes {
@@ -557,7 +560,7 @@ struct CigarDetailViewDesign: View {
             result.append(NoteIcon(label: FlavorIcon.displayLabel(for: icon), icon: icon, isEmpty: false))
             if result.count == 8 { break }
         }
-        return result.isEmpty ? empty() : result
+        return result
     }
 
     // ── Ratings section ─────────────────────────────────────────────────────

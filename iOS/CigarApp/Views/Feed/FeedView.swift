@@ -43,7 +43,7 @@ struct FeedView: View {
             }
             .background(Color("Background"))
             .navigationTitle("Feed")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel → lista høyere opp
             .toolbarBackground(Color("Background"), for: .navigationBar)
             // Tittelfargen fulgte ikke lys/mørk modus når baren fikk egen bakgrunn
             // (ble hvit og usynlig i lys modus ved scroll). Tving riktig kontrast.
@@ -709,12 +709,10 @@ struct PostDetailView: View {
                     }
 
                     if let urlStr = post.imageUrl ?? post.tastingPhotoUrl, let url = URL(string: urlStr) {
-                        // Beholderen (Color) bestemmer størrelsen — full bredde, 240 høy.
-                        // Bildet ligger som overlay oppå: scaledToFill fyller beholderen,
-                        // men overlay-en påvirker ALDRI forelderens layout-bredde. Det var
-                        // dette som var feil før: scaledToFill meldte en bredde større enn
-                        // skjermen, clipped() klipper bare tegningen, ikke layout-størrelsen,
-                        // så hele kortet (og skjermen) ble skjøvet til venstre.
+                        // Full kortbredde som i feeden: negativ horisontal padding
+                        // kansellerer kortets .padding(16) så bildet når kortkantene.
+                        // Beholder (Color) setter størrelsen; bildet som overlay påvirker
+                        // ikke bredden (hindrer scaledToFill-forskyvningen).
                         Color("Surface")
                             .frame(maxWidth: .infinity)
                             .frame(height: 240)
@@ -725,11 +723,12 @@ struct PostDetailView: View {
                                     .scaledToFill()
                             )
                             .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .padding(.horizontal, -16)
                     }
 
                     if let text = post.content, !text.isEmpty {
-                        Text(text).font(.body).foregroundColor(Color("TextPrimary"))
+                        // Samme tekststørrelse som feed-kortet (15), ikke .body.
+                        Text(text).font(.system(size: 15)).foregroundColor(Color("TextPrimary"))
                     }
                 }
                 .padding(16)

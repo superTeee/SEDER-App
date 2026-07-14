@@ -230,19 +230,19 @@ struct VerificationBadge: View {
         case .manufacturer: return Color("Accent")
         case .community:    return Color("Accent")
         case .retailer:     return Color(.secondaryLabel)
-        case .unverified:   return Color(.tertiaryLabel)   // recessivt, ingen alarm
+        case .unverified:   return Color(.label)   // ikon = tekstfarge når ubekreftet
         }
     }
 
     var body: some View {
         HStack(spacing: 6) {
-            // Kun ikonet bærer tilstandsfargen — accent når verifisert. Teksten
-            // holdes lesbar (hvit i mørk modus) i stedet for å farges av tilstanden.
+            // Kun ikonet bærer tilstandsfargen — accent når verifisert, tekstfarge
+            // når ubekreftet. Teksten holdes alltid lesbar.
             Image(systemName: ikon)
                 .font(.system(size: 13))
                 .foregroundColor(farge)
             Text(tekst)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 13, weight: .regular))
                 .foregroundColor(Color(.label))
                 .lineLimit(1)
 
@@ -251,7 +251,7 @@ struct VerificationBadge: View {
                 .foregroundColor(Color(.tertiaryLabel))
 
             Button("Meld feil", action: onReport)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 13, weight: .regular))
                 .foregroundColor(Color(.secondaryLabel))   // alltid lesbar, uansett badge-tilstand
         }
     }
