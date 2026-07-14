@@ -1108,7 +1108,7 @@ struct AdvancedFilterSheet: View {
     private var crossSectionFilterSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("TVERRSNITT")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -1148,7 +1148,7 @@ struct AdvancedFilterSheet: View {
                 if let infoAction {
                     Button(action: infoAction) {
                         Image(systemName: "info.circle")
-                            .font(.system(size: 13))
+                            .font(.system(size: 14))
                             .foregroundColor(Color("Accent"))
                     }
                     .buttonStyle(.plain)
@@ -1171,11 +1171,11 @@ struct AdvancedFilterSheet: View {
                     withAnimation(.easeInOut(duration: 0.2)) { showAll.wrappedValue.toggle() }
                 } label: {
                     Text(showAll.wrappedValue ? "Vis færre ↑" : "Se alle ↓")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Color("Accent"))
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 4)   // litt mer luft ned til chipsene
+                .padding(.top, 8)   // 4px mer luft ned til chipsene
                 .padding(.bottom, 14)
             } else {
                 Spacer().frame(height: 14)
@@ -1187,7 +1187,7 @@ struct AdvancedFilterSheet: View {
     private var profileSlidersSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("PROFIL")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -1208,7 +1208,7 @@ struct AdvancedFilterSheet: View {
     private var smokingTimeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("RØYKETID")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -1461,7 +1461,8 @@ struct MultiChipFlowLayout: View {
     var subtitles: [String: String] = [:]
 
     var body: some View {
-        ChipFlowLayout(spacing: 8) {
+        // 10 = 8 + 2: 2px mer luft mellom chips, både i raden og mellom radene.
+        ChipFlowLayout(spacing: 10) {
             ForEach(options, id: \.self) { opt in
                 let isSelected = selection.contains { $0.lowercased() == opt.lowercased() }
                 FilterChip(title: opt,

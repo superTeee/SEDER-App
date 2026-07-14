@@ -41,9 +41,11 @@ struct CigarDetailViewDesign: View {
     private let pageBg        = Color("Background")
     private let surfacePrimary = Color("Surface")
     private let action        = Color("Accent")
-    private let textPrimary   = Color("TextPrimary")
-    private let textSecondary = Color("TextSecondary")
-    private let textSubtle    = Color("TextSecondary")
+    // I mørk modus skal all tekst være nesten hvit for lesbarhet. Sekundær-teksten
+    // er så vidt dempet (0.85) så det fortsatt er et lite hierarki.
+    private var textPrimary: Color   { colorScheme == .dark ? Color(white: 0.98) : Color("TextPrimary") }
+    private var textSecondary: Color { colorScheme == .dark ? Color(white: 0.85) : Color("TextSecondary") }
+    private var textSubtle: Color    { colorScheme == .dark ? Color(white: 0.85) : Color("TextSecondary") }
 
     // Smaksnote-ikoner: fast #8F7B51 i lys modus, accent i mørk modus
     private var flavorIconColor: Color {
@@ -349,19 +351,6 @@ struct CigarDetailViewDesign: View {
                     .padding(.horizontal, 6)
             }
 
-            // Sier ærlig fra om spesifikasjonene er sjekket mot en kilde,
-            // og lar brukeren rette oss når de ikke er det.
-            if cigar.isPrivate {
-                PrivateCigarBadge()
-                    .padding(.horizontal, 6)
-            } else {
-                VerificationBadge(cigar: cigar) {
-                    guard authService.userId != nil else { showLoginSheet = true; return }
-                    showReportSheet = true
-                }
-                .padding(.horizontal, 6)
-            }
-
             // Action-knapp
             if entry != nil {
                 Button { showSmokingSheet = true } label: {
@@ -469,6 +458,18 @@ struct CigarDetailViewDesign: View {
                             text: added.formatted(.dateTime.day().month(.wide).year()))
                 }
             }
+
+            // Verifisering rett under målene — det nederste i topp-infoen. Sier
+            // ærlig fra om spesifikasjonene er sjekket mot en kilde, og lar
+            // brukeren rette oss når de ikke er det.
+            if cigar.isPrivate {
+                PrivateCigarBadge()
+            } else {
+                VerificationBadge(cigar: cigar) {
+                    guard authService.userId != nil else { showLoginSheet = true; return }
+                    showReportSheet = true
+                }
+            }
         }
     }
 
@@ -494,7 +495,7 @@ struct CigarDetailViewDesign: View {
             // Header-rad
             HStack {
                 Text("SMAKSNOTER")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))   // +1px, samme label-stil app-wide
                     .foregroundColor(textSubtle)
                     .tracking(0.6)
                 Spacer()

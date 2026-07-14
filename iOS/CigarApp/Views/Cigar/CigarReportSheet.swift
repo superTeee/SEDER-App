@@ -236,20 +236,23 @@ struct VerificationBadge: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            // Kun ikonet bærer tilstandsfargen — accent når verifisert. Teksten
+            // holdes lesbar (hvit i mørk modus) i stedet for å farges av tilstanden.
             Image(systemName: ikon)
-                .font(.system(size: 12))
+                .font(.system(size: 13))
+                .foregroundColor(farge)
             Text(tekst)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color(.label))
                 .lineLimit(1)
 
             Text("·")
-                .font(.system(size: 12))
+                .font(.system(size: 13))
                 .foregroundColor(Color(.tertiaryLabel))
 
             Button("Meld feil", action: onReport)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(Color(.secondaryLabel))   // alltid lesbar, uansett badge-tilstand
         }
-        .foregroundColor(farge)
     }
 }

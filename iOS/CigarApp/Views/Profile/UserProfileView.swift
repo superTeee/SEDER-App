@@ -594,7 +594,7 @@ struct UserProfileView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.caption.weight(.semibold))
+            .font(.system(size: 13, weight: .semibold))   // +1px (var .caption/12)
             .foregroundColor(Color("TextSecondary"))
             .tracking(0.5)
             .padding(.horizontal, 16)
