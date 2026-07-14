@@ -373,63 +373,76 @@ struct HumidorCard: View {
     let cigarCount: Int
 
     var body: some View {
-        HStack(spacing: 14) {
-            // Bilde eller ikon
-            if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
-                KFImage(url)
-                    .resizable()
-                    .placeholder { iconBox }
-                    .fade(duration: 0.15)
-                    .scaledToFill()
-                    .frame(width: 60, height: 60)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                iconBox
-            }
+        // Vertikalt kort, samme utforming som journal-kortene: bilde på topp i
+        // full bredde, deretter info under.
+        VStack(alignment: .leading, spacing: 0) {
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(humidor.name)
-                    .font(.headline)
-                    .foregroundColor(Color("TextPrimary"))
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    if let type = humidor.typeEnum {
-                        Text(type.displayName)
+            // ── Bilde (full bredde) ───────────────────────────
+            Group {
+                if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
+                    // Beholder setter størrelsen; bildet som overlay påvirker ikke
+                    // bredden (samme scaledToFill-fiks som ellers i appen).
+                    Color("Surface")
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 154)
+                        .overlay(
+                            KFImage(url)
+                                .resizable()
+                                .fade(duration: 0.15)
+                                .scaledToFill()
+                        )
+                        .clipped()
+                } else {
+                    ZStack {
+                        Color("Accent").opacity(0.12)
+                        Image(systemName: humidor.typeEnum?.icon ?? "archivebox")
+                            .font(.system(size: 34))
+                            .foregroundColor(Color("Accent"))
                     }
-                    if let loc = humidor.location, !loc.isEmpty {
-                        Text("· \(loc)")
-                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 154)
                 }
-                .font(.caption)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .padding(.bottom, 8)
+
+            // ── Rad: navn + meta til venstre, antall til høyre ──
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(humidor.name)
+                        .font(.headline)
+                        .foregroundColor(Color("TextPrimary"))
+                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        if let type = humidor.typeEnum {
+                            Text(type.displayName)
+                        }
+                        if let loc = humidor.location, !loc.isEmpty {
+                            Text("· \(loc)")
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(Color("TextSecondary"))
+                    .lineLimit(1)
+                }
+
+                Spacer()
+
+                // Antall — sigar-ikon + tall (evt. antall/kapasitet)
+                HStack(spacing: 5) {
+                    Image("CigarCount")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 17)
+                    Text(countLabel)
+                        .font(.callout.weight(.medium))
+                }
                 .foregroundColor(Color("TextSecondary"))
-                .lineLimit(1)
             }
-
-            Spacer()
-
-            // Antall — sigar-ikon + tall (evt. antall/kapasitet)
-            HStack(spacing: 5) {
-                Image("CigarCount")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 20, height: 17)
-                Text(countLabel)
-                    .font(.callout.weight(.medium))
-            }
-            .foregroundColor(Color("TextSecondary"))
+            .padding(.top, 4)
         }
         .padding(.vertical, 4)
-    }
-
-    private var iconBox: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8).fill(Color("Accent").opacity(0.12))
-                .frame(width: 60, height: 60)
-            Image(systemName: humidor.typeEnum?.icon ?? "archivebox")
-                .font(.system(size: 22))
-                .foregroundColor(Color("Accent"))
-        }
     }
 
     private var countLabel: String {
