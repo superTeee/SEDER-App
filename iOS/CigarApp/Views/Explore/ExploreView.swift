@@ -1142,7 +1142,7 @@ struct AdvancedFilterSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Text(title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Color(.secondaryLabel))
                 // «i»-knapp: åpner en grafisk oversikt over formatene.
                 if let infoAction {
@@ -1279,7 +1279,7 @@ struct VitolaGuideSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Formatet er ringmål (tykkelse i 1/64\") × lengde. Her er de vanligste, tegnet i samme målestokk så du ser forskjellen. Målene er typiske — enkeltsigarer varierer.")
+                    Text("Formatet er ringmål (tykkelse i 1/64\") × lengde. Her er de vanligste, tegnet i samme målestokk så du ser forskjellen. Foten (venstre) klippes rett, hodet (høyre) er avrundet. Målene er typiske — enkeltsigarer varierer.")
                         .font(.footnote)
                         .foregroundColor(Color(.secondaryLabel))
                         .padding(.horizontal, 20)
@@ -1323,7 +1323,9 @@ struct VitolaGuideSheet: View {
     }
 }
 
-// Cigarsilhuett: avrundet fot til venstre, avrundet eller spisst hode til høyre.
+// Cigarsilhuett: RETT KLIPT fot til venstre (enden du tenner), avrundet eller
+// spisst hode til høyre (enden i munnen). De aller fleste sigarer klippes rett i
+// foten — derfor er den en rett vertikal kant, ikke avrundet.
 struct CigarSilhouette: Shape {
     var pointed: Bool
 
@@ -1332,7 +1334,7 @@ struct CigarSilhouette: Shape {
         let r = rect.height / 2
         let head = rect.height          // hvor langt spissen strekker seg inn
 
-        p.move(to: CGPoint(x: rect.minX + r, y: rect.minY))
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY))   // topp av den rette foten
 
         if pointed {
             p.addLine(to: CGPoint(x: rect.maxX - head, y: rect.minY))
@@ -1340,18 +1342,15 @@ struct CigarSilhouette: Shape {
                            control: CGPoint(x: rect.maxX - head * 0.35, y: rect.minY))
             p.addQuadCurve(to: CGPoint(x: rect.maxX - head, y: rect.maxY),
                            control: CGPoint(x: rect.maxX - head * 0.35, y: rect.maxY))
-            p.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         } else {
             p.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
             p.addArc(center: CGPoint(x: rect.maxX - r, y: rect.midY), radius: r,
                      startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false)
-            p.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         }
 
-        // Avrundet fot (venstre)
-        p.addArc(center: CGPoint(x: rect.minX + r, y: rect.midY), radius: r,
-                 startAngle: .degrees(90), endAngle: .degrees(270), clockwise: false)
-        p.closeSubpath()
+        p.closeSubpath()   // rett fot: vertikal kant tilbake til start
         return p
     }
 }
@@ -1513,7 +1512,7 @@ struct ProfileRangeSlider: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(label.uppercased())
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Color(.secondaryLabel))
                 Spacer()
                 if isActive {
