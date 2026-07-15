@@ -116,7 +116,13 @@ struct CigarDetailViewDesign: View {
                             if let data = photoData {
                                 let ts = TastingService()
                                 await attempt("Last opp loggbilde") {
-                                    try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                                    // Last opp OG persistér photo_url — uploadLogPhoto
+                                    // lagrer ikke URL-en selv, så den må skrives via updateLog.
+                                    let url = try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                                    try await ts.updateLog(
+                                        id: logId, smokedAt: smokedAt, rating: rating,
+                                        smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
+                                        flavorRating: flavor, personalNotes: notes, photoUrl: url)
                                 }
                             }
                             await MainActor.run { confirmLogged() }
@@ -155,7 +161,11 @@ struct CigarDetailViewDesign: View {
                         if let data = photoData {
                             let ts = TastingService()
                             await attempt("Last opp loggbilde") {
-                                try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                                let url = try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                                try await ts.updateLog(
+                                    id: logId, smokedAt: smokedAt, rating: rating,
+                                    smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
+                                    flavorRating: flavor, personalNotes: notes, photoUrl: url)
                             }
                         }
                         await MainActor.run { confirmLogged() }

@@ -67,7 +67,12 @@ struct CigarQuickActions: ViewModifier {
                         }
                         if let logId, let data = photoData {
                             await attempt("Last opp loggbilde") {
-                                try await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
+                                // Persistér photo_url — uploadLogPhoto lagrer den ikke selv.
+                                let url = try await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
+                                try await tastingService.updateLog(
+                                    id: logId, smokedAt: smokedAt, rating: rating,
+                                    smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
+                                    flavorRating: flavor, personalNotes: notes, photoUrl: url)
                             }
                         }
                     }
