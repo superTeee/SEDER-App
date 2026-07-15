@@ -13,7 +13,15 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HumidorScreen() {
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Humidor") }) }
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Humidor") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize().padding(32.dp), Alignment.Center) {
             Text(

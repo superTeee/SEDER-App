@@ -51,12 +51,18 @@ class ExploreViewModel : ViewModel() {
 
     fun onQuery(q: String) {
         query = q
+        error = null
         searchJob?.cancel()
         if (q.isBlank()) { results = emptyList(); return }
         searchJob = viewModelScope.launch {
             delay(300) // debounce
-            try { results = CigarRepository.search(q) }
-            catch (e: Exception) { error = e.message }
+            try {
+                results = CigarRepository.search(q)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e   // avbrutt av neste tastetrykk — ikke en ekte feil
+            } catch (e: Exception) {
+                error = e.message ?: "Søk feilet"
+            }
         }
     }
 }
@@ -69,7 +75,15 @@ fun ExploreScreen(
     vm: ExploreViewModel = viewModel()
 ) {
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Utforsk") }) }
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Utforsk") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
 
