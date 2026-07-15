@@ -79,8 +79,9 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                                     if (humidors.isEmpty()) {
                                         addMsg = "Du har ingen humidor ennå."
                                     } else {
-                                        HumidorRepository.addCigar(c.id, humidors.first().id)
-                                        addMsg = "Lagt i ${humidors.first().name} ✓"
+                                        val h = humidors.first().row
+                                        HumidorRepository.addCigar(c.id, h.id)
+                                        addMsg = "Lagt i ${h.name} ✓"
                                     }
                                 }
                             } catch (e: Exception) {
