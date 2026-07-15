@@ -51,11 +51,15 @@ dependencies {
     // Bilder (iOS bruker Kingfisher; Coil er Android-motparten)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // Supabase (samme backend som iOS). MVP: kun Postgrest.
+    // Supabase (samme backend som iOS). Postgrest = data, Auth = innlogging.
     implementation(platform("io.github.jan-tennert.supabase:bom:2.6.0"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.ktor:ktor-client-android:2.3.12")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+
+    // Custom Tabs for nettleser-basert OAuth-redirect
+    implementation("androidx.browser:browser:1.8.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
