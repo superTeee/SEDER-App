@@ -52,9 +52,9 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
 
     // Supabase (samme backend som iOS). Postgrest = data, Auth = innlogging.
-    implementation(platform("io.github.jan-tennert.supabase:bom:2.6.0"))
-    implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    implementation("io.github.jan-tennert.supabase:auth-kt")
+    // Eksplisitte versjoner (uten BOM) — BOM-en ga ikke versjon til auth-kt.
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.6.0")
+    implementation("io.github.jan-tennert.supabase:auth-kt:2.6.0")
     implementation("io.ktor:ktor-client-android:2.3.12")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
 
