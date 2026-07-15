@@ -29,6 +29,8 @@ class ExploreViewModel : ViewModel() {
         private set
     var brands by mutableStateOf<List<BrandSummary>>(emptyList())
         private set
+    var topRated by mutableStateOf<List<Cigar>>(emptyList())
+        private set
     var results by mutableStateOf<List<Cigar>>(emptyList())
         private set
     var loading by mutableStateOf(true)
@@ -38,11 +40,14 @@ class ExploreViewModel : ViewModel() {
 
     private var searchJob: Job? = null
 
-    init { loadBrands() }
+    init { load() }
 
-    private fun loadBrands() {
+    private fun load() {
         viewModelScope.launch {
             loading = true; error = null
+            try {
+                topRated = CigarRepository.topRated()   // best effort — feiler stille
+            } catch (_: Exception) { }
             try { brands = CigarRepository.brands() }
             catch (e: Exception) { error = e.message ?: "Kunne ikke laste merker" }
             loading = false
@@ -109,6 +114,14 @@ fun ExploreScreen(
                     }
                 }
                 else -> LazyColumn(Modifier.fillMaxSize()) {
+                    if (vm.topRated.isNotEmpty()) {
+                        item { SectionHeader("BRUKERNES TOPP 3") }
+                        items(vm.topRated, key = { "top_${it.id}" }) { cigar ->
+                            CigarRow(cigar) { onCigar(cigar.id) }
+                            HorizontalDivider()
+                        }
+                        item { SectionHeader("ALLE MERKER") }
+                    }
                     items(vm.brands, key = { it.brand }) { b ->
                         BrandRow(b) { onBrand(b.brand) }
                         HorizontalDivider()
@@ -117,6 +130,17 @@ fun ExploreScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 8.dp)
+    )
 }
 
 @Composable

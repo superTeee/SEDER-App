@@ -1,7 +1,9 @@
 package com.tomerikheggedal.vitola.data
 
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.rpc
 
 // Alle databasekall for sigarer. Samme tabell/RPC-er som iOS bruker.
 object CigarRepository {
@@ -65,7 +67,17 @@ object CigarRepository {
             .decodeList<Cigar>()
             .firstOrNull()
     }
+
+    /** Brukernes topp 3 — snitt fra reelle stemmer (RPC top_rated_cigars, migrasjon 107). */
+    suspend fun topRated(limit: Int = 3): List<Cigar> {
+        return Supa.client.postgrest
+            .rpc("top_rated_cigars", TopParams(p_limit = limit, p_min_votes = 1))
+            .decodeList()
+    }
 }
+
+@kotlinx.serialization.Serializable
+private data class TopParams(val p_limit: Int, val p_min_votes: Int)
 
 @kotlinx.serialization.Serializable
 private data class BrandRow(
