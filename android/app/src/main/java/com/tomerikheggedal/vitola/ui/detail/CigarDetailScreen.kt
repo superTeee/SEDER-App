@@ -17,12 +17,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarRepository
+import com.tomerikheggedal.vitola.data.HumidorRepository
+import com.tomerikheggedal.vitola.data.Supa
+import io.github.jan.supabase.gotrue.auth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     var cigar by remember { mutableStateOf<Cigar?>(null) }
     var loading by remember { mutableStateOf(true) }
+    var addMsg by remember { mutableStateOf<String?>(null) }
+    var adding by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(id) {
         loading = true
@@ -57,6 +64,40 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
 
                 InfoRow("Opprinnelse", c.countryOrigin)
                 InfoRow("Format", listOfNotNull(c.commonFormat, c.dimensionsLabel).joinToString(" · ").ifBlank { null })
+
+                // Legg i humidor — krever innlogging + minst én humidor.
+                Button(
+                    onClick = {
+                        if (adding) return@Button
+                        adding = true; addMsg = null
+                        scope.launch {
+                            try {
+                                if (Supa.client.auth.currentUserOrNull() == null) {
+                                    addMsg = "Logg inn på Humidor-fanen først."
+                                } else {
+                                    val humidors = HumidorRepository.myHumidors()
+                                    if (humidors.isEmpty()) {
+                                        addMsg = "Du har ingen humidor ennå."
+                                    } else {
+                                        HumidorRepository.addCigar(c.id, humidors.first().id)
+                                        addMsg = "Lagt i ${humidors.first().name} ✓"
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                addMsg = e.message ?: "Kunne ikke legge til"
+                            }
+                            adding = false
+                        }
+                    },
+                    enabled = !adding,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (adding) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    else Text("Legg i humidor")
+                }
+                addMsg?.let {
+                    Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                }
 
                 if (c.isVerified) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
