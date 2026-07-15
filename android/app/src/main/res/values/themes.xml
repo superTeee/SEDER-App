@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose driver fargene selv; dette er bare et grunntema for oppstart. -->
+    <style name="Theme.Vitola" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#EDEAE0</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

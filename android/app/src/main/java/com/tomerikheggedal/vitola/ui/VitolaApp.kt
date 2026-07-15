@@ -1,0 +1,91 @@
+package com.tomerikheggedal.vitola.ui
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.tomerikheggedal.vitola.ui.detail.CigarDetailScreen
+import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
+import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
+import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
+
+private data class Tab(val route: String, val label: String)
+
+@Composable
+fun VitolaApp() {
+    val nav = rememberNavController()
+    val tabs = listOf(Tab("explore", "Utforsk"), Tab("humidor", "Humidor"))
+
+    val backStack by nav.currentBackStackEntryAsState()
+    val current = backStack?.destination?.route
+
+    Scaffold(
+        bottomBar = {
+            // Vis bunnlinja kun på topp-fanene, ikke på detalj-/merkeskjermer.
+            if (current == "explore" || current == "humidor") {
+                NavigationBar {
+                    tabs.forEach { tab ->
+                        NavigationBarItem(
+                            selected = current == tab.route,
+                            onClick = {
+                                nav.navigate(tab.route) {
+                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    if (tab.route == "explore") Icons.Outlined.Explore
+                                    else Icons.Filled.Inventory2,
+                                    contentDescription = tab.label
+                                )
+                            },
+                            label = { Text(tab.label) }
+                        )
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        NavHost(
+            navController = nav,
+            startDestination = "explore",
+            modifier = Modifier.padding(padding)
+        ) {
+            composable("explore") {
+                ExploreScreen(
+                    onBrand = { nav.navigate("brand/${it}") },
+                    onCigar = { nav.navigate("cigar/${it}") }
+                )
+            }
+            composable("brand/{brand}") { entry ->
+                BrandCigarsScreen(
+                    brand = entry.arguments?.getString("brand").orEmpty(),
+                    onBack = { nav.popBackStack() },
+                    onCigar = { nav.navigate("cigar/${it}") }
+                )
+            }
+            composable("cigar/{id}") { entry ->
+                CigarDetailScreen(
+                    id = entry.arguments?.getString("id").orEmpty(),
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable("humidor") { HumidorScreen() }
+        }
+    }
+}
