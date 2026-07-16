@@ -1,9 +1,14 @@
 package com.tomerikheggedal.vitola.ui.explore
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -81,8 +86,32 @@ fun ExploreScreen(
     onCigar: (String) -> Unit,
     vm: ExploreViewModel = viewModel()
 ) {
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    fun scanComingSoon() = scope.launch { snackbar.showSnackbar("Bildegjenkjenning kommer snart") }
+
+    // Kamera (miniatyr) og bildevelger — åpner ekte kamera/galleri.
+    // Gjenkjenningen er ikke portet ennå, så resultatet viser en «kommer snart»-melding.
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap -> if (bitmap != null) scanComingSoon() }
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) scanComingSoon() }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbar) },
+        floatingActionButton = {
+            ScanFab(
+                onCamera = { cameraLauncher.launch(null) },
+                onGallery = {
+                    galleryLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
+            )
+        },
         topBar = {
             TopAppBar(
                 title = { Text("Utforsk", fontWeight = FontWeight.Bold) },
@@ -111,7 +140,7 @@ fun ExploreScreen(
                 }
                 vm.query.isNotBlank() -> LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 24.dp)
+                    contentPadding = PaddingValues(bottom = 96.dp)
                 ) {
                     // Søketreff gruppert per merke, ett kort per merke (som iOS).
                     val groups = vm.results.groupBy { it.brand }
@@ -134,7 +163,7 @@ fun ExploreScreen(
                 }
                 else -> LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 24.dp)
+                    contentPadding = PaddingValues(bottom = 96.dp)
                 ) {
                     if (vm.topRated.isNotEmpty()) {
                         item { SectionLabel("Brukernes topp 3") }
@@ -170,6 +199,34 @@ fun ExploreScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+// «Skann sigar»-FAB som iOS: pill med kamera-ikon, åpner en meny.
+// Uten strekkode-valget — bare kamera og kamerarull.
+@Composable
+private fun ScanFab(onCamera: () -> Unit, onGallery: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        ExtendedFloatingActionButton(
+            onClick = { expanded = true },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            icon = { Icon(Icons.Filled.CameraAlt, contentDescription = null) },
+            text = { Text("Skann sigar", fontWeight = FontWeight.SemiBold) }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Skann magebeltet") },
+                leadingIcon = { Icon(Icons.Filled.CameraAlt, null) },
+                onClick = { expanded = false; onCamera() }
+            )
+            DropdownMenuItem(
+                text = { Text("Bilde fra kamerarull") },
+                leadingIcon = { Icon(Icons.Filled.PhotoLibrary, null) },
+                onClick = { expanded = false; onGallery() }
+            )
         }
     }
 }
