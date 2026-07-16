@@ -2,6 +2,7 @@ package com.tomerikheggedal.vitola.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Person
@@ -29,6 +30,7 @@ import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
 import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
+import com.tomerikheggedal.vitola.ui.journal.JournalScreen
 import com.tomerikheggedal.vitola.ui.profile.ProfileScreen
 import com.tomerikheggedal.vitola.ui.profile.SettingsScreen
 
@@ -37,7 +39,10 @@ private data class Tab(val route: String, val label: String)
 @Composable
 fun VitolaApp() {
     val nav = rememberNavController()
-    val tabs = listOf(Tab("explore", "Utforsk"), Tab("humidor", "Humidor"), Tab("profile", "Profil"))
+    val tabs = listOf(
+        Tab("explore", "Utforsk"), Tab("humidor", "Humidor"),
+        Tab("journal", "Journal"), Tab("profile", "Profil")
+    )
 
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
@@ -46,7 +51,7 @@ fun VitolaApp() {
     // Oppdateres kun når man lander på en topp-fane, ellers holdes forrige.
     var selectedTab by remember { mutableStateOf("explore") }
     LaunchedEffect(current) {
-        if (current == "explore" || current == "humidor" || current == "profile") {
+        if (current in listOf("explore", "humidor", "journal", "profile")) {
             selectedTab = current!!
         }
     }
@@ -76,6 +81,7 @@ fun VitolaApp() {
                                 Icon(
                                     when (tab.route) {
                                         "explore" -> Icons.Outlined.Explore
+                                        "journal" -> Icons.AutoMirrored.Outlined.MenuBook
                                         "profile" -> Icons.Outlined.Person
                                         else -> Icons.Filled.Inventory2
                                     },
@@ -121,6 +127,9 @@ fun VitolaApp() {
                     onBack = { nav.popBackStack() },
                     onCigar = { nav.navigate("cigar/${it}") }
                 )
+            }
+            composable("journal") {
+                JournalScreen(onCigar = { nav.navigate("cigar/${it}") })
             }
             composable("profile") {
                 ProfileScreen(onSettings = { nav.navigate("settings") })
