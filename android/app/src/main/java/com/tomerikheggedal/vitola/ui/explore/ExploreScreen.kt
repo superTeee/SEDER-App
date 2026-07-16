@@ -334,16 +334,14 @@ private fun FilterButton(active: Boolean, onClick: () -> Unit) {
 // Delt form for søkefelt + filterknapp så de matcher.
 private val searchShape = RoundedCornerShape(6.dp)
 
-// Topp 3-rad: medalje + sigarinfo + score-badge + chevron (som iOS).
+// Topp 3-rad: nummerert medalje-badge + sigarinfo + score-badge + chevron.
 @Composable
 private fun TopCigarRow(rank: Int, cigar: Cigar, onClick: () -> Unit) {
-    val medal = when (rank) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "$rank" }
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(medal, style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center, modifier = Modifier.width(32.dp))
+        RankBadge(rank)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(cigar.brand, style = MaterialTheme.typography.bodyLarge,
@@ -404,6 +402,24 @@ private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(8.dp))
         ChevronIcon()
+    }
+}
+
+// Nummerert medalje-badge — renere enn emoji, med diskré metall-toner.
+@Composable
+private fun RankBadge(rank: Int) {
+    val (bg, fg) = when (rank) {
+        1 -> Color(0xFFC8A94B) to Color.White   // gull
+        2 -> Color(0xFFAEB4BD) to Color.White   // sølv
+        3 -> Color(0xFFB98A5E) to Color.White   // bronse
+        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Box(
+        Modifier.size(26.dp).clip(androidx.compose.foundation.shape.CircleShape).background(bg),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("$rank", color = fg, fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelLarge, letterSpacing = 0.sp)
     }
 }
 
