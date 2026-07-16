@@ -68,7 +68,7 @@ fun FilterSheet(
                 Spacer(Modifier.height(16.dp))
 
                 ChipSection(
-                    title = "Vitola",
+                    title = "Form / Vitola",
                     options = CigarFilter.VITOLA,
                     selected = draft.vitola,
                     subtitles = CigarFilter.VITOLA_SIZES,

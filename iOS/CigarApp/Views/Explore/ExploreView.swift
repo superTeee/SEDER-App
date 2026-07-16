@@ -1045,7 +1045,7 @@ struct AdvancedFilterSheet: View {
                     Spacer().frame(height: 24)
                     // Vitola først: formatet er det folk velger etter — hvor lang
                     // tid de har, ikke hvilket land dekkbladet kommer fra.
-                    chipSection(title: "VITOLA",  options: vitolaOptions,  selection: $vitola,         showAll: $showAllVitola,
+                    chipSection(title: "FORM / VITOLA",  options: vitolaOptions,  selection: $vitola,         showAll: $showAllVitola,
                                 subtitles: vitolaSizes,
                                 infoAction: { showVitolaGuide = true })
                     sectionDivider()
