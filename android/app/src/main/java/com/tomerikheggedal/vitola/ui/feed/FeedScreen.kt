@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
@@ -72,7 +73,7 @@ fun FeedScreen() {
     val context = LocalContext.current
     var posts by remember { mutableStateOf<List<FeedPost>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
-    var commentsFor by remember { mutableStateOf<FeedPost?>(null) }
+    var openPost by remember { mutableStateOf<FeedPost?>(null) }
     var showNewPost by remember { mutableStateOf(false) }
 
     suspend fun reload() {
@@ -81,6 +82,17 @@ fun FeedScreen() {
 
     LaunchedEffect(isAuthed) {
         if (isAuthed) { loading = true; reload(); loading = false } else posts = emptyList()
+    }
+
+    // Detaljvisning erstatter lista når et innlegg er åpnet (som iOS PostDetailView).
+    val detailPost = openPost
+    if (detailPost != null) {
+        PostDetailScreen(
+            post = detailPost,
+            onBack = { openPost = null; scope.launch { reload() } },
+            onShare = { sharePost(context, detailPost) }
+        )
+        return
     }
 
     Scaffold(
@@ -118,21 +130,14 @@ fun FeedScreen() {
                     items(posts, key = { it.id }) { post ->
                         PostCard(
                             post = post,
-                            onComments = { commentsFor = post },
-                            onShare = { sharePost(context, post) }
+                            onComments = { openPost = post },
+                            onShare = { sharePost(context, post) },
+                            onOpen = { openPost = post }
                         )
                     }
                 }
             }
         }
-    }
-
-    commentsFor?.let { post ->
-        CommentsSheet(
-            post = post,
-            onDismiss = { commentsFor = null },
-            onCommented = { scope.launch { reload() } }
-        )
     }
 
     if (showNewPost) {
@@ -244,7 +249,12 @@ private fun compressImage(context: android.content.Context, uri: android.net.Uri
 }
 
 @Composable
-private fun PostCard(post: FeedPost, onComments: () -> Unit, onShare: () -> Unit) {
+private fun PostCard(
+    post: FeedPost,
+    onComments: () -> Unit,
+    onShare: () -> Unit,
+    onOpen: (() -> Unit)? = null,
+) {
     val scope = rememberCoroutineScope()
     // Lokalt optimistisk like-state.
     var liked by remember(post.id) { mutableStateOf(post.likedByMe) }
@@ -253,6 +263,7 @@ private fun PostCard(post: FeedPost, onComments: () -> Unit, onShare: () -> Unit
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
+            .let { if (onOpen != null) it.clickable(onClick = onOpen) else it }
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -369,12 +380,12 @@ private fun LoginPrompt(onLogin: () -> Unit) {
     }
 }
 
-// Kommentar-ark
+// Innlegg i detalj (som iOS PostDetailView): innlegget + kommentarer + kommentarfelt.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CommentsSheet(post: FeedPost, onDismiss: () -> Unit, onCommented: () -> Unit) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+private fun PostDetailScreen(post: FeedPost, onBack: () -> Unit, onShare: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val isAuthed = Supa.client.auth.currentUserOrNull() != null
     var comments by remember { mutableStateOf<List<com.tomerikheggedal.vitola.data.FeedComment>>(emptyList()) }
     var input by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
@@ -382,56 +393,81 @@ private fun CommentsSheet(post: FeedPost, onDismiss: () -> Unit, onCommented: ()
     suspend fun load() { comments = runCatching { FeedRepository.comments(post.id) }.getOrDefault(emptyList()) }
     LaunchedEffect(post.id) { load() }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-            Text("Kommentarer", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(12.dp))
-
-            if (comments.isEmpty()) {
-                Text("Ingen kommentarer ennå. Vær den første!",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 16.dp))
-            } else {
-                LazyColumn(Modifier.heightIn(max = 340.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    items(comments, key = { it.id }) { c ->
-                        Row {
-                            AuthorAvatar(c.authorAvatarUrl, 32.dp)
-                            Spacer(Modifier.width(10.dp))
-                            Column(Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(c.authorName, fontWeight = FontWeight.SemiBold,
-                                        style = MaterialTheme.typography.bodyMedium)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(relativeTime(c.createdAt), style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Text(c.content, style = MaterialTheme.typography.bodyMedium)
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Innlegg", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tilbake") }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        bottomBar = {
+            if (isAuthed) {
+                Row(
+                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = input, onValueChange = { input = it },
+                        placeholder = { Text("Skriv en kommentar…") },
+                        modifier = Modifier.weight(1f), maxLines = 3
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (sending || input.isBlank()) return@Button
+                            sending = true
+                            scope.launch {
+                                runCatching { FeedRepository.addComment(post.id, input) }
+                                input = ""; load(); sending = false
                             }
+                        },
+                        enabled = !sending && input.isNotBlank()
+                    ) { Text("Send") }
+                }
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item { PostCard(post = post, onComments = {}, onShare = onShare, onOpen = null) }
+            item {
+                Text("Kommentarer", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, top = 8.dp))
+            }
+            if (comments.isEmpty()) {
+                item {
+                    Text("Ingen kommentarer ennå. Vær den første!",
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                }
+            } else {
+                items(comments, key = { it.id }) { c ->
+                    Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                        AuthorAvatar(c.authorAvatarUrl, 32.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(c.authorName, fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.bodyMedium)
+                                Spacer(Modifier.width(8.dp))
+                                Text(relativeTime(c.createdAt), style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(c.content, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = input, onValueChange = { input = it },
-                    placeholder = { Text("Skriv en kommentar…") },
-                    modifier = Modifier.weight(1f), maxLines = 3
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        if (sending || input.isBlank()) return@Button
-                        sending = true
-                        scope.launch {
-                            runCatching { FeedRepository.addComment(post.id, input) }
-                            input = ""; load(); onCommented(); sending = false
-                        }
-                    },
-                    enabled = !sending && input.isNotBlank()
-                ) { Text("Send") }
             }
         }
     }
