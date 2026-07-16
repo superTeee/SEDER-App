@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.tomerikheggedal.vitola.ui.detail.CigarDetailScreen
 import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
 import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
+import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 
 private data class Tab(val route: String, val label: String)
@@ -85,7 +86,16 @@ fun VitolaApp() {
                     onBack = { nav.popBackStack() }
                 )
             }
-            composable("humidor") { HumidorScreen() }
+            composable("humidor") {
+                HumidorScreen(onHumidor = { nav.navigate("humidorDetail/${it}") })
+            }
+            composable("humidorDetail/{id}") { entry ->
+                HumidorDetailScreen(
+                    id = entry.arguments?.getString("id").orEmpty(),
+                    onBack = { nav.popBackStack() },
+                    onCigar = { nav.navigate("cigar/${it}") }
+                )
+            }
         }
     }
 }

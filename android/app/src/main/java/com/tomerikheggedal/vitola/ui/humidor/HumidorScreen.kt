@@ -1,6 +1,7 @@
 package com.tomerikheggedal.vitola.ui.humidor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HumidorScreen() {
+fun HumidorScreen(onHumidor: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
@@ -102,7 +103,7 @@ fun HumidorScreen() {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(humidors, key = { it.row.id }) { h -> HumidorCard(h) }
+                    items(humidors, key = { it.row.id }) { h -> HumidorCard(h) { onHumidor(h.row.id) } }
                 }
             }
         }
@@ -232,12 +233,13 @@ private fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
 
 // Vertikalt kort likt journal/iOS: bilde (eller ikon) på topp, så navn + meta + antall.
 @Composable
-private fun HumidorCard(h: HumidorUi) {
+private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick)
             .padding(12.dp)
     ) {
         val img = h.row.imageUrl

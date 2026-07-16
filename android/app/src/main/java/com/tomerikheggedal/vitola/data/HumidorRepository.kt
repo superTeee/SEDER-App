@@ -3,6 +3,7 @@ package com.tomerikheggedal.vitola.data
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.Instant
@@ -19,6 +20,14 @@ data class HumidorRow(
 
 /** Humidor + antall sigarer (antall regnes separat, ikke fra tabellen). */
 data class HumidorUi(val row: HumidorRow, val count: Int)
+
+/** Én rad i en humidor: sigaren + antall. */
+@Serializable
+data class HumidorContentRow(
+    val quantity: Int? = null,
+    @SerialName("added_to_humidor_at") val addedAt: String? = null,
+    @SerialName("cigars") val cigar: Cigar? = null,
+)
 
 // Humidor-kall for den innloggede brukeren. RLS i basen sørger for at man bare
 // ser/endrer sine egne rader — samme tabeller som iOS ("humidors" + "humidor").
@@ -40,6 +49,31 @@ object HumidorRepository {
             .mapValues { (_, list) -> list.sumOf { it.quantity ?: 1 } }
 
         return humidors.map { HumidorUi(it, counts[it.id] ?: 0) }
+    }
+
+    /** Én humidor (metadata). */
+    suspend fun humidorById(id: String): HumidorRow? {
+        return Supa.client.from("humidors")
+            .select(columns = Columns.list("id", "name", "type", "location", "capacity", "image_url")) {
+                filter { eq("id", id) }
+            }
+            .decodeList<HumidorRow>()
+            .firstOrNull()
+    }
+
+    /** Sigarene i én humidor (med antall > 0). */
+    suspend fun humidorContents(humidorId: String): List<HumidorContentRow> {
+        val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
+        return Supa.client.from("humidor")
+            .select(columns = Columns.raw("quantity, added_to_humidor_at, cigars(*)")) {
+                filter {
+                    eq("humidor_id", humidorId)
+                    eq("user_id", userId)
+                }
+                order("added_to_humidor_at", Order.DESCENDING)
+            }
+            .decodeList<HumidorContentRow>()
+            .filter { (it.quantity ?: 1) > 0 && it.cigar != null }
     }
 
     val types = listOf("Desktop", "Travel", "Cabinet", "Electric", "Tupperdor", "Coolidor", "Walk-in")
