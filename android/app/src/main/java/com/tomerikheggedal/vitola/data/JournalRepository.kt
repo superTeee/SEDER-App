@@ -41,4 +41,40 @@ object JournalRepository {
             }
             .decodeList()
     }
+
+    /** Logg en røkt sigar. rating = 0–100 (null = ingen poengsum). */
+    suspend fun addLog(
+        cigarId: String,
+        rating: Int?,
+        smokeAgain: Boolean?,
+        notes: String?,
+        store: String?,
+        humidorEntryId: String? = null,
+    ) {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
+        Supa.client.from("tasting_logs").insert(
+            NewLog(
+                user_id = uid,
+                cigar_id = cigarId,
+                humidor_entry_id = humidorEntryId,
+                smoked_at = java.time.Instant.now().toString(),
+                rating = rating,
+                smoke_again = smokeAgain,
+                personal_notes = notes?.ifBlank { null },
+                store = store?.ifBlank { null },
+            )
+        )
+    }
 }
+
+@Serializable
+private data class NewLog(
+    val user_id: String,
+    val cigar_id: String,
+    val humidor_entry_id: String? = null,
+    val smoked_at: String,
+    val rating: Int? = null,
+    val smoke_again: Boolean? = null,
+    val personal_notes: String? = null,
+    val store: String? = null,
+)

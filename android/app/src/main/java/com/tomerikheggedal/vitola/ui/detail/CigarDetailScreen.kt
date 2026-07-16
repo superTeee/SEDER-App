@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.FlavorIcon
+import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
 import io.github.jan.supabase.gotrue.auth
@@ -31,10 +33,14 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     var loading by remember { mutableStateOf(true) }
     var addMsg by remember { mutableStateOf<String?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
+    var showLogSheet by remember { mutableStateOf(false) }
+    var humidorEntryId by remember { mutableStateOf<String?>(null) }
+    var reloadKey by remember { mutableStateOf(0) }
 
-    LaunchedEffect(id) {
+    LaunchedEffect(id, reloadKey) {
         loading = true
         cigar = runCatching { CigarRepository.byId(id) }.getOrNull()
+        humidorEntryId = runCatching { HumidorRepository.entryIdForCigar(id) }.getOrNull()
         loading = false
     }
 
@@ -66,19 +72,28 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 InfoRow("Opprinnelse", c.countryOrigin)
                 InfoRow("Format", listOfNotNull(c.commonFormat, c.dimensionsLabel).joinToString(" · ").ifBlank { null })
 
-                // Legg i humidor — åpner ark med humidor-valg, antall og butikk.
-                Button(
-                    onClick = {
-                        addMsg = null
-                        if (Supa.client.auth.currentUserOrNull() == null) {
-                            addMsg = "Logg inn på Profil-fanen først."
-                        } else {
-                            showAddSheet = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Legg i humidor")
+                // Handlingsknapper — speiler iOS:
+                // I humidor → primær «Marker som røkt». Ellers → «Legg i humidor» + sekundær «Marker som røkt».
+                val authed = Supa.client.auth.currentUserOrNull() != null
+                fun requireAuth(action: () -> Unit) {
+                    addMsg = null
+                    if (!authed) addMsg = "Logg inn på Profil-fanen først." else action()
+                }
+                if (humidorEntryId != null) {
+                    Button(onClick = { requireAuth { showLogSheet = true } }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Marker som røkt")
+                    }
+                } else {
+                    Button(onClick = { requireAuth { showAddSheet = true } }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Legg i humidor")
+                    }
+                    OutlinedButton(onClick = { requireAuth { showLogSheet = true } }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Marker som røkt")
+                    }
                 }
                 addMsg?.let {
                     Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
@@ -126,6 +141,18 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
             onAdded = { humidorName ->
                 showAddSheet = false
                 addMsg = "Lagt i $humidorName ✓"
+                reloadKey++   // oppdater status → knappen blir «Marker som røkt»
+            }
+        )
+    }
+    if (showLogSheet && c != null) {
+        SmokingLogSheet(
+            cigar = c,
+            humidorEntryId = humidorEntryId,
+            onDismiss = { showLogSheet = false },
+            onLogged = {
+                showLogSheet = false
+                addMsg = "Lagt i journalen ✓"
             }
         )
     }

@@ -103,6 +103,18 @@ object HumidorRepository {
         )
     }
 
+    /** Humidor-oppføringens id hvis sigaren allerede ligger i en av brukerens humidorer. */
+    suspend fun entryIdForCigar(cigarId: String): String? {
+        val userId = Supa.client.auth.currentUserOrNull()?.id ?: return null
+        return Supa.client.from("humidor")
+            .select(columns = Columns.list("id")) {
+                filter { eq("user_id", userId); eq("cigar_id", cigarId) }
+                limit(1)
+            }
+            .decodeList<EntryIdRow>()
+            .firstOrNull()?.id
+    }
+
     /** Legg en sigar i en humidor med antall og valgfri butikk. */
     suspend fun addCigar(cigarId: String, humidorId: String, quantity: Int = 1, store: String? = null) {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
@@ -118,6 +130,9 @@ object HumidorRepository {
         )
     }
 }
+
+@Serializable
+private data class EntryIdRow(val id: String)
 
 @Serializable
 private data class EntryCount(
