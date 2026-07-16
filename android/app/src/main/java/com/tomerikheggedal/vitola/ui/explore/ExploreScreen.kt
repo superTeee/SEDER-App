@@ -3,25 +3,31 @@ package com.tomerikheggedal.vitola.ui.explore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tomerikheggedal.vitola.data.BrandSummary
 import com.tomerikheggedal.vitola.data.Cigar
+import com.tomerikheggedal.vitola.data.CigarFilter
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.ui.components.ListCard
 import com.tomerikheggedal.vitola.ui.components.NavRow
@@ -45,7 +51,28 @@ class ExploreViewModel : ViewModel() {
     var error by mutableStateOf<String?>(null)
         private set
 
+    // Avansert søk
+    var filter by mutableStateOf(CigarFilter())
+        private set
+    var filterResults by mutableStateOf<List<Cigar>>(emptyList())
+        private set
+    var filterLoading by mutableStateOf(false)
+        private set
+
     private var searchJob: Job? = null
+
+    fun applyFilter(f: CigarFilter) {
+        filter = f
+        if (!f.isActive) { filterResults = emptyList(); return }
+        viewModelScope.launch {
+            filterLoading = true; error = null
+            try { filterResults = CigarRepository.filtered(f) }
+            catch (e: Exception) { error = e.message ?: "Filtrering feilet" }
+            filterLoading = false
+        }
+    }
+
+    fun clearFilter() { filter = CigarFilter(); filterResults = emptyList() }
 
     init { load() }
 
@@ -88,6 +115,7 @@ fun ExploreScreen(
 ) {
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+    var showFilter by remember { mutableStateOf(false) }
     fun scanComingSoon() = scope.launch { snackbar.showSnackbar("Bildegjenkjenning kommer snart") }
 
     // Kamera (miniatyr) og bildevelger — åpner ekte kamera/galleri.
@@ -123,15 +151,23 @@ fun ExploreScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
 
-            OutlinedTextField(
-                value = vm.query,
-                onValueChange = vm::onQuery,
-                placeholder = { Text("Søk merke, serie eller vitola") },
-                leadingIcon = { Icon(Icons.Filled.Search, null) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            // Søkefelt + filterknapp (avansert søk), som iOS.
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = vm.query,
+                    onValueChange = vm::onQuery,
+                    placeholder = { Text("Søk merke, serie eller vitola") },
+                    leadingIcon = { Icon(Icons.Filled.Search, null) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    modifier = Modifier.weight(1f)
+                )
+                FilterButton(active = vm.filter.isActive) { showFilter = true }
+            }
 
             when {
                 vm.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
@@ -142,23 +178,39 @@ fun ExploreScreen(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 96.dp)
                 ) {
-                    // Søketreff gruppert per merke, ett kort per merke (som iOS).
-                    val groups = vm.results.groupBy { it.brand }
-                    groups.forEach { (brand, cigars) ->
-                        item(key = "h_$brand") { SectionLabel(brand) }
-                        item(key = "c_$brand") {
-                            ListCard {
-                                cigars.forEachIndexed { i, cigar ->
-                                    NavRow(
-                                        title = listOfNotNull(cigar.series, cigar.vitola)
-                                            .joinToString(" · ").ifBlank { cigar.brand },
-                                        detail = listOfNotNull(cigar.commonFormat, cigar.dimensionsLabel)
-                                            .joinToString(" · ").ifBlank { null },
-                                    ) { onCigar(cigar.id) }
-                                    if (i < cigars.lastIndex) RowDivider()
-                                }
-                            }
+                    brandGroups(vm.results, onCigar)
+                }
+                vm.filterLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+                vm.filter.isActive -> LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 96.dp)
+                ) {
+                    item {
+                        Row(
+                            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "${vm.filterResults.size} treff",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TextButton(onClick = { vm.clearFilter() }) { Text("Nullstill") }
                         }
+                    }
+                    if (vm.filterResults.isEmpty()) {
+                        item {
+                            Text(
+                                "Ingen treff. Prøv å løsne på filtrene.",
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(32.dp)
+                            )
+                        }
+                    } else {
+                        brandGroups(vm.filterResults, onCigar)
                     }
                 }
                 else -> LazyColumn(
@@ -199,6 +251,60 @@ fun ExploreScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (showFilter) {
+        FilterSheet(
+            initial = vm.filter,
+            onDismiss = { showFilter = false },
+            onApply = { showFilter = false; vm.applyFilter(it) }
+        )
+    }
+}
+
+// Søketreff/filtertreff gruppert per merke, ett kort per merke (som iOS).
+private fun LazyListScope.brandGroups(cigars: List<Cigar>, onCigar: (String) -> Unit) {
+    cigars.groupBy { it.brand }.forEach { (brand, list) ->
+        item(key = "h_$brand") { SectionLabel(brand) }
+        item(key = "c_$brand") {
+            ListCard {
+                list.forEachIndexed { i, cigar ->
+                    NavRow(
+                        title = listOfNotNull(cigar.series, cigar.vitola)
+                            .joinToString(" · ").ifBlank { cigar.brand },
+                        detail = listOfNotNull(cigar.commonFormat, cigar.dimensionsLabel)
+                            .joinToString(" · ").ifBlank { null },
+                    ) { onCigar(cigar.id) }
+                    if (i < list.lastIndex) RowDivider()
+                }
+            }
+        }
+    }
+}
+
+// Filterknapp ved søkefeltet — accent-firkant med prikk når filter er aktivt.
+@Composable
+private fun FilterButton(active: Boolean, onClick: () -> Unit) {
+    Box {
+        FilledIconButton(
+            onClick = onClick,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Icon(Icons.Filled.Tune, contentDescription = "Avansert søk")
+        }
+        if (active) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(2.dp)
+                    .size(10.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.error)
+            )
         }
     }
 }

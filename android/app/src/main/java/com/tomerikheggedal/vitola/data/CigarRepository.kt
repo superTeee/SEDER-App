@@ -2,6 +2,7 @@ package com.tomerikheggedal.vitola.data
 
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
 
@@ -74,10 +75,72 @@ object CigarRepository {
             .rpc("top_rated_cigars", TopParams(p_limit = limit, p_min_votes = 1))
             .decodeList()
     }
+
+    // Avansert søk — samme filter-logikk som iOS (applyFilters).
+    // Hver kategori er en OR-gruppe; kategoriene AND-es sammen.
+    // Bygges inline i begge funksjonene under (samme DSL som search()).
+
+    /** Sigarer som matcher filteret (maks 1000, som iOS). */
+    suspend fun filtered(f: CigarFilter): List<Cigar> {
+        return Supa.client.from("cigars")
+            .select {
+                filter {
+                    eq("is_public", true)
+                    if (f.vitola.isNotEmpty()) or { f.vitola.forEach { ilike("common_format", "%$it%") } }
+                    if (f.origin.isNotEmpty()) or { f.origin.forEach { ilike("country_origin", "%$it%") } }
+                    if (f.wrapper.isNotEmpty()) or { f.wrapper.forEach { ilike("wrapper_leaf", "%$it%") } }
+                    if (f.binder.isNotEmpty()) or { f.binder.forEach { ilike("binder", "%$it%") } }
+                    if (f.filler.isNotEmpty()) overlaps("filler", f.filler)
+                    if (f.crossSection.isNotEmpty()) or { f.crossSection.forEach { eq("cross_section", it) } }
+                    if (f.strength != CigarFilter.FULL) { gte("strength", f.strength.start); lte("strength", f.strength.endInclusive) }
+                    if (f.body != CigarFilter.FULL) { gte("body", f.body.start); lte("body", f.body.endInclusive) }
+                    if (f.sweetness != CigarFilter.FULL) { gte("sweetness", f.sweetness.start); lte("sweetness", f.sweetness.endInclusive) }
+                    if (f.flavorIntensity != CigarFilter.FULL) { gte("flavor_intensity", f.flavorIntensity.start); lte("flavor_intensity", f.flavorIntensity.endInclusive) }
+                    f.flavorFamilies.forEach { fam ->
+                        val notes = FlavorIcon.rawNotesFor(fam)
+                        if (notes.isNotEmpty()) overlaps("flavor_notes", notes)
+                    }
+                }
+                order("brand", Order.ASCENDING)
+                order("series", Order.ASCENDING)
+                limit(1000)
+            }
+            .decodeList()
+    }
+
+    /** Antall treff for filteret. Henter kun id-kolonnen for å holde det lett. */
+    suspend fun countFiltered(f: CigarFilter): Int {
+        return Supa.client.from("cigars")
+            .select(Columns.list("id")) {
+                filter {
+                    eq("is_public", true)
+                    if (f.vitola.isNotEmpty()) or { f.vitola.forEach { ilike("common_format", "%$it%") } }
+                    if (f.origin.isNotEmpty()) or { f.origin.forEach { ilike("country_origin", "%$it%") } }
+                    if (f.wrapper.isNotEmpty()) or { f.wrapper.forEach { ilike("wrapper_leaf", "%$it%") } }
+                    if (f.binder.isNotEmpty()) or { f.binder.forEach { ilike("binder", "%$it%") } }
+                    if (f.filler.isNotEmpty()) overlaps("filler", f.filler)
+                    if (f.crossSection.isNotEmpty()) or { f.crossSection.forEach { eq("cross_section", it) } }
+                    if (f.strength != CigarFilter.FULL) { gte("strength", f.strength.start); lte("strength", f.strength.endInclusive) }
+                    if (f.body != CigarFilter.FULL) { gte("body", f.body.start); lte("body", f.body.endInclusive) }
+                    if (f.sweetness != CigarFilter.FULL) { gte("sweetness", f.sweetness.start); lte("sweetness", f.sweetness.endInclusive) }
+                    if (f.flavorIntensity != CigarFilter.FULL) { gte("flavor_intensity", f.flavorIntensity.start); lte("flavor_intensity", f.flavorIntensity.endInclusive) }
+                    f.flavorFamilies.forEach { fam ->
+                        val notes = FlavorIcon.rawNotesFor(fam)
+                        if (notes.isNotEmpty()) overlaps("flavor_notes", notes)
+                    }
+                }
+                limit(1000)
+            }
+            .decodeList<IdRow>()
+            .size
+    }
 }
 
 @kotlinx.serialization.Serializable
 private data class TopParams(val p_limit: Int, val p_min_votes: Int)
+
+@kotlinx.serialization.Serializable
+private data class IdRow(val id: String)
 
 @kotlinx.serialization.Serializable
 private data class BrandRow(

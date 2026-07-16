@@ -142,6 +142,15 @@ object FlavorIcon {
         val res = drawable(icon) ?: return null
         return FlavorMatch(res, label[icon] ?: note.replaceFirstChar { it.uppercase() })
     }
+
+    /** Norske smaksnote-familier (for filter-chips), alfabetisk. */
+    val familyLabels: List<String> = label.values.distinct().sorted()
+
+    /** Alle rå DB-notater som hører til en norsk familie-etikett (for filter-overlaps). */
+    fun rawNotesFor(familyLabel: String): List<String> {
+        val family = label.entries.firstOrNull { it.value == familyLabel }?.key ?: return emptyList()
+        return map.filterValues { it == family }.keys.toList()
+    }
 }
 
 data class FlavorMatch(@DrawableRes val drawable: Int, val label: String)
