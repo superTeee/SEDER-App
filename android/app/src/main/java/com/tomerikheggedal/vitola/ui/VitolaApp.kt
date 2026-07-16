@@ -1,5 +1,6 @@
 package com.tomerikheggedal.vitola.ui
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
@@ -59,6 +60,9 @@ fun VitolaApp() {
     }
 
     Scaffold(
+        // Ikke legg statusbar-padding på innholdet — hver skjerms egen TopAppBar
+        // håndterer det. Ellers dobles luften over titlene.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             // Tab-baren står alltid synlig (som iOS) — også innover i detaljer.
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
