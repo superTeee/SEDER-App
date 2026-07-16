@@ -8,16 +8,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -59,9 +62,11 @@ fun FeedScreen() {
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
 
+    val context = LocalContext.current
     var posts by remember { mutableStateOf<List<FeedPost>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var commentsFor by remember { mutableStateOf<FeedPost?>(null) }
+    var showNewPost by remember { mutableStateOf(false) }
 
     suspend fun reload() {
         posts = runCatching { FeedRepository.feed() }.getOrDefault(emptyList())
@@ -78,7 +83,14 @@ fun FeedScreen() {
                 title = { Text("Feed", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
-                )
+                ),
+                actions = {
+                    if (isAuthed) {
+                        IconButton(onClick = { showNewPost = true }) {
+                            Icon(Icons.Filled.Add, contentDescription = "Nytt innlegg")
+                        }
+                    }
+                }
             )
         }
     ) { padding ->
@@ -97,7 +109,11 @@ fun FeedScreen() {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(posts, key = { it.id }) { post ->
-                        PostCard(post = post, onComments = { commentsFor = post })
+                        PostCard(
+                            post = post,
+                            onComments = { commentsFor = post },
+                            onShare = { sharePost(context, post) }
+                        )
                     }
                 }
             }
@@ -111,10 +127,72 @@ fun FeedScreen() {
             onCommented = { scope.launch { reload() } }
         )
     }
+
+    if (showNewPost) {
+        NewPostSheet(
+            onDismiss = { showNewPost = false },
+            onPosted = { showNewPost = false; scope.launch { reload() } }
+        )
+    }
+}
+
+// Del et innlegg via Androids delingsark.
+private fun sharePost(context: android.content.Context, post: FeedPost) {
+    val body = buildString {
+        append(post.authorName).append(" på Vitola")
+        post.content?.takeIf { it.isNotBlank() }?.let { append(":\n").append(it) }
+        post.cigarDisplayName?.let { append("\n🚬 ").append(it) }
+        append("\n\nhttps://vitola.app")
+    }
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, body)
+    }
+    runCatching { context.startActivity(android.content.Intent.createChooser(intent, "Del innlegg")) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NewPostSheet(onDismiss: () -> Unit, onPosted: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var text by remember { mutableStateOf("") }
+    var posting by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Nytt innlegg", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = text, onValueChange = { text = it },
+                placeholder = { Text("Hva røyker du? Del tanker, smaksnotater…") },
+                modifier = Modifier.fillMaxWidth(), minLines = 4
+            )
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+            Button(
+                onClick = {
+                    if (posting || text.isBlank()) return@Button
+                    posting = true; error = null
+                    scope.launch {
+                        try { FeedRepository.createPost(text); onPosted() }
+                        catch (e: Exception) { error = e.message ?: "Kunne ikke publisere"; posting = false }
+                    }
+                },
+                enabled = !posting && text.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (posting) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary)
+                else Text("Publiser", fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
 }
 
 @Composable
-private fun PostCard(post: FeedPost, onComments: () -> Unit) {
+private fun PostCard(post: FeedPost, onComments: () -> Unit, onShare: () -> Unit) {
     val scope = rememberCoroutineScope()
     // Lokalt optimistisk like-state.
     var liked by remember(post.id) { mutableStateOf(post.likedByMe) }
@@ -123,6 +201,7 @@ private fun PostCard(post: FeedPost, onComments: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onShare)   // trykk på innlegget for å dele
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -202,6 +281,11 @@ private fun PostCard(post: FeedPost, onComments: () -> Unit) {
                 Text("${post.commentCount}", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.Outlined.Share, "Del",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onShare)
+                    .padding(4.dp).size(20.dp))
         }
     }
 }

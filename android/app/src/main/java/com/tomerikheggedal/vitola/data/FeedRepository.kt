@@ -61,6 +61,12 @@ object FeedRepository {
             NewComment(user_id = uid, post_id = postId, content = content.trim())
         )
     }
+
+    /** Opprett et tekst-innlegg. (Bilde krever storage-modulen — kommer senere.) */
+    suspend fun createPost(content: String) {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
+        Supa.client.from("posts").insert(NewPost(user_id = uid, content = content.trim()))
+    }
 }
 
 @Serializable
@@ -71,3 +77,6 @@ private data class PostIdParam(val p_post_id: String)
 
 @Serializable
 private data class NewComment(val user_id: String, val post_id: String, val content: String)
+
+@Serializable
+private data class NewPost(val user_id: String, val content: String)
