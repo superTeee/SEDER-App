@@ -41,6 +41,7 @@ import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarFilter
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.SearchHistory
+import com.tomerikheggedal.vitola.data.SearchHit
 import com.tomerikheggedal.vitola.ui.components.ListCard
 import com.tomerikheggedal.vitola.ui.components.NavRow
 import com.tomerikheggedal.vitola.ui.components.RowDivider
@@ -58,7 +59,7 @@ class ExploreViewModel : ViewModel() {
         private set
     var featured by mutableStateOf<Cigar?>(null)
         private set
-    var results by mutableStateOf<List<Cigar>>(emptyList())
+    var results by mutableStateOf<List<SearchHit>>(emptyList())
         private set
     var loading by mutableStateOf(true)
         private set
@@ -180,7 +181,7 @@ fun ExploreScreen(
                     value = vm.query,
                     onValueChange = vm::onQuery,
                     placeholder = {
-                        Text("Søk merke, serie eller form", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Søk merke, serie, form eller smak", maxLines = 1, overflow = TextOverflow.Ellipsis)
                     },
                     leadingIcon = { Icon(Icons.Filled.Search, null) },
                     singleLine = true,
@@ -213,10 +214,9 @@ fun ExploreScreen(
                 ) {
                     item {
                         val n = vm.results.size
-                        val count = if (n >= 50) "50+" else "$n"
                         Text(
                             if (n == 0) "Ingen resultater for «${vm.query}»"
-                            else "Resultater for «${vm.query}» ($count)",
+                            else "Resultater for «${vm.query}» ($n)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (n == 0) MaterialTheme.colorScheme.onSurfaceVariant
@@ -224,7 +224,7 @@ fun ExploreScreen(
                             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
                         )
                     }
-                    brandGroups(vm.results, onCigar)
+                    searchHitGroups(vm.results, onCigar)
                 }
                 vm.filterLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 vm.filter.isActive -> LazyColumn(
@@ -323,6 +323,26 @@ fun ExploreScreen(
             onDismiss = { showFilter = false },
             onApply = { showFilter = false; vm.applyFilter(it) }
         )
+    }
+}
+
+// Søketreff gruppert per merke; viser hva treffet matchet på (smaksnote som accent-tag).
+private fun LazyListScope.searchHitGroups(hits: List<SearchHit>, onCigar: (String) -> Unit) {
+    hits.groupBy { it.cigar.brand }.forEach { (brand, list) ->
+        item(key = "sh_$brand") { SectionLabel(brand) }
+        item(key = "sc_$brand") {
+            ListCard {
+                list.forEachIndexed { i, hit ->
+                    val c = hit.cigar
+                    NavRow(
+                        title = listOfNotNull(c.series, c.vitola).joinToString(" · ").ifBlank { c.brand },
+                        subtitle = listOfNotNull(c.commonFormat, c.dimensionsLabel).joinToString(" · ").ifBlank { null },
+                        detail = hit.matchedFlavor?.let { "Smak: $it" },
+                    ) { onCigar(c.id) }
+                    if (i < list.lastIndex) RowDivider()
+                }
+            }
+        }
     }
 }
 

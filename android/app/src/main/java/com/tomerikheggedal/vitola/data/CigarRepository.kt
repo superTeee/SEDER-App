@@ -28,11 +28,13 @@ object CigarRepository {
             .sortedBy { it.brand.lowercase() }
     }
 
-    /** Fritekstsøk på merke/serie/vitola. */
-    suspend fun search(query: String): List<Cigar> {
+    /** Fritekstsøk på merke/serie/form + smaksnoter. Hvert treff sier hva som matchet. */
+    suspend fun search(query: String): List<SearchHit> {
         if (query.isBlank()) return emptyList()
         val q = "%$query%"
-        return Supa.client.from("cigars")
+
+        // 1) Tekst-treff på merke/serie/form.
+        val textHits = Supa.client.from("cigars")
             .select {
                 filter {
                     eq("is_public", true)
@@ -45,7 +47,35 @@ object CigarRepository {
                 order("brand", Order.ASCENDING)
                 limit(50)
             }
-            .decodeList()
+            .decodeList<Cigar>()
+
+        // 2) Smaksnote-treff: norsk søkeord → familie(r) → rå DB-notater (engelsk).
+        val families = FlavorIcon.familyLabels.filter { it.contains(query, ignoreCase = true) }
+        val flavorHits: List<Cigar>
+        val flavorLabel: String?
+        if (families.isNotEmpty()) {
+            val rawNotes = families.flatMap { FlavorIcon.rawNotesFor(it) }.distinct()
+            flavorLabel = families.joinToString(", ")
+            flavorHits = Supa.client.from("cigars")
+                .select {
+                    filter {
+                        eq("is_public", true)
+                        overlaps("flavor_notes", rawNotes)
+                    }
+                    order("brand", Order.ASCENDING)
+                    limit(50)
+                }
+                .decodeList()
+        } else {
+            flavorHits = emptyList(); flavorLabel = null
+        }
+
+        // 3) Slå sammen: tekst-treff først, deretter smaks-treff som ikke alt er med.
+        val textIds = textHits.map { it.id }.toSet()
+        val hits = mutableListOf<SearchHit>()
+        textHits.forEach { hits.add(SearchHit(it, null)) }
+        flavorHits.forEach { if (it.id !in textIds) hits.add(SearchHit(it, flavorLabel)) }
+        return hits
     }
 
     /** Alle sigarer for ett merke. */
@@ -154,6 +184,9 @@ object CigarRepository {
             .size
     }
 }
+
+// Ett søketreff + hva det matchet på (smaksnote-etikett, eller null for tekst-treff).
+data class SearchHit(val cigar: Cigar, val matchedFlavor: String?)
 
 @kotlinx.serialization.Serializable
 private data class TopParams(val p_limit: Int, val p_min_votes: Int)
