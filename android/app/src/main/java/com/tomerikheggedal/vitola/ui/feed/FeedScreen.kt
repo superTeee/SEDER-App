@@ -1,5 +1,8 @@
 package com.tomerikheggedal.vitola.ui.feed
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +12,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -32,7 +37,9 @@ import com.tomerikheggedal.vitola.data.Supa
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -156,9 +163,15 @@ private fun sharePost(context: android.content.Context, post: FeedPost) {
 private fun NewPostSheet(onDismiss: () -> Unit, onPosted: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var text by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var posting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) imageUri = uri
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface) {
@@ -170,17 +183,42 @@ private fun NewPostSheet(onDismiss: () -> Unit, onPosted: () -> Unit) {
                 placeholder = { Text("Hva røyker du? Del tanker, smaksnotater…") },
                 modifier = Modifier.fillMaxWidth(), minLines = 4
             )
+
+            // Valgt bilde med fjern-kryss.
+            imageUri?.let { uri ->
+                Box(Modifier.fillMaxWidth()) {
+                    AsyncImage(model = uri, contentDescription = null, contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(8.dp)))
+                    IconButton(onClick = { imageUri = null },
+                        modifier = Modifier.align(Alignment.TopEnd)) {
+                        Icon(Icons.Filled.Close, "Fjern bilde", tint = androidx.compose.ui.graphics.Color.White)
+                    }
+                }
+            }
+
+            TextButton(
+                onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Icon(Icons.Filled.CameraAlt, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(if (imageUri == null) "Legg til bilde" else "Bytt bilde")
+            }
+
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
             Button(
                 onClick = {
-                    if (posting || text.isBlank()) return@Button
+                    if (posting || (text.isBlank() && imageUri == null)) return@Button
                     posting = true; error = null
                     scope.launch {
-                        try { FeedRepository.createPost(text); onPosted() }
-                        catch (e: Exception) { error = e.message ?: "Kunne ikke publisere"; posting = false }
+                        try {
+                            val jpeg = imageUri?.let { withContext(Dispatchers.IO) { compressImage(context, it) } }
+                            FeedRepository.createPost(text, jpeg)
+                            onPosted()
+                        } catch (e: Exception) { error = e.message ?: "Kunne ikke publisere"; posting = false }
                     }
                 },
-                enabled = !posting && text.isNotBlank(),
+                enabled = !posting && (text.isNotBlank() || imageUri != null),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (posting) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp,
@@ -189,6 +227,20 @@ private fun NewPostSheet(onDismiss: () -> Unit, onPosted: () -> Unit) {
             }
         }
     }
+}
+
+// Skalerer til maks 1200px bredde og komprimerer til JPEG (som iOS).
+private fun compressImage(context: android.content.Context, uri: android.net.Uri, maxWidth: Int = 1200): ByteArray? {
+    val bitmap = context.contentResolver.openInputStream(uri)?.use {
+        android.graphics.BitmapFactory.decodeStream(it)
+    } ?: return null
+    val scaled = if (bitmap.width > maxWidth) {
+        val h = (bitmap.height.toLong() * maxWidth / bitmap.width).toInt().coerceAtLeast(1)
+        android.graphics.Bitmap.createScaledBitmap(bitmap, maxWidth, h, true)
+    } else bitmap
+    val out = java.io.ByteArrayOutputStream()
+    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+    return out.toByteArray()
 }
 
 @Composable

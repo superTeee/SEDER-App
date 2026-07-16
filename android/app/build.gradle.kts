@@ -56,6 +56,8 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.6.0")
     // I 2.x heter auth-modulen fortsatt gotrue-kt (pakke: io.github.jan.supabase.gotrue).
     implementation("io.github.jan-tennert.supabase:gotrue-kt:2.6.0")
+    // Storage — for bilde-opplasting (feed-innlegg).
+    implementation("io.github.jan-tennert.supabase:storage-kt:2.6.0")
     implementation("io.ktor:ktor-client-android:2.3.12")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
 

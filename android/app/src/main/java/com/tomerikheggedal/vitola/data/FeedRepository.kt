@@ -3,9 +3,13 @@ package com.tomerikheggedal.vitola.data
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 // Matcher get_feed()-RPC-en (samme som iOS FeedPost).
 @Serializable
@@ -62,10 +66,27 @@ object FeedRepository {
         )
     }
 
-    /** Opprett et tekst-innlegg. (Bilde krever storage-modulen — kommer senere.) */
-    suspend fun createPost(content: String) {
+    /** Opprett et innlegg med tekst og valgfritt bilde (allerede komprimert til JPEG). */
+    suspend fun createPost(content: String, imageJpeg: ByteArray? = null) {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
-        Supa.client.from("posts").insert(NewPost(user_id = uid, content = content.trim()))
+
+        // 1) Sett inn innlegget, hent id-en tilbake.
+        val inserted = Supa.client.from("posts")
+            .insert(NewPost(user_id = uid, content = content.trim().ifBlank { null })) {
+                select(Columns.list("id"))
+            }
+            .decodeList<InsertedId>()
+            .firstOrNull() ?: return
+
+        // 2) Last opp bilde til post-images (lowercase path for RLS) og skriv image_url.
+        if (imageJpeg != null) {
+            val path = "${uid.lowercase()}/${inserted.id.lowercase()}.jpg"
+            Supa.client.storage.from("post-images").upload(path, imageJpeg) { upsert = true }
+            val url = Supa.client.storage.from("post-images").publicUrl(path)
+            Supa.client.from("posts").update(
+                buildJsonObject { put("image_url", url) }
+            ) { filter { eq("id", inserted.id) } }
+        }
     }
 }
 
@@ -79,4 +100,7 @@ private data class PostIdParam(val p_post_id: String)
 private data class NewComment(val user_id: String, val post_id: String, val content: String)
 
 @Serializable
-private data class NewPost(val user_id: String, val content: String)
+private data class NewPost(val user_id: String, val content: String? = null)
+
+@Serializable
+private data class InsertedId(val id: String)
