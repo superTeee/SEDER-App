@@ -60,7 +60,7 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Humidor") },
+                title = { Text("Humidor", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 ),

@@ -46,7 +46,7 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(humidor?.name ?: "") },
+                title = { Text(humidor?.name ?: "", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tilbake") }
                 },
