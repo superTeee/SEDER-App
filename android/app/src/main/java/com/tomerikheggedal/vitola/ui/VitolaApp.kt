@@ -1,5 +1,6 @@
 package com.tomerikheggedal.vitola.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -37,6 +38,7 @@ import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 import com.tomerikheggedal.vitola.ui.journal.JournalScreen
 import com.tomerikheggedal.vitola.ui.profile.ProfileScreen
 import com.tomerikheggedal.vitola.ui.profile.SettingsScreen
+import com.tomerikheggedal.vitola.ui.theme.ThemeState
 
 private data class Tab(val route: String, val label: String)
 
@@ -60,6 +62,10 @@ fun VitolaApp() {
         }
     }
 
+    // Hvit tab-tekst i dark mode; accent i light mode (hvit ville forsvunnet på hvit bar).
+    val darkMode = ThemeState.isDark(isSystemInDarkTheme())
+    val tabTextColor = if (darkMode) Color.White else MaterialTheme.colorScheme.primary
+
     Scaffold(
         // Ikke legg statusbar-padding på innholdet — hver skjerms egen TopAppBar
         // håndterer det. Ellers dobles luften over titlene.
@@ -73,8 +79,8 @@ fun VitolaApp() {
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = Color.White,
-                                unselectedTextColor = Color.White,
+                                selectedTextColor = tabTextColor,
+                                unselectedTextColor = tabTextColor,
                                 indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                             ),
                             onClick = {
