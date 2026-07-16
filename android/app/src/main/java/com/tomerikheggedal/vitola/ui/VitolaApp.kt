@@ -77,7 +77,7 @@ fun VitolaApp() {
                     NavigationBarItem(
                         selected = selectedTab == tab.route,
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedIconColor = if (darkMode) Color.White else MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = MaterialTheme.colorScheme.primary,
                                 selectedTextColor = tabTextColor,
                                 unselectedTextColor = tabTextColor,
