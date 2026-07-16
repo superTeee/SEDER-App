@@ -136,7 +136,7 @@ private fun LoginPrompt(onLogin: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
+fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 

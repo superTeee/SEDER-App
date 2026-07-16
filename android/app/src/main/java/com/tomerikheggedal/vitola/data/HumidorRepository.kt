@@ -92,16 +92,17 @@ object HumidorRepository {
         )
     }
 
-    /** Legg én sigar i en humidor (antall 1). */
-    suspend fun addCigar(cigarId: String, humidorId: String) {
+    /** Legg en sigar i en humidor med antall og valgfri butikk. */
+    suspend fun addCigar(cigarId: String, humidorId: String, quantity: Int = 1, store: String? = null) {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
         Supa.client.from("humidor").insert(
             NewEntry(
                 user_id = userId,
                 cigar_id = cigarId,
                 humidor_id = humidorId,
-                quantity = 1,
-                added_to_humidor_at = Instant.now().toString()
+                quantity = quantity,
+                added_to_humidor_at = Instant.now().toString(),
+                store = store?.ifBlank { null }
             )
         )
     }
@@ -128,5 +129,6 @@ private data class NewEntry(
     val cigar_id: String,
     val humidor_id: String,
     val quantity: Int,
-    val added_to_humidor_at: String
+    val added_to_humidor_at: String,
+    val store: String? = null,
 )

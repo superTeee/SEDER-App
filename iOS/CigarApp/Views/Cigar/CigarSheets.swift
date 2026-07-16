@@ -124,6 +124,10 @@ struct AddToHumidorSheet: View {
                     }
                 }
 
+                Section("Antall") {
+                    Stepper("\(quantity) stk", value: $quantity, in: 1...100)
+                }
+
                 Section("Datoer") {
                     // Kjøpsdato — klikk for å åpne, velg dato for å lukke
                     Button {
@@ -176,10 +180,6 @@ struct AddToHumidorSheet: View {
                                 withAnimation(.easeInOut(duration: 0.2)) { showHumidorPicker = false }
                             }
                     }
-                }
-
-                Section("Antall") {
-                    Stepper("\(quantity) stk", value: $quantity, in: 1...100)
                 }
 
                 Section("Kjøpt hos") {

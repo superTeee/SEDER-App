@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.FlavorIcon
-import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.Supa
+import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
 import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.launch
 
@@ -30,8 +30,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     var cigar by remember { mutableStateOf<Cigar?>(null) }
     var loading by remember { mutableStateOf(true) }
     var addMsg by remember { mutableStateOf<String?>(null) }
-    var adding by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    var showAddSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(id) {
         loading = true
@@ -67,36 +66,19 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 InfoRow("Opprinnelse", c.countryOrigin)
                 InfoRow("Format", listOfNotNull(c.commonFormat, c.dimensionsLabel).joinToString(" · ").ifBlank { null })
 
-                // Legg i humidor — krever innlogging + minst én humidor.
+                // Legg i humidor — åpner ark med humidor-valg, antall og butikk.
                 Button(
                     onClick = {
-                        if (adding) return@Button
-                        adding = true; addMsg = null
-                        scope.launch {
-                            try {
-                                if (Supa.client.auth.currentUserOrNull() == null) {
-                                    addMsg = "Logg inn på Humidor-fanen først."
-                                } else {
-                                    val humidors = HumidorRepository.myHumidors()
-                                    if (humidors.isEmpty()) {
-                                        addMsg = "Du har ingen humidor ennå."
-                                    } else {
-                                        val h = humidors.first().row
-                                        HumidorRepository.addCigar(c.id, h.id)
-                                        addMsg = "Lagt i ${h.name} ✓"
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                addMsg = e.message ?: "Kunne ikke legge til"
-                            }
-                            adding = false
+                        addMsg = null
+                        if (Supa.client.auth.currentUserOrNull() == null) {
+                            addMsg = "Logg inn på Profil-fanen først."
+                        } else {
+                            showAddSheet = true
                         }
                     },
-                    enabled = !adding,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (adding) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Legg i humidor")
+                    Text("Legg i humidor")
                 }
                 addMsg?.let {
                     Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
@@ -134,6 +116,18 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 Spacer(Modifier.height(40.dp))
             }
         }
+    }
+
+    val c = cigar
+    if (showAddSheet && c != null) {
+        AddToHumidorSheet(
+            cigar = c,
+            onDismiss = { showAddSheet = false },
+            onAdded = { humidorName ->
+                showAddSheet = false
+                addMsg = "Lagt i $humidorName ✓"
+            }
+        )
     }
 }
 
