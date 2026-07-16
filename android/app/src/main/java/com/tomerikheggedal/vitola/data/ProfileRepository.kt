@@ -2,7 +2,10 @@ package com.tomerikheggedal.vitola.data
 
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
@@ -24,6 +27,21 @@ data class ProfileStats(
     val humidorEntries: Int, // I humidor
     val brandsTried: Int,    // Merker prøvd
     val friends: Int,        // Venner
+)
+
+// Smaksprofil — fra get_own_profile_favorites RPC (samme som iOS).
+@Serializable
+data class ProfileFavorites(
+    @SerialName("favorite_cigar") val favoriteCigar: String? = null,
+    @SerialName("favorite_cigar_score") val favoriteCigarScore: Int? = null,
+    @SerialName("favorite_brand") val favoriteBrand: String? = null,
+    @SerialName("favorite_vitola") val favoriteVitola: String? = null,
+    @SerialName("favorite_country") val favoriteCountry: String? = null,
+    @SerialName("favorite_wrapper") val favoriteWrapper: String? = null,
+    @SerialName("favorite_binder") val favoriteBinder: String? = null,
+    @SerialName("favorite_filler") val favoriteFiller: String? = null,
+    @SerialName("favorite_flavor") val favoriteFlavor: String? = null,
+    @SerialName("favorite_strength") val favoriteStrength: Double? = null,
 )
 
 // Egen profil + stats for innlogget bruker (samme tabeller som iOS).
@@ -90,6 +108,26 @@ object ProfileRepository {
         Supa.client.from("profiles").update(
             buildJsonObject { put("bio", bio.trim().ifBlank { null }) }
         ) { filter { eq("id", uid) } }
+    }
+
+    /** Smaksprofil (favoritter) — beregnet fra journalen i basen. */
+    suspend fun myFavorites(): ProfileFavorites? {
+        Supa.client.auth.currentUserOrNull() ?: return null
+        return runCatching {
+            Supa.client.postgrest.rpc("get_own_profile_favorites").decodeList<ProfileFavorites>().firstOrNull()
+        }.getOrNull()
+    }
+
+    /** Last opp avatar (allerede komprimert JPEG), skriv avatar_url. Returnerer ny URL. */
+    suspend fun uploadAvatar(jpeg: ByteArray): String? {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: return null
+        val path = "${uid.lowercase()}/avatar.jpg"   // lowercase for RLS
+        Supa.client.storage.from("avatars").upload(path, jpeg, upsert = true)
+        val url = Supa.client.storage.from("avatars").publicUrl(path) + "?v=${System.currentTimeMillis() / 1000}"
+        Supa.client.from("profiles").update(
+            buildJsonObject { put("avatar_url", url) }
+        ) { filter { eq("id", uid) } }
+        return url
     }
 
     /** Navn/e-post/avatar fra innloggingen (Google-metadata) som fallback. */

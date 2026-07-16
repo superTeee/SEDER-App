@@ -42,6 +42,19 @@ object JournalRepository {
             .decodeList()
     }
 
+    /** Siste røkte sigar (for profilen). */
+    suspend fun lastLog(): TastingLog? {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: return null
+        return Supa.client.from("tasting_logs")
+            .select(columns = Columns.raw("id, smoked_at, rating, personal_notes, photo_url, cigars(*)")) {
+                filter { eq("user_id", uid) }
+                order("smoked_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<TastingLog>()
+            .firstOrNull()
+    }
+
     /** Logg en røkt sigar. rating = 0–100 (null = ingen poengsum). */
     suspend fun addLog(
         cigarId: String,

@@ -1,5 +1,8 @@
 package com.tomerikheggedal.vitola.ui.profile
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,12 +11,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,41 +31,79 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.tomerikheggedal.vitola.data.JournalRepository
 import com.tomerikheggedal.vitola.data.Profile
+import com.tomerikheggedal.vitola.data.ProfileFavorites
 import com.tomerikheggedal.vitola.data.ProfileRepository
 import com.tomerikheggedal.vitola.data.ProfileStats
 import com.tomerikheggedal.vitola.data.Supa
+import com.tomerikheggedal.vitola.data.TastingLog
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+private val NO = Locale("nb", "NO")
+private val LOG_FMT = DateTimeFormatter.ofPattern("d. MMMM yyyy, HH:mm", NO)
+
+private fun strengthLabel(s: Double?): String? = s?.let {
+    when { it < 2.0 -> "Mild"; it < 3.0 -> "Medium"; it < 4.0 -> "Fyldig"; else -> "Sterk" }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(onSettings: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
 
     var profile by remember { mutableStateOf<Profile?>(null) }
     var stats by remember { mutableStateOf(ProfileStats(0, 0, 0, 0)) }
+    var favorites by remember { mutableStateOf<ProfileFavorites?>(null) }
+    var lastLog by remember { mutableStateOf<TastingLog?>(null) }
     var loading by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
+    var uploadingAvatar by remember { mutableStateOf(false) }
     var showBioEditor by remember { mutableStateOf(false) }
+
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            uploadingAvatar = true
+            scope.launch {
+                runCatching {
+                    val jpeg = withContext(Dispatchers.IO) { compressImage(context, uri, 800) }
+                    if (jpeg != null) ProfileRepository.uploadAvatar(jpeg)
+                }
+                uploadingAvatar = false
+                reloadKey++
+            }
+        }
+    }
 
     LaunchedEffect(isAuthed, reloadKey, ProfileRefresh.version) {
         if (isAuthed) {
             loading = true
             profile = runCatching { ProfileRepository.myProfile() }.getOrNull()
             stats = runCatching { ProfileRepository.myStats() }.getOrDefault(ProfileStats(0, 0, 0, 0))
+            favorites = runCatching { ProfileRepository.myFavorites() }.getOrNull()
+            lastLog = runCatching { JournalRepository.lastLog() }.getOrNull()
             loading = false
         } else {
-            profile = null; stats = ProfileStats(0, 0, 0, 0)
+            profile = null; stats = ProfileStats(0, 0, 0, 0); favorites = null; lastLog = null
         }
     }
 
@@ -79,38 +127,54 @@ fun ProfileScreen(onSettings: () -> Unit = {}) {
             when {
                 !isAuthed -> LoginPrompt { scope.launch { Supa.client.auth.signInWith(Google) } }
                 loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                else -> Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Hero: avatar + navn + sted + bio
-                    Avatar(profile?.avatarUrl ?: ProfileRepository.authAvatar())
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        profile?.displayName ?: ProfileRepository.authName() ?: "Vitola-bruker",
-                        style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
-                    )
-                    val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")
-                    if (place.isNotBlank()) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(place, style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    // Hero
+                    Column(Modifier.fillMaxWidth().padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
+                        Avatar(
+                            url = profile?.avatarUrl ?: ProfileRepository.authAvatar(),
+                            uploading = uploadingAvatar,
+                            onClick = { avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        Text(
+                            profile?.displayName ?: ProfileRepository.authName() ?: "Vitola-bruker",
+                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+                        )
+                        val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")
+                        if (place.isNotBlank()) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(place, style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        val bio = profile?.bio
+                        Text(
+                            if (bio.isNullOrBlank()) "Legg til bio…" else bio,
+                            style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
+                            color = if (bio.isNullOrBlank()) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showBioEditor = true }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
                     }
 
-                    Spacer(Modifier.height(10.dp))
-                    val bio = profile?.bio
-                    Text(
-                        if (bio.isNullOrBlank()) "Legg til bio…" else bio,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = if (bio.isNullOrBlank()) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showBioEditor = true }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    // Stats
+                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats) }
 
-                    Spacer(Modifier.height(22.dp))
-                    StatsCard(stats)
+                    // Smaksprofil
+                    SectionLabel("Smaksprofil")
+                    HeroFavoriteCard(favorites)
+                    Spacer(Modifier.height(10.dp))
+                    FavoritesGrid(favorites)
+
+                    // Sist røkt
+                    lastLog?.let { log ->
+                        SectionLabel("Sist røkt")
+                        LastSmokedCard(log)
+                    }
+
+                    Spacer(Modifier.height(32.dp))
                 }
             }
         }
@@ -129,20 +193,28 @@ fun ProfileScreen(onSettings: () -> Unit = {}) {
 }
 
 @Composable
-private fun Avatar(url: String?) {
+private fun SectionLabel(text: String) {
+    Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.sp,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 22.dp, bottom = 10.dp))
+}
+
+@Composable
+private fun Avatar(url: String?, uploading: Boolean, onClick: () -> Unit) {
     val size = 96.dp
-    if (url != null) {
-        AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(size).clip(CircleShape))
-    } else {
-        Box(
-            Modifier.size(size).clip(CircleShape)
+    Box(contentAlignment = Alignment.Center) {
+        if (url != null) {
+            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = Modifier.size(size).clip(CircleShape).clickable(onClick = onClick))
+        } else {
+            Box(Modifier.size(size).clip(CircleShape).clickable(onClick = onClick)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Filled.Person, null, tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(46.dp))
+                contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Person, null, tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(46.dp))
+            }
         }
+        if (uploading) CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp)
     }
 }
 
@@ -180,6 +252,122 @@ private fun StatCell(icon: ImageVector, value: Int, label: String, modifier: Mod
     }
 }
 
+// ── Smaksprofil ──
+@Composable
+private fun HeroFavoriteCard(fav: ProfileFavorites?) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface).padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(42.dp).clip(RoundedCornerShape(6.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.EmojiEvents, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(13.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Favorittsigar", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(fav?.favoriteCigar?.takeIf { it.isNotBlank() } ?: "Kommer når du logger",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (fav?.favoriteCigar.isNullOrBlank()) FontWeight.Normal else FontWeight.SemiBold,
+                color = if (fav?.favoriteCigar.isNullOrBlank()) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurface, maxLines = 1)
+        }
+        fav?.favoriteCigarScore?.let { score ->
+            Text("$score", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.primary)
+                    .padding(horizontal = 10.dp, vertical = 3.dp))
+        }
+    }
+}
+
+@Composable
+private fun FavoritesGrid(fav: ProfileFavorites?) {
+    val items = listOf(
+        Triple(Icons.Filled.LocalOffer, "Merke", fav?.favoriteBrand),
+        Triple(Icons.Filled.Straighten, "Vitola", fav?.favoriteVitola),
+        Triple(Icons.Filled.Public, "Land", fav?.favoriteCountry),
+        Triple(Icons.Filled.Spa, "Dekkblad", fav?.favoriteWrapper),
+        Triple(Icons.Filled.Eco, "Omblad", fav?.favoriteBinder),
+        Triple(Icons.Filled.Layers, "Innmat", fav?.favoriteFiller),
+        Triple(Icons.Filled.LocalFireDepartment, "Styrke", strengthLabel(fav?.favoriteStrength)),
+        Triple(Icons.Filled.Air, "Smaksnoter", fav?.favoriteFlavor),
+    )
+    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { (icon, label, value) ->
+                    FavoriteCell(icon, label, value, Modifier.weight(1f))
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun FavoriteCell(icon: ImageVector, label: String, value: String?, modifier: Modifier = Modifier) {
+    Column(modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surface).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(value?.takeIf { it.isNotBlank() } ?: "Kommer når du logger",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (value.isNullOrBlank()) FontWeight.Normal else FontWeight.SemiBold,
+            color = if (value.isNullOrBlank()) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface, maxLines = 1)
+    }
+}
+
+// ── Sist røkt ──
+@Composable
+private fun LastSmokedCard(log: TastingLog) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(6.dp))
+            .background(MaterialTheme.colorScheme.surface).padding(14.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        val photo = log.photoUrl
+        if (photo != null) {
+            AsyncImage(model = photo, contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = Modifier.size(68.dp).clip(RoundedCornerShape(8.dp)))
+        } else {
+            Box(Modifier.size(68.dp).clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.LocalFireDepartment, null, tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp))
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            val c = log.cigar
+            Text(c?.brand ?: "Ukjent sigar", style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold, maxLines = 1)
+            c?.series?.let { Text(it, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+            val time = runCatching { OffsetDateTime.parse(log.smokedAt).toInstant() }
+                .recoverCatching { Instant.parse(log.smokedAt) }.getOrNull()
+                ?.atZone(ZoneId.systemDefault())?.format(LOG_FMT)
+            if (time != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(time, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        log.rating?.let { r ->
+            Spacer(Modifier.width(8.dp))
+            Text("$r", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.primary)
+                    .padding(horizontal = 10.dp, vertical = 6.dp))
+        }
+    }
+}
+
 @Composable
 private fun BioEditorDialog(current: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var text by remember { mutableStateOf(current) }
@@ -189,11 +377,9 @@ private fun BioEditorDialog(current: String, onDismiss: () -> Unit, onSave: (Str
         dismissButton = { TextButton(onClick = onDismiss) { Text("Avbryt") } },
         title = { Text("Bio", fontWeight = FontWeight.Bold) },
         text = {
-            OutlinedTextField(
-                value = text, onValueChange = { text = it },
+            OutlinedTextField(value = text, onValueChange = { text = it },
                 placeholder = { Text("Skriv litt om deg selv…") },
-                modifier = Modifier.fillMaxWidth(), minLines = 3
-            )
+                modifier = Modifier.fillMaxWidth(), minLines = 3)
         }
     )
 }
@@ -210,4 +396,21 @@ private fun LoginPrompt(onLogin: () -> Unit) {
         Spacer(Modifier.height(16.dp))
         Button(onClick = onLogin) { Text("Logg inn med Google") }
     }
+}
+
+// Skalerer til maks maxDim og komprimerer til JPEG.
+private fun compressImage(context: android.content.Context, uri: android.net.Uri, maxDim: Int): ByteArray? {
+    val bitmap = context.contentResolver.openInputStream(uri)?.use {
+        android.graphics.BitmapFactory.decodeStream(it)
+    } ?: return null
+    val longest = maxOf(bitmap.width, bitmap.height)
+    val scaled = if (longest > maxDim) {
+        val ratio = maxDim.toFloat() / longest
+        android.graphics.Bitmap.createScaledBitmap(
+            bitmap, (bitmap.width * ratio).toInt().coerceAtLeast(1),
+            (bitmap.height * ratio).toInt().coerceAtLeast(1), true)
+    } else bitmap
+    val out = java.io.ByteArrayOutputStream()
+    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+    return out.toByteArray()
 }
