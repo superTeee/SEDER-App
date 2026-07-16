@@ -11,7 +11,9 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
@@ -46,6 +48,8 @@ class ExploreViewModel : ViewModel() {
     var brands by mutableStateOf<List<BrandSummary>>(emptyList())
         private set
     var topRated by mutableStateOf<List<Cigar>>(emptyList())
+        private set
+    var featured by mutableStateOf<Cigar?>(null)
         private set
     var results by mutableStateOf<List<Cigar>>(emptyList())
         private set
@@ -84,6 +88,9 @@ class ExploreViewModel : ViewModel() {
             loading = true; error = null
             try {
                 topRated = CigarRepository.topRated()   // best effort — feiler stille
+            } catch (_: Exception) { }
+            try {
+                featured = CigarRepository.featured()    // best effort — feiler stille
             } catch (_: Exception) { }
             try { brands = CigarRepository.brands() }
             catch (e: Exception) { error = e.message ?: "Kunne ikke laste merker" }
@@ -234,17 +241,17 @@ fun ExploreScreen(
                         item {
                             ListCard {
                                 vm.topRated.forEachIndexed { i, cigar ->
-                                    NavRow(
-                                        title = cigar.brand,
-                                        titleBold = true,
-                                        subtitle = listOfNotNull(cigar.series, cigar.vitola)
-                                            .joinToString(" · ").ifBlank { null },
-                                        detail = cigar.dimensionsLabel,
-                                    ) { onCigar(cigar.id) }
+                                    TopCigarRow(rank = i + 1, cigar = cigar) { onCigar(cigar.id) }
                                     if (i < vm.topRated.lastIndex) RowDivider()
                                 }
                             }
                         }
+                    }
+
+                    // Dagens utvalgte — deterministisk per dag (som iOS).
+                    vm.featured?.let { c ->
+                        item { SectionLabel("Dagens utvalgte") }
+                        item { FeaturedCard(c) { onCigar(c.id) } }
                     }
 
                     // Alfabetisk merkeliste, ett kort per bokstav (som iOS).
@@ -325,6 +332,101 @@ private fun FilterButton(active: Boolean, onClick: () -> Unit) {
 
 // Delt form for søkefelt + filterknapp så de matcher.
 private val searchShape = RoundedCornerShape(6.dp)
+
+// Topp 3-rad: medalje + sigarinfo + score-badge + chevron (som iOS).
+@Composable
+private fun TopCigarRow(rank: Int, cigar: Cigar, onClick: () -> Unit) {
+    val medal = when (rank) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "$rank" }
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(medal, style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center, modifier = Modifier.width(32.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(cigar.brand, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            cigar.series?.let { Text(it, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            cigar.vitola?.let { Text(it, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        cigar.avgRating?.let { ScoreBadge(it) }
+        Spacer(Modifier.width(8.dp))
+        ChevronIcon()
+    }
+}
+
+// Dagens utvalgte-kort: flamme-ikonboks + info + score + chevron (som iOS).
+@Composable
+private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(searchShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.LocalFireDepartment, null,
+                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(cigar.brand, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            cigar.series?.let { Text(it, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+            (cigar.vitola ?: cigar.commonFormat)?.let { Text(it, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        cigar.avgRating?.let { rating ->
+            Column(
+                Modifier.clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(String.format("%.1f", rating), style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("score", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        ChevronIcon()
+    }
+}
+
+@Composable
+private fun ScoreBadge(rating: Double) {
+    Text(
+        String.format("%.1f", rating),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    )
+}
+
+@Composable
+private fun ChevronIcon() {
+    Icon(
+        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        modifier = Modifier.size(20.dp)
+    )
+}
 
 // «Skann sigar»-FAB som iOS: pill med kamera-ikon, åpner en meny.
 // Uten strekkode-valget — bare kamera og kamerarull.

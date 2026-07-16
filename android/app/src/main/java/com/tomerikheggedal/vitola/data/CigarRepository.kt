@@ -76,6 +76,25 @@ object CigarRepository {
             .decodeList()
     }
 
+    /** Dagens utvalgte — deterministisk valg per dag fra topp-ratede sigarer (som iOS-fallback).
+     *  `gte("avg_rating", 0)` utelukker sigarer uten rating (null-sammenligning er false). */
+    suspend fun featured(): Cigar? {
+        val pool = Supa.client.from("cigars")
+            .select {
+                filter {
+                    eq("is_public", true)
+                    gte("avg_rating", 0)
+                }
+                order("avg_rating", Order.DESCENDING)
+                order("id", Order.ASCENDING)
+                limit(500)
+            }
+            .decodeList<Cigar>()
+        if (pool.isEmpty()) return null
+        val day = java.time.LocalDate.now().dayOfYear
+        return pool[(day - 1).mod(pool.size)]
+    }
+
     // Avansert søk — samme filter-logikk som iOS (applyFilters).
     // Hver kategori er en OR-gruppe; kategoriene AND-es sammen.
     // Bygges inline i begge funksjonene under (samme DSL som search()).
