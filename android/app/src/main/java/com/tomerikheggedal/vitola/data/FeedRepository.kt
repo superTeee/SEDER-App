@@ -81,7 +81,7 @@ object FeedRepository {
         // 2) Last opp bilde til post-images (lowercase path for RLS) og skriv image_url.
         if (imageJpeg != null) {
             val path = "${uid.lowercase()}/${inserted.id.lowercase()}.jpg"
-            Supa.client.storage.from("post-images").upload(path, imageJpeg) { upsert = true }
+            Supa.client.storage.from("post-images").upload(path, imageJpeg, upsert = true)
             val url = Supa.client.storage.from("post-images").publicUrl(path)
             Supa.client.from("posts").update(
                 buildJsonObject { put("image_url", url) }
