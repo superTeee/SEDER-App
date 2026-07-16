@@ -11,7 +11,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tomerikheggedal.vitola.data.Profile
+import com.tomerikheggedal.vitola.data.ProfileRepository
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
 import com.tomerikheggedal.vitola.ui.theme.ThemeState
@@ -38,6 +42,10 @@ fun SettingsScreen(onBack: () -> Unit) {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
             .getOrNull() ?: "1.0"
     }
+    var profile by remember { mutableStateOf<Profile?>(null) }
+    var showEditName by remember { mutableStateOf(false) }
+    var showEditLocation by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { profile = runCatching { ProfileRepository.myProfile() }.getOrNull() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -66,6 +74,24 @@ fun SettingsScreen(onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(email, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                     }
+                }
+            }
+
+            // Profil — endre navn / sted
+            if (email != null) {
+                SectionLabel("Profil")
+                SettingsCard {
+                    ActionRow(
+                        icon = { Icon(Icons.Filled.Badge, null, tint = MaterialTheme.colorScheme.primary) },
+                        text = "Endre navn",
+                        onClick = { showEditName = true }
+                    )
+                    HorizontalDivider(Modifier.padding(start = 52.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    ActionRow(
+                        icon = { Icon(Icons.Filled.Place, null, tint = MaterialTheme.colorScheme.primary) },
+                        text = "Endre by og land",
+                        onClick = { showEditLocation = true }
+                    )
                 }
             }
 
@@ -130,6 +156,77 @@ fun SettingsScreen(onBack: () -> Unit) {
             }
         }
     }
+
+    if (showEditName) {
+        TextEditDialog(
+            title = "Endre navn", label = "Visningsnavn",
+            initial = profile?.displayName ?: "",
+            onDismiss = { showEditName = false },
+            onSave = { name ->
+                showEditName = false
+                scope.launch {
+                    runCatching { ProfileRepository.updateName(name) }
+                    profile = runCatching { ProfileRepository.myProfile() }.getOrNull()
+                    ProfileRefresh.bump()
+                }
+            }
+        )
+    }
+    if (showEditLocation) {
+        LocationEditDialog(
+            initialCity = profile?.city ?: "", initialCountry = profile?.country ?: "",
+            onDismiss = { showEditLocation = false },
+            onSave = { city, country ->
+                showEditLocation = false
+                scope.launch {
+                    runCatching { ProfileRepository.updateLocation(city, country) }
+                    profile = runCatching { ProfileRepository.myProfile() }.getOrNull()
+                    ProfileRefresh.bump()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun TextEditDialog(
+    title: String, label: String, initial: String,
+    onDismiss: () -> Unit, onSave: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = { onSave(text) }, enabled = text.isNotBlank()) { Text("Lagre") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Avbryt") } },
+        title = { Text(title, fontWeight = FontWeight.Bold) },
+        text = {
+            OutlinedTextField(value = text, onValueChange = { text = it },
+                label = { Text(label) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        }
+    )
+}
+
+@Composable
+private fun LocationEditDialog(
+    initialCity: String, initialCountry: String,
+    onDismiss: () -> Unit, onSave: (String, String) -> Unit,
+) {
+    var city by remember { mutableStateOf(initialCity) }
+    var country by remember { mutableStateOf(initialCountry) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = { onSave(city, country) }) { Text("Lagre") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Avbryt") } },
+        title = { Text("By og land", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = city, onValueChange = { city = it },
+                    label = { Text("By") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = country, onValueChange = { country = it },
+                    label = { Text("Land") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    )
 }
 
 // Kort med hvit (surface) bakgrunn og 16dp sidemarg, uten skygge — som resten av appen.

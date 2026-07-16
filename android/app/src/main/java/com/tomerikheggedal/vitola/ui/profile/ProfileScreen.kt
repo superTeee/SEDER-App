@@ -1,19 +1,25 @@
 package com.tomerikheggedal.vitola.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,17 +43,19 @@ fun ProfileScreen(onSettings: () -> Unit = {}) {
     val isAuthed = status is SessionStatus.Authenticated
 
     var profile by remember { mutableStateOf<Profile?>(null) }
-    var stats by remember { mutableStateOf(ProfileStats(0, 0, 0)) }
+    var stats by remember { mutableStateOf(ProfileStats(0, 0, 0, 0)) }
     var loading by remember { mutableStateOf(false) }
+    var reloadKey by remember { mutableStateOf(0) }
+    var showBioEditor by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isAuthed) {
+    LaunchedEffect(isAuthed, reloadKey, ProfileRefresh.version) {
         if (isAuthed) {
             loading = true
             profile = runCatching { ProfileRepository.myProfile() }.getOrNull()
-            stats = runCatching { ProfileRepository.myStats() }.getOrDefault(ProfileStats(0, 0, 0))
+            stats = runCatching { ProfileRepository.myStats() }.getOrDefault(ProfileStats(0, 0, 0, 0))
             loading = false
         } else {
-            profile = null; stats = ProfileStats(0, 0, 0)
+            profile = null; stats = ProfileStats(0, 0, 0, 0)
         }
     }
 
@@ -75,8 +83,8 @@ fun ProfileScreen(onSettings: () -> Unit = {}) {
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Hero: avatar + navn + sted + bio
                     Avatar(profile?.avatarUrl ?: ProfileRepository.authAvatar())
-
                     Spacer(Modifier.height(14.dp))
                     Text(
                         profile?.displayName ?: ProfileRepository.authName() ?: "Vitola-bruker",
@@ -88,33 +96,44 @@ fun ProfileScreen(onSettings: () -> Unit = {}) {
                         Text(place, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    ProfileRepository.authEmail()?.let {
-                        Spacer(Modifier.height(2.dp))
-                        Text(it, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    profile?.friendCode?.let {
-                        Spacer(Modifier.height(8.dp))
-                        Text("Vennekode: $it", style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary, letterSpacing = 0.sp)
-                    }
 
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(10.dp))
+                    val bio = profile?.bio
+                    Text(
+                        if (bio.isNullOrBlank()) "Legg til bio…" else bio,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = if (bio.isNullOrBlank()) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showBioEditor = true }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+
+                    Spacer(Modifier.height(22.dp))
                     StatsCard(stats)
                 }
             }
         }
     }
+
+    if (showBioEditor) {
+        BioEditorDialog(
+            current = profile?.bio ?: "",
+            onDismiss = { showBioEditor = false },
+            onSave = { newBio ->
+                showBioEditor = false
+                scope.launch { runCatching { ProfileRepository.saveBio(newBio) }; reloadKey++ }
+            }
+        )
+    }
 }
 
 @Composable
 private fun Avatar(url: String?) {
-    val size = 92.dp
+    val size = 96.dp
     if (url != null) {
-        AsyncImage(
-            model = url, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(size).clip(CircleShape)
-        )
+        AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop,
+            modifier = Modifier.size(size).clip(CircleShape))
     } else {
         Box(
             Modifier.size(size).clip(CircleShape)
@@ -122,33 +141,61 @@ private fun Avatar(url: String?) {
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Filled.Person, null, tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(44.dp))
+                modifier = Modifier.size(46.dp))
         }
     }
 }
 
+// 4-cellers stats-kort med ikoner og skillelinjer — som iOS.
 @Composable
 private fun StatsCard(stats: ProfileStats) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.surface).padding(vertical = 18.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface).padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Stat(stats.cigars, "Loggført")
-        Stat(stats.humidorEntries, "I humidor")
-        Stat(stats.friends, "Venner")
+        StatCell(Icons.Filled.Inventory2, stats.humidorEntries, "I humidor", Modifier.weight(1f))
+        StatDivider()
+        StatCell(Icons.Filled.LocalFireDepartment, stats.cigars, "Røkt", Modifier.weight(1f))
+        StatDivider()
+        StatCell(Icons.Filled.Public, stats.brandsTried, "Merker prøvd", Modifier.weight(1f))
+        StatDivider()
+        StatCell(Icons.Filled.Group, stats.friends, "Venner", Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun Stat(value: Int, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("$value", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(2.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun StatDivider() {
+    Box(Modifier.width(1.dp).height(40.dp).background(MaterialTheme.colorScheme.surfaceVariant))
+}
+
+@Composable
+private fun StatCell(icon: ImageVector, value: Int, label: String, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Text("$value", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
+}
+
+@Composable
+private fun BioEditorDialog(current: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var text by remember { mutableStateOf(current) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = { onSave(text) }) { Text("Lagre") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Avbryt") } },
+        title = { Text("Bio", fontWeight = FontWeight.Bold) },
+        text = {
+            OutlinedTextField(
+                value = text, onValueChange = { text = it },
+                placeholder = { Text("Skriv litt om deg selv…") },
+                modifier = Modifier.fillMaxWidth(), minLines = 3
+            )
+        }
+    )
 }
 
 @Composable
