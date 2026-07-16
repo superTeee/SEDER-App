@@ -49,15 +49,30 @@ struct CreateHumidorSheet: View {
                         .textInputAutocapitalization(.words)
                 }
 
+                // Radio-liste: hver type viser tittel + forklaring fra første sekund.
                 Section("Type") {
-                    Picker("Type", selection: $type) {
-                        ForEach(HumidorType.allCases) { t in
-                            Label(t.displayName, systemImage: t.icon).tag(t)
+                    ForEach(HumidorType.allCases) { t in
+                        Button {
+                            type = t
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: type == t ? "largecircle.fill.circle" : "circle")
+                                    .foregroundColor(type == t ? Color("Accent") : Color(.tertiaryLabel))
+                                    .font(.system(size: 20))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(t.displayName)
+                                        .font(.body)
+                                        .foregroundColor(Color(.label))
+                                    Text(t.explanation)
+                                        .font(.caption)
+                                        .foregroundColor(Color(.secondaryLabel))
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
-                } footer: {
-                    // Forklaring på valgt type — så nybegynnere skjønner forskjellen.
-                    Text(type.explanation)
                 }
 
                 Section("Lokasjon") {

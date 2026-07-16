@@ -1,8 +1,10 @@
 package com.tomerikheggedal.vitola.ui.humidor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -141,7 +144,7 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf<String?>(null) }
+    var type by remember { mutableStateOf<String?>("Desktop") }
     var location by remember { mutableStateOf("") }
     var capacityText by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
@@ -168,21 +171,14 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Type", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HumidorRepository.types.forEach { t ->
-                        FilterChip(
-                            selected = type == t,
-                            onClick = { type = if (type == t) null else t },
-                            label = { Text(t) }
-                        )
-                    }
-                }
-                // Forklaring på valgt type — så nybegynnere skjønner forskjellen.
-                type?.let { t ->
-                    HumidorRepository.typeExplanations[t]?.let { desc ->
-                        Text(desc, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                // Grafisk liste: ikon + navn + forklaring synlig fra start.
+                HumidorRepository.types.forEach { t ->
+                    HumidorTypeOption(
+                        type = t,
+                        explanation = HumidorRepository.typeExplanations[t] ?: "",
+                        selected = type == t,
+                        onClick = { type = t }
+                    )
                 }
             }
 
@@ -233,6 +229,43 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                     Spacer(Modifier.width(8.dp))
                     Text("Opprett humidor")
                 }
+            }
+        }
+    }
+}
+
+// Radio-kort for humidortype: radioknapp + tittel + forklaring som metadata under.
+@Composable
+private fun HumidorTypeOption(
+    type: String,
+    explanation: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .border(
+                1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                RoundedCornerShape(8.dp)
+            )
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                else MaterialTheme.colorScheme.surface
+            )
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(type, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            if (explanation.isNotBlank()) {
+                Text(explanation, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
