@@ -7,10 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.ui.SplashScreen
 import com.tomerikheggedal.vitola.ui.VitolaApp
@@ -27,10 +30,17 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             VitolaTheme(dark = ThemeState.isDark(isSystemInDarkTheme())) {
-                var showSplash by remember { mutableStateOf(true) }
-                Box {
-                    VitolaApp()
-                    if (showSplash) SplashScreen(onFinish = { showSplash = false })
+                // Begrens skrift-skalering så svært stor systemtekst ikke bryter
+                // layouten (faste høyder: søkefelt, chips, FAB). Moderat forstørring
+                // (opp til 1,3×) fungerer fortsatt.
+                val d = LocalDensity.current
+                val capped = Density(d.density, d.fontScale.coerceIn(1f, 1.3f))
+                CompositionLocalProvider(LocalDensity provides capped) {
+                    var showSplash by remember { mutableStateOf(true) }
+                    Box {
+                        VitolaApp()
+                        if (showSplash) SplashScreen(onFinish = { showSplash = false })
+                    }
                 }
             }
         }
