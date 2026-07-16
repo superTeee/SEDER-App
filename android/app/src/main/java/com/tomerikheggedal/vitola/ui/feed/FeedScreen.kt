@@ -253,7 +253,6 @@ private fun PostCard(post: FeedPost, onComments: () -> Unit, onShare: () -> Unit
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onShare)   // trykk på innlegget for å dele
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
