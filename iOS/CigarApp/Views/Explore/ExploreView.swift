@@ -695,7 +695,7 @@ struct ExploreView: View {
                 VStack(spacing: 0) {
                     ForEach(section.cigars) { cigar in
                         NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
-                            ExploreResultRow(cigar: cigar, showsBrand: false)
+                            ExploreResultRow(cigar: cigar, showsBrand: false, searchQuery: showingSearch ? searchQuery : "")
                         }
                         .cigarQuickActions(cigar)
                         if cigar.id != section.cigars.last?.id {
@@ -897,6 +897,21 @@ struct ExploreResultRow: View {
     /// Da bruker raden plassen på serie og mål i stedet for å gjenta det.
     var showsBrand: Bool = true
 
+    /// Gjeldende søkeord — brukes til å vise «Smak: X» når treffet kom via smaksnote.
+    var searchQuery: String = ""
+
+    /// Norsk smaksnote-etikett hvis søkeordet matcher en smaksfamilie sigaren har.
+    private var flavorMatch: String? {
+        let q = searchQuery.trimmingCharacters(in: .whitespaces).lowercased()
+        guard q.count >= 2 else { return nil }
+        let families = FlavorIcon.label.filter { $0.value.lowercased().contains(q) }.map { $0.key }
+        guard !families.isEmpty else { return nil }
+        let hitFamilies = Set((cigar.flavorNotes ?? []).compactMap { FlavorIcon.name(for: $0) })
+            .intersection(families)
+        guard let fam = hitFamilies.first else { return nil }
+        return FlavorIcon.displayLabel(for: fam)
+    }
+
     private var title: String {
         showsBrand ? cigar.brand : (cigar.series ?? cigar.vitola ?? cigar.brand)
     }
@@ -943,6 +958,14 @@ struct ExploreResultRow: View {
                         .background(Color("Accent").opacity(0.12))
                         .foregroundColor(Color("Accent"))
                         .clipShape(Capsule())
+                        .padding(.top, 1)
+                }
+
+                // «Smak: X» når treffet kom via smaksnote.
+                if let flavorMatch {
+                    Text("Smak: \(flavorMatch)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(Color("Accent"))
                         .padding(.top, 1)
                 }
             }
