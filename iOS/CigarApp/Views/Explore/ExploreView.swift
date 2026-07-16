@@ -676,7 +676,18 @@ struct ExploreView: View {
         } else {
             let sections = groupedByBrand(results)
 
-            sectionHeader("\(results.count) treff · \(sections.count) \(sections.count == 1 ? "merke" : "merker")")
+            // Tydelig treff-indikator (ikke den svake footnote-labelen).
+            HStack {
+                Text(searchQuery.isEmpty
+                     ? "\(results.count) resultater"
+                     : "Resultater for «\(searchQuery)» (\(results.count))")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(Color(.label))
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
 
             ForEach(sections, id: \.brand) { section in
                 brandResultHeader(section.brand, count: section.cigars.count)

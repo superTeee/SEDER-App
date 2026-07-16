@@ -208,6 +208,19 @@ fun ExploreScreen(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 96.dp)
                 ) {
+                    item {
+                        val n = vm.results.size
+                        val count = if (n >= 50) "50+" else "$n"
+                        Text(
+                            if (n == 0) "Ingen resultater for «${vm.query}»"
+                            else "Resultater for «${vm.query}» ($count)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (n == 0) MaterialTheme.colorScheme.onSurfaceVariant
+                                    else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
+                        )
+                    }
                     brandGroups(vm.results, onCigar)
                 }
                 vm.filterLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
