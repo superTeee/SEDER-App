@@ -4,9 +4,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -18,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -163,7 +166,13 @@ fun ExploreScreen(
                     placeholder = { Text("Søk merke, serie eller vitola") },
                     leadingIcon = { Icon(Icons.Filled.Search, null) },
                     singleLine = true,
+                    shape = searchShape,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        // 50% gjennomsiktig hvit i hvile, 100% hvit når feltet er aktivt.
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.5f),
+                        focusedContainerColor = Color.White,
+                    ),
                     modifier = Modifier.weight(1f)
                 )
                 FilterButton(active = vm.filter.isActive) { showFilter = true }
@@ -283,24 +292,26 @@ private fun LazyListScope.brandGroups(cigars: List<Cigar>, onCigar: (String) -> 
     }
 }
 
-// Filterknapp ved søkefeltet — accent-firkant med prikk når filter er aktivt.
+// Filterknapp ved søkefeltet — samme form/høyde som søkefeltet, accent-fylt.
 @Composable
 private fun FilterButton(active: Boolean, onClick: () -> Unit) {
     Box {
-        FilledIconButton(
-            onClick = onClick,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+        Box(
+            Modifier
+                .size(56.dp)
+                .clip(searchShape)
+                .background(MaterialTheme.colorScheme.primary)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Tune, contentDescription = "Avansert søk")
+            Icon(Icons.Filled.Tune, contentDescription = "Avansert søk",
+                tint = MaterialTheme.colorScheme.onPrimary)
         }
         if (active) {
             Box(
                 Modifier
                     .align(Alignment.TopEnd)
-                    .padding(2.dp)
+                    .padding(4.dp)
                     .size(10.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
                     .background(MaterialTheme.colorScheme.error)
@@ -308,6 +319,9 @@ private fun FilterButton(active: Boolean, onClick: () -> Unit) {
         }
     }
 }
+
+// Delt form for søkefelt + filterknapp så de matcher.
+private val searchShape = RoundedCornerShape(12.dp)
 
 // «Skann sigar»-FAB som iOS: pill med kamera-ikon, åpner en meny.
 // Uten strekkode-valget — bare kamera og kamerarull.
@@ -319,6 +333,7 @@ private fun ScanFab(onCamera: () -> Unit, onGallery: () -> Unit) {
             onClick = { expanded = true },
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = androidx.compose.foundation.shape.CircleShape,   // helt pill-formet
             icon = { Icon(Icons.Filled.CameraAlt, contentDescription = null) },
             text = { Text("Skann sigar", fontWeight = FontWeight.SemiBold) }
         )
