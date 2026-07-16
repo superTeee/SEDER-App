@@ -8,7 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onSettings: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
@@ -60,10 +60,8 @@ fun ProfileScreen() {
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
-                    if (isAuthed) {
-                        IconButton(onClick = { scope.launch { Supa.client.auth.signOut() } }) {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logg ut")
-                        }
+                    IconButton(onClick = onSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Innstillinger")
                     }
                 }
             )

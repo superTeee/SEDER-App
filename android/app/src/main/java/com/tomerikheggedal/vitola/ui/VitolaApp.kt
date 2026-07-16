@@ -30,6 +30,7 @@ import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 import com.tomerikheggedal.vitola.ui.profile.ProfileScreen
+import com.tomerikheggedal.vitola.ui.profile.SettingsScreen
 
 private data class Tab(val route: String, val label: String)
 
@@ -121,7 +122,10 @@ fun VitolaApp() {
                     onCigar = { nav.navigate("cigar/${it}") }
                 )
             }
-            composable("profile") { ProfileScreen() }
+            composable("profile") {
+                ProfileScreen(onSettings = { nav.navigate("settings") })
+            }
+            composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
         }
     }
 }
