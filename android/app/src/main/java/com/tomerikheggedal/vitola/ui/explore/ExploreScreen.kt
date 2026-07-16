@@ -172,6 +172,9 @@ fun ExploreScreen(
                         // 50% gjennomsiktig hvit i hvile, 100% hvit når feltet er aktivt.
                         unfocusedContainerColor = Color.White.copy(alpha = 0.5f),
                         focusedContainerColor = Color.White,
+                        // Ingen synlig ramme.
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedBorderColor = Color.Transparent,
                     ),
                     modifier = Modifier.weight(1f)
                 )
@@ -321,7 +324,7 @@ private fun FilterButton(active: Boolean, onClick: () -> Unit) {
 }
 
 // Delt form for søkefelt + filterknapp så de matcher.
-private val searchShape = RoundedCornerShape(12.dp)
+private val searchShape = RoundedCornerShape(6.dp)
 
 // «Skann sigar»-FAB som iOS: pill med kamera-ikon, åpner en meny.
 // Uten strekkode-valget — bare kamera og kamerarull.
