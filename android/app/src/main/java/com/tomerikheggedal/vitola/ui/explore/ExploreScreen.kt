@@ -178,7 +178,7 @@ fun ExploreScreen(
                 OutlinedTextField(
                     value = vm.query,
                     onValueChange = vm::onQuery,
-                    placeholder = { Text("Søk merke, serie eller vitola") },
+                    placeholder = { Text("Søk merke, serie eller form") },
                     leadingIcon = { Icon(Icons.Filled.Search, null) },
                     singleLine = true,
                     shape = searchShape,
