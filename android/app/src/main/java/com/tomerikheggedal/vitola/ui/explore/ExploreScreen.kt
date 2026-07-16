@@ -9,20 +9,24 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +39,7 @@ import com.tomerikheggedal.vitola.data.BrandSummary
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarFilter
 import com.tomerikheggedal.vitola.data.CigarRepository
+import com.tomerikheggedal.vitola.data.SearchHistory
 import com.tomerikheggedal.vitola.ui.components.ListCard
 import com.tomerikheggedal.vitola.ui.components.NavRow
 import com.tomerikheggedal.vitola.ui.components.RowDivider
@@ -125,8 +130,10 @@ fun ExploreScreen(
     vm: ExploreViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var showFilter by remember { mutableStateOf(false) }
+    var recent by remember { mutableStateOf(SearchHistory.load(context)) }
     fun scanComingSoon() = scope.launch { snackbar.showSnackbar("Bildegjenkjenning kommer snart") }
 
     // Kamera (miniatyr) og bildevelger — åpner ekte kamera/galleri.
@@ -176,6 +183,9 @@ fun ExploreScreen(
                     singleLine = true,
                     shape = searchShape,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        if (vm.query.isNotBlank()) recent = SearchHistory.add(context, vm.query)
+                    }),
                     colors = OutlinedTextFieldDefaults.colors(
                         // 50% gjennomsiktig hvit i hvile, 100% hvit når feltet er aktivt.
                         unfocusedContainerColor = Color.White.copy(alpha = 0.5f),
@@ -237,6 +247,23 @@ fun ExploreScreen(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 96.dp)
                 ) {
+                    // Siste søk (som iOS) — lokalt lagret historikk.
+                    if (recent.isNotEmpty()) {
+                        item { SectionLabel("Siste søk") }
+                        item {
+                            ListCard {
+                                recent.forEachIndexed { i, term ->
+                                    RecentRow(
+                                        term = term,
+                                        onTap = { vm.onQuery(term) },
+                                        onRemove = { recent = SearchHistory.remove(context, term) }
+                                    )
+                                    if (i < recent.lastIndex) RowDivider()
+                                }
+                            }
+                        }
+                    }
+
                     if (vm.topRated.isNotEmpty()) {
                         item { SectionLabel("Brukernes topp 3") }
                         item {
@@ -402,6 +429,26 @@ private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(8.dp))
         ChevronIcon()
+    }
+}
+
+// Rad i «Siste søk»: klokke-ikon + søkeord + fjern-kryss (som iOS).
+@Composable
+private fun RecentRow(term: String, onTap: () -> Unit, onRemove: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onTap).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.History, null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(term, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
+            letterSpacing = 0.sp, color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f))
+        IconButton(onClick = onRemove, modifier = Modifier.size(28.dp)) {
+            Icon(Icons.Filled.Close, "Fjern", tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp))
+        }
     }
 }
 
