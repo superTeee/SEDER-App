@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -345,7 +346,8 @@ private fun TopCigarRow(rank: Int, cigar: Cigar, onClick: () -> Unit) {
             textAlign = TextAlign.Center, modifier = Modifier.width(32.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(cigar.brand, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(cigar.brand, style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium, letterSpacing = 0.sp)
             cigar.series?.let { Text(it, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) }
             cigar.vitola?.let { Text(it, style = MaterialTheme.typography.labelSmall,
@@ -380,7 +382,8 @@ private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(cigar.brand, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(cigar.brand, style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium, letterSpacing = 0.sp)
             cigar.series?.let { Text(it, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
             (cigar.vitola ?: cigar.commonFormat)?.let { Text(it, style = MaterialTheme.typography.labelSmall,

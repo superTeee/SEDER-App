@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 // Gruppe-kort likt iOS: hvit (surface) bakgrunn, 6dp avrundet, 16dp sidemarg.
 // Radene legges inni som children med innrykkede skillelinjer mellom seg.
@@ -73,7 +74,8 @@ fun ColumnScopeRows.NavRow(
             Text(
                 title,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (titleBold) FontWeight.SemiBold else FontWeight.Normal,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (subtitle != null && subtitle.isNotBlank()) {
