@@ -325,7 +325,7 @@ private fun FilterButton(active: Boolean, onClick: () -> Unit) {
                     .padding(4.dp)
                     .size(10.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(MaterialTheme.colorScheme.error)
+                    .background(Color.White)
             )
         }
     }
