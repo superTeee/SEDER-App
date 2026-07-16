@@ -1,7 +1,11 @@
 package com.tomerikheggedal.vitola.ui.explore
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -10,9 +14,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tomerikheggedal.vitola.data.CigarFilter
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.FlavorIcon
@@ -37,7 +44,11 @@ fun FilterSheet(
         count = runCatching { CigarRepository.countFiltered(draft) }.getOrNull()
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.White,
+    ) {
         Column(Modifier.fillMaxWidth()) {
             // Tittel
             Row(
@@ -75,11 +86,16 @@ fun FilterSheet(
                 ChipSection("Filler", CigarFilter.FILLER, draft.filler,
                     onToggle = { draft = draft.copy(filler = draft.filler.toggle(it)) })
 
-                // Profil-slidere
+                // Profil-slidere under én PROFIL-seksjon (som iOS).
+                SectionHeader("Profil")
                 RangeRow("Styrke", draft.strength) { draft = draft.copy(strength = it) }
+                SliderDivider()
                 RangeRow("Kropp", draft.body) { draft = draft.copy(body = it) }
+                SliderDivider()
                 RangeRow("Sødme", draft.sweetness) { draft = draft.copy(sweetness = it) }
+                SliderDivider()
                 RangeRow("Smaksintensitet", draft.flavorIntensity) { draft = draft.copy(flavorIntensity = it) }
+                Spacer(Modifier.height(6.dp))
 
                 ChipSection("Smaksnoter", FlavorIcon.familyLabels, draft.flavorFamilies,
                     onToggle = { draft = draft.copy(flavorFamilies = draft.flavorFamilies.toggle(it)) })
@@ -116,6 +132,30 @@ fun FilterSheet(
     if (showVitolaGuide) VitolaGuideDialog { showVitolaGuide = false }
 }
 
+// Varm tan bak valgt chip — samme som iOS (#E0D2BA). Fast, uansett tema.
+private val ChipSelectedBg = Color(0xFFE0D2BA)
+private val ChipSelectedText = Color(0xFF1C1B18)
+private const val INITIAL_CHIP_COUNT = 6
+
+// Liten seksjonsoverskrift (13sp semibold, sekundær, uppercase) — som iOS.
+@Composable
+private fun SectionHeader(title: String, onInfo: (() -> Unit)? = null) {
+    Row(
+        Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(title.uppercase(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.sp)
+        if (onInfo != null) {
+            IconButton(onClick = onInfo, modifier = Modifier.size(20.dp)) {
+                Icon(Icons.Outlined.Info, "Info", tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChipSection(
@@ -126,43 +166,63 @@ private fun ChipSection(
     subtitles: Map<String, String> = emptyMap(),
     onInfo: (() -> Unit)? = null,
 ) {
-    Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp)) {
-        Row(
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(title.uppercase(), style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (onInfo != null) {
-                IconButton(onClick = onInfo, modifier = Modifier.size(20.dp)) {
-                    Icon(Icons.Outlined.Info, "Info", tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp))
-                }
-            }
-        }
+    var expanded by remember { mutableStateOf(false) }
+    val shown = if (expanded) options else options.take(INITIAL_CHIP_COUNT)
+
+    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        SectionHeader(title, onInfo)
         FlowRow(
             Modifier.padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            options.forEach { opt ->
-                val sub = subtitles[opt]
-                FilterChip(
+            shown.forEach { opt ->
+                FilterPill(
+                    text = opt,
+                    subtitle = subtitles[opt],
                     selected = opt in selected,
-                    onClick = { onToggle(opt) },
-                    label = {
-                        if (sub != null) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(opt)
-                                Text(sub, style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        } else Text(opt)
-                    }
+                    onClick = { onToggle(opt) }
                 )
             }
         }
+        if (options.size > INITIAL_CHIP_COUNT) {
+            Text(
+                if (expanded) "Vis færre ↑" else "Se alle ↓",
+                fontSize = 16.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 10.dp, bottom = 6.dp)
+                    .clickable { expanded = !expanded }
+            )
+        }
     }
+}
+
+// Kapsel-chip som iOS: valgt = tan fyll uten kant; uvalgt = accent-kant, klar bg.
+@Composable
+private fun FilterPill(text: String, subtitle: String?, selected: Boolean, onClick: () -> Unit) {
+    val base = Modifier.clip(CircleShape)
+    val styled = if (selected) base.background(ChipSelectedBg)
+                 else base.border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+    Row(
+        styled.clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text, fontSize = 15.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.sp,
+            color = if (selected) ChipSelectedText else MaterialTheme.colorScheme.onSurface)
+        if (subtitle != null) {
+            Spacer(Modifier.width(6.dp))
+            Text(subtitle, fontSize = 12.sp, letterSpacing = 0.sp,
+                color = if (selected) ChipSelectedText.copy(alpha = 0.6f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun SliderDivider() {
+    HorizontalDivider(Modifier.padding(horizontal = 16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant)
 }
 
 @Composable
@@ -171,15 +231,16 @@ private fun RangeRow(
     range: ClosedFloatingPointRange<Float>,
     onChange: (ClosedFloatingPointRange<Float>) -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label.uppercase(), style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Text(label.uppercase(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.sp,
                 modifier = Modifier.weight(1f))
             val full = range == CigarFilter.FULL
             Text(
-                if (full) "Alle" else "${range.start.toInt()} – ${range.endInclusive.toInt()}",
-                style = MaterialTheme.typography.labelMedium,
+                if (full) "Alle" else String.format("%.1f – %.1f", range.start, range.endInclusive),
+                fontSize = 13.sp,
+                fontWeight = if (full) FontWeight.Normal else FontWeight.SemiBold,
                 color = if (full) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
             )
         }
@@ -187,7 +248,7 @@ private fun RangeRow(
             value = range,
             onValueChange = { onChange(it.start..it.endInclusive) },
             valueRange = 1f..5f,
-            steps = 3
+            steps = 7,   // 1,0 – 5,0 i 0,5-steg (som iOS)
         )
     }
 }
