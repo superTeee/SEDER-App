@@ -78,6 +78,17 @@ object HumidorRepository {
 
     val types = listOf("Desktop", "Travel", "Cabinet", "Electric", "Tupperdor", "Coolidor", "Walk-in")
 
+    // Kort forklaring per type — så en nybegynner forstår forskjellen.
+    val typeExplanations = mapOf(
+        "Desktop" to "Klassisk humidor for hjemmebruk og mindre samlinger.",
+        "Travel" to "Robust humidor for reise og kortvarig transport.",
+        "Cabinet" to "Større humidor for mange sigarer og mer organisert lagring.",
+        "Electric" to "Elektrisk humidor med bedre kontroll på temperatur og/eller fuktighet.",
+        "Tupperdor" to "Lufttett plastboks med enkel og effektiv fuktkontroll.",
+        "Coolidor" to "Kjøleboks brukt som rimelig og stabil lagringsløsning.",
+        "Walk-in" to "Et helt rom eller avlukke med kontrollert klima.",
+    )
+
     /** Opprett en ny humidor for den innloggede brukeren. */
     suspend fun createHumidor(name: String, type: String?, location: String?, capacity: Int?) {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")

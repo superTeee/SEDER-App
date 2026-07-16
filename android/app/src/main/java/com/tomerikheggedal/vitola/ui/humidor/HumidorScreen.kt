@@ -177,6 +177,13 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                         )
                     }
                 }
+                // Forklaring på valgt type — så nybegynnere skjønner forskjellen.
+                type?.let { t ->
+                    HumidorRepository.typeExplanations[t]?.let { desc ->
+                        Text(desc, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
 
             OutlinedTextField(

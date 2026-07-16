@@ -55,6 +55,9 @@ struct CreateHumidorSheet: View {
                             Label(t.displayName, systemImage: t.icon).tag(t)
                         }
                     }
+                } footer: {
+                    // Forklaring på valgt type — så nybegynnere skjønner forskjellen.
+                    Text(type.explanation)
                 }
 
                 Section("Lokasjon") {

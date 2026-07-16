@@ -15,6 +15,19 @@ enum HumidorType: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
     var displayName: String { rawValue }
 
+    /// Kort forklaring — så en nybegynner forstår forskjellen på typene.
+    var explanation: String {
+        switch self {
+        case .desktop:   return "Klassisk humidor for hjemmebruk og mindre samlinger."
+        case .travel:    return "Robust humidor for reise og kortvarig transport."
+        case .cabinet:   return "Større humidor for mange sigarer og mer organisert lagring."
+        case .electric:  return "Elektrisk humidor med bedre kontroll på temperatur og/eller fuktighet."
+        case .tupperdor: return "Lufttett plastboks med enkel og effektiv fuktkontroll."
+        case .coolidor:  return "Kjøleboks brukt som rimelig og stabil lagringsløsning."
+        case .walkin:    return "Et helt rom eller avlukke med kontrollert klima."
+        }
+    }
+
     /// SF Symbol som representerer typen.
     var icon: String {
         switch self {
