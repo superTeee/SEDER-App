@@ -13,7 +13,11 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -37,14 +41,22 @@ fun VitolaApp() {
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
 
+    // Behold markert fane også når man går innover i detaljer (som iOS).
+    // Oppdateres kun når man lander på en topp-fane, ellers holdes forrige.
+    var selectedTab by remember { mutableStateOf("explore") }
+    LaunchedEffect(current) {
+        if (current == "explore" || current == "humidor" || current == "profile") {
+            selectedTab = current!!
+        }
+    }
+
     Scaffold(
         bottomBar = {
-            // Vis bunnlinja kun på topp-fanene, ikke på detalj-/merkeskjermer.
-            if (current == "explore" || current == "humidor" || current == "profile") {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    tabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = current == tab.route,
+            // Tab-baren står alltid synlig (som iOS) — også innover i detaljer.
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                tabs.forEach { tab ->
+                    NavigationBarItem(
+                        selected = selectedTab == tab.route,
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = MaterialTheme.colorScheme.primary,
@@ -69,9 +81,8 @@ fun VitolaApp() {
                                     contentDescription = tab.label
                                 )
                             },
-                            label = { Text(tab.label) }
-                        )
-                    }
+                        label = { Text(tab.label) }
+                    )
                 }
             }
         }
