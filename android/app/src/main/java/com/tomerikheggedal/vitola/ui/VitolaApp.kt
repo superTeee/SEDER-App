@@ -38,6 +38,7 @@ import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 import com.tomerikheggedal.vitola.ui.journal.JournalScreen
 import com.tomerikheggedal.vitola.ui.profile.ProfileScreen
 import com.tomerikheggedal.vitola.ui.profile.SettingsScreen
+import com.tomerikheggedal.vitola.ui.profile.UserProfileScreen
 import com.tomerikheggedal.vitola.ui.theme.ThemeState
 
 private data class Tab(val route: String, val label: String)
@@ -113,7 +114,15 @@ fun VitolaApp() {
             startDestination = "explore",
             modifier = Modifier.padding(padding)
         ) {
-            composable("feed") { FeedScreen() }
+            composable("feed") {
+                FeedScreen(onUser = { nav.navigate("user/${it}") })
+            }
+            composable("user/{id}") { entry ->
+                UserProfileScreen(
+                    userId = entry.arguments?.getString("id").orEmpty(),
+                    onBack = { nav.popBackStack() }
+                )
+            }
             composable("explore") {
                 ExploreScreen(
                     onBrand = { nav.navigate("brand/${it}") },

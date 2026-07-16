@@ -65,7 +65,7 @@ private fun relativeTime(iso: String): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedScreen() {
+fun FeedScreen(onUser: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
@@ -90,7 +90,8 @@ fun FeedScreen() {
         PostDetailScreen(
             post = detailPost,
             onBack = { openPost = null; scope.launch { reload() } },
-            onShare = { sharePost(context, detailPost) }
+            onShare = { sharePost(context, detailPost) },
+            onUser = onUser
         )
         return
     }
@@ -132,7 +133,8 @@ fun FeedScreen() {
                             post = post,
                             onComments = { openPost = post },
                             onShare = { sharePost(context, post) },
-                            onOpen = { openPost = post }
+                            onOpen = { openPost = post },
+                            onAuthor = { onUser(post.userId) }
                         )
                     }
                 }
@@ -254,6 +256,7 @@ private fun PostCard(
     onComments: () -> Unit,
     onShare: () -> Unit,
     onOpen: (() -> Unit)? = null,
+    onAuthor: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     // Lokalt optimistisk like-state.
@@ -267,8 +270,11 @@ private fun PostCard(
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Forfatter
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Forfatter (klikkbar → begrenset profil)
+        Row(
+            Modifier.let { if (onAuthor != null) it.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAuthor) else it },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             AuthorAvatar(post.authorAvatarUrl, 36.dp)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
@@ -383,7 +389,7 @@ private fun LoginPrompt(onLogin: () -> Unit) {
 // Innlegg i detalj (som iOS PostDetailView): innlegget + kommentarer + kommentarfelt.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PostDetailScreen(post: FeedPost, onBack: () -> Unit, onShare: () -> Unit) {
+private fun PostDetailScreen(post: FeedPost, onBack: () -> Unit, onShare: () -> Unit, onUser: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     val isAuthed = Supa.client.auth.currentUserOrNull() != null
     var comments by remember { mutableStateOf<List<com.tomerikheggedal.vitola.data.FeedComment>>(emptyList()) }
@@ -439,7 +445,7 @@ private fun PostDetailScreen(post: FeedPost, onBack: () -> Unit, onShare: () -> 
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item { PostCard(post = post, onComments = {}, onShare = onShare, onOpen = null) }
+            item { PostCard(post = post, onComments = {}, onShare = onShare, onOpen = null, onAuthor = { onUser(post.userId) }) }
             item {
                 Text("Kommentarer", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
