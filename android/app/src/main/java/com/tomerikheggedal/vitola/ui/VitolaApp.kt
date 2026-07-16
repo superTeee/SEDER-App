@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -22,13 +24,14 @@ import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
 import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
+import com.tomerikheggedal.vitola.ui.profile.ProfileScreen
 
 private data class Tab(val route: String, val label: String)
 
 @Composable
 fun VitolaApp() {
     val nav = rememberNavController()
-    val tabs = listOf(Tab("explore", "Utforsk"), Tab("humidor", "Humidor"))
+    val tabs = listOf(Tab("explore", "Utforsk"), Tab("humidor", "Humidor"), Tab("profile", "Profil"))
 
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
@@ -36,8 +39,8 @@ fun VitolaApp() {
     Scaffold(
         bottomBar = {
             // Vis bunnlinja kun på topp-fanene, ikke på detalj-/merkeskjermer.
-            if (current == "explore" || current == "humidor") {
-                NavigationBar {
+            if (current == "explore" || current == "humidor" || current == "profile") {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     tabs.forEach { tab ->
                         NavigationBarItem(
                             selected = current == tab.route,
@@ -50,8 +53,11 @@ fun VitolaApp() {
                             },
                             icon = {
                                 Icon(
-                                    if (tab.route == "explore") Icons.Outlined.Explore
-                                    else Icons.Filled.Inventory2,
+                                    when (tab.route) {
+                                        "explore" -> Icons.Outlined.Explore
+                                        "profile" -> Icons.Outlined.Person
+                                        else -> Icons.Filled.Inventory2
+                                    },
                                     contentDescription = tab.label
                                 )
                             },
@@ -96,6 +102,7 @@ fun VitolaApp() {
                     onCigar = { nav.navigate("cigar/${it}") }
                 )
             }
+            composable("profile") { ProfileScreen() }
         }
     }
 }
