@@ -1,9 +1,7 @@
 package com.tomerikheggedal.vitola.ui.explore
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -11,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -20,6 +17,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tomerikheggedal.vitola.data.BrandSummary
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarRepository
+import com.tomerikheggedal.vitola.ui.components.ListCard
+import com.tomerikheggedal.vitola.ui.components.NavRow
+import com.tomerikheggedal.vitola.ui.components.RowDivider
+import com.tomerikheggedal.vitola.ui.components.SectionLabel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,9 +83,9 @@ fun ExploreScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = { Text("Utforsk") },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
@@ -107,66 +108,67 @@ fun ExploreScreen(
                 vm.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text(vm.error!!, color = MaterialTheme.colorScheme.error)
                 }
-                vm.query.isNotBlank() -> LazyColumn(Modifier.fillMaxSize()) {
-                    items(vm.results, key = { it.id }) { cigar ->
-                        CigarRow(cigar) { onCigar(cigar.id) }
-                        HorizontalDivider()
+                vm.query.isNotBlank() -> LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
+                    // Søketreff gruppert per merke, ett kort per merke (som iOS).
+                    val groups = vm.results.groupBy { it.brand }
+                    groups.forEach { (brand, cigars) ->
+                        item(key = "h_$brand") { SectionLabel(brand) }
+                        item(key = "c_$brand") {
+                            ListCard {
+                                cigars.forEachIndexed { i, cigar ->
+                                    NavRow(
+                                        title = listOfNotNull(cigar.series, cigar.vitola)
+                                            .joinToString(" · ").ifBlank { cigar.brand },
+                                        detail = listOfNotNull(cigar.commonFormat, cigar.dimensionsLabel)
+                                            .joinToString(" · ").ifBlank { null },
+                                    ) { onCigar(cigar.id) }
+                                    if (i < cigars.lastIndex) RowDivider()
+                                }
+                            }
+                        }
                     }
                 }
-                else -> LazyColumn(Modifier.fillMaxSize()) {
+                else -> LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
                     if (vm.topRated.isNotEmpty()) {
-                        item { SectionHeader("BRUKERNES TOPP 3") }
-                        items(vm.topRated, key = { "top_${it.id}" }) { cigar ->
-                            CigarRow(cigar) { onCigar(cigar.id) }
-                            HorizontalDivider()
+                        item { SectionLabel("Brukernes topp 3") }
+                        item {
+                            ListCard {
+                                vm.topRated.forEachIndexed { i, cigar ->
+                                    NavRow(
+                                        title = cigar.brand,
+                                        titleBold = true,
+                                        subtitle = listOfNotNull(cigar.series, cigar.vitola)
+                                            .joinToString(" · ").ifBlank { null },
+                                        detail = cigar.dimensionsLabel,
+                                    ) { onCigar(cigar.id) }
+                                    if (i < vm.topRated.lastIndex) RowDivider()
+                                }
+                            }
                         }
-                        item { SectionHeader("ALLE MERKER") }
                     }
-                    items(vm.brands, key = { it.brand }) { b ->
-                        BrandRow(b) { onBrand(b.brand) }
-                        HorizontalDivider()
+
+                    // Alfabetisk merkeliste, ett kort per bokstav (som iOS).
+                    val byLetter = vm.brands.groupBy { it.brand.first().uppercaseChar() }.toSortedMap()
+                    item { SectionLabel("Alle merker") }
+                    byLetter.forEach { (letter, brands) ->
+                        item(key = "l_$letter") { SectionLabel(letter.toString(), topPadding = 10) }
+                        item(key = "b_$letter") {
+                            ListCard {
+                                brands.forEachIndexed { i, b ->
+                                    NavRow(title = b.brand, subtitle = b.subtitle) { onBrand(b.brand) }
+                                    if (i < brands.lastIndex) RowDivider()
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 8.dp)
-    )
-}
-
-@Composable
-private fun BrandRow(b: BrandSummary, onClick: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Text(b.brand, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
-        Text(b.subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
-private fun CigarRow(cigar: Cigar, onClick: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Text(cigar.brand, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
-        val sub = listOfNotNull(cigar.series, cigar.vitola).joinToString(" · ")
-        if (sub.isNotBlank()) {
-            Text(sub, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        }
-        val chip = listOfNotNull(cigar.commonFormat, cigar.dimensionsLabel).joinToString(" · ")
-        if (chip.isNotBlank()) {
-            Text(chip, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(top = 2.dp))
         }
     }
 }

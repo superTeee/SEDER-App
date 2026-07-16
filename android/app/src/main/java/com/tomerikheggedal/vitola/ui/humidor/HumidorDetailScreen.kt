@@ -1,11 +1,8 @@
 package com.tomerikheggedal.vitola.ui.humidor
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Inventory2
@@ -13,16 +10,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.HumidorContentRow
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.HumidorRow
+import com.tomerikheggedal.vitola.ui.components.ListCard
+import com.tomerikheggedal.vitola.ui.components.NavRow
+import com.tomerikheggedal.vitola.ui.components.RowDivider
+import com.tomerikheggedal.vitola.ui.components.SectionLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,9 +74,25 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
                         )
                     }
                 } else {
-                    items(contents, key = { it.cigar!!.id }) { row ->
-                        row.cigar?.let { ContentRow(it, row.quantity ?: 1) { onCigar(it.id) } }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                    item { SectionLabel("Sigarer") }
+                    item {
+                        ListCard {
+                            contents.forEachIndexed { i, row ->
+                                val c = row.cigar!!
+                                val qty = row.quantity ?: 1
+                                NavRow(
+                                    title = c.brand,
+                                    titleBold = true,
+                                    subtitle = listOfNotNull(c.series, c.vitola).joinToString(" · ")
+                                        .ifBlank { null },
+                                    detail = listOfNotNull(
+                                        c.dimensionsLabel,
+                                        if (qty > 1) "×$qty" else null
+                                    ).joinToString(" · ").ifBlank { null },
+                                ) { onCigar(c.id) }
+                                if (i < contents.lastIndex) RowDivider()
+                            }
+                        }
                     }
                 }
                 item { Spacer(Modifier.height(40.dp)) }
@@ -130,26 +145,3 @@ private fun HumidorHeader(humidor: HumidorRow?, totalCount: Int) {
     }
 }
 
-@Composable
-private fun ContentRow(cigar: Cigar, quantity: Int, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(cigar.brand, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
-            val sub = listOfNotNull(cigar.series, cigar.vitola).joinToString(" · ")
-            if (sub.isNotBlank()) {
-                Text(sub, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            }
-            cigar.dimensionsLabel?.let {
-                Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(top = 2.dp))
-            }
-        }
-        if (quantity > 1) {
-            Text("×$quantity", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.titleMedium)
-        }
-    }
-}
