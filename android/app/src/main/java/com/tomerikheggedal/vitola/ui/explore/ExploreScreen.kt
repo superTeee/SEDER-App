@@ -40,6 +40,8 @@ import com.tomerikheggedal.vitola.data.BrandSummary
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarFilter
 import com.tomerikheggedal.vitola.data.CigarRepository
+import com.tomerikheggedal.vitola.data.ScanHit
+import com.tomerikheggedal.vitola.data.ScanRepository
 import com.tomerikheggedal.vitola.data.SearchHistory
 import com.tomerikheggedal.vitola.data.SearchHit
 import com.tomerikheggedal.vitola.ui.components.ListCard
@@ -136,16 +138,30 @@ fun ExploreScreen(
     val snackbar = remember { SnackbarHostState() }
     var showFilter by remember { mutableStateOf(false) }
     var recent by remember { mutableStateOf(SearchHistory.load(context)) }
-    fun scanComingSoon() = scope.launch { snackbar.showSnackbar("Bildegjenkjenning kommer snart") }
+    var scanning by remember { mutableStateOf(false) }
+    var scanResults by remember { mutableStateOf<List<ScanHit>?>(null) }
 
-    // Kamera (miniatyr) og bildevelger — åpner ekte kamera/galleri.
-    // Gjenkjenningen er ikke portet ennå, så resultatet viser en «kommer snart»-melding.
+    // Kjør AI-skanning på et JPEG-bilde og håndter resultatet.
+    fun runScan(jpeg: ByteArray?) {
+        if (jpeg == null) return
+        scanning = true
+        scope.launch {
+            val hits = runCatching { ScanRepository.scan(jpeg) }.getOrDefault(emptyList())
+            scanning = false
+            when {
+                hits.isEmpty() -> snackbar.showSnackbar("Fant ingen sigar. Prøv et tydeligere bilde av båndet.")
+                hits.size == 1 -> onCigar(hits.first().cigar.id)
+                else -> scanResults = hits
+            }
+        }
+    }
+
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview()
-    ) { bitmap -> if (bitmap != null) scanComingSoon() }
+    ) { bitmap -> if (bitmap != null) runScan(bitmapToJpeg(bitmap)) }
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri -> if (uri != null) scanComingSoon() }
+    ) { uri -> if (uri != null) scope.launch { runScan(uriToJpeg(context, uri)) } }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -324,6 +340,75 @@ fun ExploreScreen(
             onApply = { showFilter = false; vm.applyFilter(it) }
         )
     }
+
+    // Skanner-overlay mens AI-en jobber.
+    if (scanning) {
+        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f)),
+            contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = Color.White)
+                Spacer(Modifier.height(14.dp))
+                Text("Gjenkjenner sigaren…", color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+
+    // Flere kandidater → la brukeren velge.
+    scanResults?.let { hits ->
+        ScanResultsSheet(
+            hits = hits,
+            onDismiss = { scanResults = null },
+            onPick = { scanResults = null; onCigar(it) }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScanResultsSheet(hits: List<ScanHit>, onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            Text("Mulige treff", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp))
+            hits.forEach { hit ->
+                Column(Modifier.fillMaxWidth().clickable { onPick(hit.cigar.id) }
+                    .padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    Text(hit.cigar.fullName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    if (hit.reason.isNotBlank()) {
+                        Text(hit.reason, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            }
+        }
+    }
+}
+
+// Bitmap (kamera) → komprimert JPEG.
+private fun bitmapToJpeg(bitmap: android.graphics.Bitmap): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+    return out.toByteArray()
+}
+
+// Galleri-Uri → nedskalert JPEG (maks 1400px).
+private fun uriToJpeg(context: android.content.Context, uri: android.net.Uri, maxDim: Int = 1400): ByteArray? {
+    val bitmap = context.contentResolver.openInputStream(uri)?.use {
+        android.graphics.BitmapFactory.decodeStream(it)
+    } ?: return null
+    val longest = maxOf(bitmap.width, bitmap.height)
+    val scaled = if (longest > maxDim) {
+        val r = maxDim.toFloat() / longest
+        android.graphics.Bitmap.createScaledBitmap(bitmap,
+            (bitmap.width * r).toInt().coerceAtLeast(1), (bitmap.height * r).toInt().coerceAtLeast(1), true)
+    } else bitmap
+    val out = java.io.ByteArrayOutputStream()
+    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+    return out.toByteArray()
 }
 
 // Søketreff gruppert per merke; viser hva treffet matchet på (smaksnote som accent-tag).

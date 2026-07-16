@@ -1,6 +1,7 @@
 package com.tomerikheggedal.vitola.data
 
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
@@ -14,6 +15,7 @@ object Supa {
     ) {
         install(Postgrest)
         install(Storage)
+        install(Functions)
         install(Auth) {
             // Nettleser-basert OAuth redirecter tilbake hit etter innlogging.
             // Samme verdier legges inn som Redirect URL i Supabase Auth-innstillingene:
