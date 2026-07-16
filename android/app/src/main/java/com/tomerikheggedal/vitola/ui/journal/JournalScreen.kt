@@ -49,13 +49,13 @@ fun JournalScreen(onCigar: (String) -> Unit) {
 
     var logs by remember { mutableStateOf<List<TastingLog>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
+    var editLog by remember { mutableStateOf<TastingLog?>(null) }
+    var reloadKey by remember { mutableStateOf(0) }
 
-    LaunchedEffect(isAuthed) {
-        if (isAuthed) {
-            loading = true
-            logs = runCatching { JournalRepository.myLogs() }.getOrDefault(emptyList())
-            loading = false
-        } else logs = emptyList()
+    suspend fun reload() { logs = runCatching { JournalRepository.myLogs() }.getOrDefault(emptyList()) }
+
+    LaunchedEffect(isAuthed, reloadKey) {
+        if (isAuthed) { loading = true; reload(); loading = false } else logs = emptyList()
     }
 
     Scaffold(
@@ -93,13 +93,21 @@ fun JournalScreen(onCigar: (String) -> Unit) {
                         byMonth.forEach { (month, monthLogs) ->
                             item(key = "m_$month") { SectionLabel(month) }
                             items(monthLogs, key = { it.id }) { log ->
-                                JournalCard(log) { log.cigar?.let { onCigar(it.id) } }
+                                JournalCard(log) { editLog = log }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    editLog?.let { log ->
+        EditJournalSheet(
+            log = log,
+            onDismiss = { editLog = null },
+            onChanged = { editLog = null; reloadKey++ }
+        )
     }
 }
 
