@@ -42,6 +42,22 @@ object HumidorRepository {
         return humidors.map { HumidorUi(it, counts[it.id] ?: 0) }
     }
 
+    val types = listOf("Desktop", "Travel", "Cabinet", "Electric", "Tupperdor", "Coolidor", "Walk-in")
+
+    /** Opprett en ny humidor for den innloggede brukeren. */
+    suspend fun createHumidor(name: String, type: String?, location: String?, capacity: Int?) {
+        val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
+        Supa.client.from("humidors").insert(
+            NewHumidor(
+                user_id = userId,
+                name = name,
+                type = type,
+                location = location?.ifBlank { null },
+                capacity = capacity
+            )
+        )
+    }
+
     /** Legg én sigar i en humidor (antall 1). */
     suspend fun addCigar(cigarId: String, humidorId: String) {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
@@ -61,6 +77,15 @@ object HumidorRepository {
 private data class EntryCount(
     val humidor_id: String? = null,
     val quantity: Int? = null,
+)
+
+@Serializable
+private data class NewHumidor(
+    val user_id: String,
+    val name: String,
+    val type: String? = null,
+    val location: String? = null,
+    val capacity: Int? = null,
 )
 
 @Serializable

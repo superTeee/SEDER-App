@@ -13,10 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarRepository
+import com.tomerikheggedal.vitola.data.FlavorIcon
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.Supa
 import io.github.jan.supabase.gotrue.auth
@@ -111,7 +113,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
 
                 c.flavorNotes?.takeIf { it.isNotEmpty() }?.let { notes ->
                     Section("SMAKSNOTER") {
-                        Text(notes.joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        FlavorNotes(notes)
                     }
                 }
 
@@ -130,6 +132,43 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                     Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(40.dp))
+            }
+        }
+    }
+}
+
+// Smaksnoter som pills: tintet ikon + norsk etikett når noten har et ikon,
+// ellers bare teksten (ingen tom plassholder).
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FlavorNotes(notes: List<String>) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        notes.forEach { note ->
+            val match = FlavorIcon.forNote(note)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                if (match != null) {
+                    Icon(
+                        painter = painterResource(match.drawable),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Text(
+                    match?.label ?: note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }
