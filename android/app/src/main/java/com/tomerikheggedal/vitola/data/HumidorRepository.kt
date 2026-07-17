@@ -77,8 +77,8 @@ fun rhStatus(rh: Double?, targetRh: Int?, rhMin: Int?, rhMax: Int?): RhStatus {
     return RhStatus.STABLE
 }
 
-/** Humidor + antall sigarer (antall regnes separat, ikke fra tabellen). */
-data class HumidorUi(val row: HumidorRow, val count: Int)
+/** Humidor + antall sigarer + siste RH-måling (alt hentet separat). */
+data class HumidorUi(val row: HumidorRow, val count: Int, val latestRh: RhReading? = null)
 
 /** Én rad i en humidor: sigaren + antall. */
 @Serializable
@@ -108,7 +108,18 @@ object HumidorRepository {
             .groupBy { it.humidor_id!! }
             .mapValues { (_, list) -> list.sumOf { it.quantity ?: 1 } }
 
-        return humidors.map { HumidorUi(it, counts[it.id] ?: 0) }
+        // Siste RH-måling per humidor (til status i lista). RLS gir kun egne rader.
+        val latestByHumidor = runCatching {
+            Supa.client.from("humidor_rh_readings")
+                .select(columns = Columns.list("id", "humidor_id", "rh", "temperature", "note", "measured_at")) {
+                    order("measured_at", Order.DESCENDING)
+                }
+                .decodeList<RhReading>()
+                .groupBy { it.humidorId }
+                .mapValues { it.value.first() }
+        }.getOrDefault(emptyMap())
+
+        return humidors.map { HumidorUi(it, counts[it.id] ?: 0, latestByHumidor[it.id]) }
     }
 
     /** Én humidor (metadata). */

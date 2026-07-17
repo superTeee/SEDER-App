@@ -351,9 +351,10 @@ private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: (
     val status = rhStatus(latest?.rh, humidor.targetRh, humidor.rhMin, humidor.rhMax)
     val stale = latest?.let { rhIsStale(it.measuredAt) } ?: false
     val badgeColor = when (status) {
-        RhStatus.STABLE -> MaterialTheme.colorScheme.primary
+        RhStatus.STABLE -> androidx.compose.ui.graphics.Color(0xFF3FA34D)
+        RhStatus.SLIGHTLY_LOW, RhStatus.SLIGHTLY_HIGH -> androidx.compose.ui.graphics.Color(0xFFE0A400)
+        RhStatus.TOO_DRY, RhStatus.TOO_WET -> androidx.compose.ui.graphics.Color(0xFFD64545)
         RhStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.onSurface
     }
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {

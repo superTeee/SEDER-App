@@ -878,6 +878,20 @@ class HumidorService: ObservableObject {
             .value
     }
 
+    /// Siste RH-måling per humidor (til trafikklys-status i humidor-lista).
+    /// RLS gir kun brukerens egne rader, så vi kan hente alle og redusere i klienten.
+    func fetchLatestRHReadings() async throws -> [UUID: HumidorRHReading] {
+        let all: [HumidorRHReading] = try await supabase
+            .from("humidor_rh_readings")
+            .select("id, humidor_id, rh, temperature, note, measured_at")
+            .order("measured_at", ascending: false)
+            .execute()
+            .value
+        var map: [UUID: HumidorRHReading] = [:]
+        for r in all where map[r.humidorId] == nil { map[r.humidorId] = r }
+        return map
+    }
+
     /// Registrer en ny RH-måling. user_id settes av databasen via auth.uid().
     func addRHReading(humidorId: UUID, rh: Double, temperature: Double?, note: String?, measuredAt: Date) async throws {
         let new = NewRHReading(

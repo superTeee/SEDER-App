@@ -13,6 +13,7 @@ struct HumidorView: View {
     // Humidor-state
     @State private var entries: [HumidorEntry] = []
     @State private var humidors: [Humidor] = []
+    @State private var latestReadings: [UUID: HumidorRHReading] = [:]
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
@@ -81,7 +82,7 @@ struct HumidorView: View {
                                             allHumidors: humidors,
                                             onChanged: { Task { await loadHumidor() } }
                                         )) {
-                                            HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor))
+                                            HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor), latestRH: latestReadings[humidor.id])
                                                 .padding(12)
                                                 .frame(maxWidth: .infinity, alignment: .leading)
                                                 .background(Color("Card"))
@@ -217,6 +218,7 @@ struct HumidorView: View {
             async let h = humidorService.fetchHumidors(userId: userId)
             entries = try await e
             humidors = try await h
+            latestReadings = (try? await humidorService.fetchLatestRHReadings()) ?? [:]
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -371,6 +373,23 @@ struct HumidorRow: View {
 struct HumidorCard: View {
     let humidor: Humidor
     let cigarCount: Int
+    var latestRH: HumidorRHReading? = nil
+
+    private func rhTrafficColor(_ s: RHStatus) -> Color {
+        switch s {
+        case .stable:                     return Color(red: 0.25, green: 0.64, blue: 0.30) // grønn
+        case .slightlyLow, .slightlyHigh: return Color(red: 0.88, green: 0.64, blue: 0.0)  // gul
+        case .tooDry, .tooWet:            return Color(red: 0.84, green: 0.27, blue: 0.27) // rød
+        case .none:                       return Color(.tertiaryLabel)
+        }
+    }
+    private func rhString(_ v: Double) -> String {
+        v.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(v)) : String(format: "%.1f", v)
+    }
+    private func rhLine(_ s: RHStatus) -> String {
+        if let r = latestRH { return "\(rhString(r.rh)) % RH · \(s.label)" }
+        return "Mål \(humidor.rhTargetLabel ?? "") · \(s.label)"
+    }
 
     var body: some View {
         // Vertikalt kort, samme utforming som journal-kortene: bilde på topp i
@@ -424,6 +443,19 @@ struct HumidorCard: View {
                     .font(.caption)
                     .foregroundColor(Color("TextSecondary"))
                     .lineLimit(1)
+
+                    // Trafikklys-status for RH (grønn = stabil, gul = litt av, rød = for tørr/fuktig)
+                    if latestRH != nil || humidor.rhTargetLabel != nil {
+                        let status = humidor.rhStatus(for: latestRH?.rh)
+                        HStack(spacing: 6) {
+                            Circle().fill(rhTrafficColor(status)).frame(width: 9, height: 9)
+                            Text(rhLine(status))
+                                .font(.caption)
+                                .foregroundColor(Color("TextSecondary"))
+                                .lineLimit(1)
+                        }
+                        .padding(.top, 3)
+                    }
                 }
 
                 Spacer()

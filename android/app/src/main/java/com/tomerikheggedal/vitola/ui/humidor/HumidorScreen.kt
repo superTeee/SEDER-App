@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -30,8 +32,10 @@ import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.HumidorRow
 import com.tomerikheggedal.vitola.data.HumidorUi
+import com.tomerikheggedal.vitola.data.RhStatus
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.WishlistRepository
+import com.tomerikheggedal.vitola.data.rhStatus
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
@@ -448,6 +452,28 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
                 val meta = listOfNotNull(h.row.type, h.row.location).joinToString(" · ")
                 if (meta.isNotBlank()) {
                     Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // Trafikklys-status for RH (grønn = stabil, gul = litt av, rød = for tørr/fuktig).
+                val rh = h.latestRh
+                if (rh != null || h.row.rhTargetLabel != null) {
+                    val status = rhStatus(rh?.rh, h.row.targetRh, h.row.rhMin, h.row.rhMax)
+                    val dot = when (status) {
+                        RhStatus.STABLE -> Color(0xFF3FA34D)
+                        RhStatus.SLIGHTLY_LOW, RhStatus.SLIGHTLY_HIGH -> Color(0xFFE0A400)
+                        RhStatus.TOO_DRY, RhStatus.TOO_WET -> Color(0xFFD64545)
+                        RhStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    }
+                    val rhText = rh?.let {
+                        val v = if (it.rh % 1.0 == 0.0) it.rh.toInt().toString() else String.format("%.1f", it.rh)
+                        "$v % RH · ${status.label}"
+                    } ?: "Mål ${h.row.rhTargetLabel} · ${status.label}"
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(9.dp).clip(CircleShape).background(dot))
+                        Spacer(Modifier.width(6.dp))
+                        Text(rhText, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
             val countLabel = h.row.capacity?.let { "${h.count}/$it" } ?: "${h.count}"
