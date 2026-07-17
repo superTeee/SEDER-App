@@ -73,7 +73,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ⬜ Hele admin-delen (datahull, fyll sigar, kø)
 
 ### Journal
-- 🟡 Redigering mangler del-vurderinger (trekk/brenning/smak) og bilde-bytte
+- ✅ Redigering: del-vurderinger (trekk/brenning/smak, 1–5 prikker) + snitt-type + bilde-bytte
 
 ---
 

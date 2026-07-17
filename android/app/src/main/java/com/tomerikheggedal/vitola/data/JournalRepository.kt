@@ -4,6 +4,7 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
@@ -18,6 +19,10 @@ data class TastingLog(
     @SerialName("personal_notes") val personalNotes: String? = null,
     val store: String? = null,
     @SerialName("photo_url") val photoUrl: String? = null,
+    @SerialName("draw_rating") val drawRating: Int? = null,
+    @SerialName("burn_rating") val burnRating: Int? = null,
+    @SerialName("flavor_rating") val flavorRating: Int? = null,
+    @SerialName("cut_type") val cutType: String? = null,
     @SerialName("cigars") val cigar: Cigar? = null,
 ) {
     // 0–100 personlig score → norsk etikett (samme skala som iOS).
@@ -39,7 +44,7 @@ object JournalRepository {
     suspend fun myLogs(): List<TastingLog> {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: return emptyList()
         return Supa.client.from("tasting_logs")
-            .select(columns = Columns.raw("id, smoked_at, rating, smoke_again, personal_notes, store, photo_url, cigars(*)")) {
+            .select(columns = Columns.raw("id, smoked_at, rating, smoke_again, personal_notes, store, photo_url, draw_rating, burn_rating, flavor_rating, cut_type, cigars(*)")) {
                 filter { eq("user_id", uid) }
                 order("smoked_at", Order.DESCENDING)
             }
@@ -50,7 +55,7 @@ object JournalRepository {
     suspend fun lastLog(): TastingLog? {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: return null
         return Supa.client.from("tasting_logs")
-            .select(columns = Columns.raw("id, smoked_at, rating, smoke_again, personal_notes, store, photo_url, cigars(*)")) {
+            .select(columns = Columns.raw("id, smoked_at, rating, smoke_again, personal_notes, store, photo_url, draw_rating, burn_rating, flavor_rating, cut_type, cigars(*)")) {
                 filter { eq("user_id", uid) }
                 order("smoked_at", Order.DESCENDING)
                 limit(1)
@@ -59,16 +64,33 @@ object JournalRepository {
             .firstOrNull()
     }
 
-    /** Oppdater et journalinnlegg. */
-    suspend fun updateLog(logId: String, rating: Int?, smokeAgain: Boolean?, notes: String?, store: String?) {
+    /** Oppdater et journalinnlegg. Del-vurderinger 1–5 (null = ikke satt). */
+    suspend fun updateLog(
+        logId: String, rating: Int?, smokeAgain: Boolean?, notes: String?, store: String?,
+        drawRating: Int? = null, burnRating: Int? = null, flavorRating: Int? = null,
+        cutType: String? = null, photoUrl: String? = null,
+    ) {
         Supa.client.from("tasting_logs").update(
             buildJsonObject {
                 put("rating", rating)
                 put("smoke_again", smokeAgain)
                 put("personal_notes", notes?.ifBlank { null })
                 put("store", store?.ifBlank { null })
+                put("draw_rating", drawRating)
+                put("burn_rating", burnRating)
+                put("flavor_rating", flavorRating)
+                put("cut_type", cutType)
+                if (photoUrl != null) put("photo_url", photoUrl)
             }
         ) { filter { eq("id", logId) } }
+    }
+
+    /** Last opp/bytt loggbilde (bucket log-photos, lowercase path). Returnerer URL. */
+    suspend fun uploadLogPhoto(logId: String, jpeg: ByteArray): String {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
+        val path = "${uid.lowercase()}/${logId.lowercase()}.jpg"
+        Supa.client.storage.from("log-photos").upload(path, jpeg, upsert = true)
+        return Supa.client.storage.from("log-photos").publicUrl(path) + "?v=${System.currentTimeMillis() / 1000}"
     }
 
     /** Slett et journalinnlegg. */
