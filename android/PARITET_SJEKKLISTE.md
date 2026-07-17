@@ -58,9 +58,9 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
   - NB: ML Kit mangler Vision sin vokabular-biasing + pålitelige konfidens, så OCR-delen er en tilnærming
 
 ### Konto / oppstart
-- ⬜ Aldersbekreftelse + personvern-samtykke
-- ⬜ Onboarding av navn etter første innlogging
-- ⬜ PIN-kodelås
+- ✅ Aldersbekreftelse + personvern-samtykke (oppstartsporter, lagres lokalt)
+- ✅ Onboarding av navn etter første innlogging (når display_name mangler)
+- ✅ PIN-kodelås (SHA256 i prefs; sett i Innstillinger, opplåsing ved oppstart)
 - ⬜ Innlogging med Apple og e-post (har kun Google)
 
 ### Bilder

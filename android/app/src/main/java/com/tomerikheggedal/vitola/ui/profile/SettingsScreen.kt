@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,9 +25,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tomerikheggedal.vitola.AppPrefs
 import com.tomerikheggedal.vitola.data.Profile
 import com.tomerikheggedal.vitola.data.ProfileRepository
 import com.tomerikheggedal.vitola.data.Supa
+import com.tomerikheggedal.vitola.ui.PinSetupSheet
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
 import com.tomerikheggedal.vitola.ui.theme.ThemeState
 import io.github.jan.supabase.gotrue.auth
@@ -45,6 +48,9 @@ fun SettingsScreen(onBack: () -> Unit) {
     var profile by remember { mutableStateOf<Profile?>(null) }
     var showEditName by remember { mutableStateOf(false) }
     var showEditLocation by remember { mutableStateOf(false) }
+    var pinSet by remember { mutableStateOf(AppPrefs.isPinSet(context)) }
+    var showPinSetup by remember { mutableStateOf(false) }
+    var showPinRemove by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { profile = runCatching { ProfileRepository.myProfile() }.getOrNull() }
 
     Scaffold(
@@ -111,6 +117,18 @@ fun SettingsScreen(onBack: () -> Unit) {
                             ) { Text(label) }
                         }
                     }
+                }
+            }
+
+            // Sikkerhet — PIN-kodelås (kun innlogget)
+            if (email != null) {
+                SectionLabel("Sikkerhet")
+                SettingsCard {
+                    ActionRow(
+                        icon = { Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary) },
+                        text = if (pinSet) "Fjern kodelås" else "Sett kodelås",
+                        onClick = { if (pinSet) showPinRemove = true else showPinSetup = true }
+                    )
                 }
             }
 
@@ -184,6 +202,25 @@ fun SettingsScreen(onBack: () -> Unit) {
                     ProfileRefresh.bump()
                 }
             }
+        )
+    }
+    if (showPinSetup) {
+        PinSetupSheet(
+            onDismiss = { showPinSetup = false },
+            onSet = { showPinSetup = false; pinSet = true }
+        )
+    }
+    if (showPinRemove) {
+        AlertDialog(
+            onDismissRequest = { showPinRemove = false },
+            title = { Text("Fjern kodelås?") },
+            text = { Text("Appen åpnes da uten kode.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    AppPrefs.clearPin(context); pinSet = false; showPinRemove = false
+                }) { Text("Fjern", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { showPinRemove = false }) { Text("Avbryt") } }
         )
     }
 }
