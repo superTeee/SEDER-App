@@ -827,8 +827,10 @@ class HumidorService: ObservableObject {
 
     /// Opprett en ny humidor.
     @discardableResult
-    func createHumidor(userId: UUID, name: String, type: String?, location: String?, capacity: Int?) async throws -> Humidor {
-        let new = NewHumidor(userId: userId, name: name, type: type, location: location, capacity: capacity)
+    func createHumidor(userId: UUID, name: String, type: String?, location: String?, capacity: Int?,
+                       targetRh: Int? = nil, rhMin: Int? = nil, rhMax: Int? = nil) async throws -> Humidor {
+        let new = NewHumidor(userId: userId, name: name, type: type, location: location, capacity: capacity,
+                             targetRh: targetRh, rhMin: rhMin, rhMax: rhMax)
         let inserted: Humidor = try await supabase
             .from("humidors")
             .insert(new)
@@ -840,18 +842,49 @@ class HumidorService: ObservableObject {
     }
 
     /// Oppdater en humidor.
-    func updateHumidor(id: UUID, name: String, type: String?, location: String?, capacity: Int?) async throws {
+    func updateHumidor(id: UUID, name: String, type: String?, location: String?, capacity: Int?,
+                       targetRh: Int? = nil, rhMin: Int? = nil, rhMax: Int? = nil) async throws {
         struct Patch: Encodable {
             let name: String
             let type: String?
             let location: String?
             let capacity: Int?
+            let targetRh: Int?
+            let rhMin: Int?
+            let rhMax: Int?
+            enum CodingKeys: String, CodingKey {
+                case name, type, location, capacity
+                case targetRh = "target_rh", rhMin = "rh_min", rhMax = "rh_max"
+            }
         }
         try await supabase
             .from("humidors")
-            .update(Patch(name: name, type: type, location: location, capacity: capacity))
+            .update(Patch(name: name, type: type, location: location, capacity: capacity,
+                          targetRh: targetRh, rhMin: rhMin, rhMax: rhMax))
             .eq("id", value: id.uuidString)
             .execute()
+    }
+
+    // MARK: - RH-målinger (relativ luftfuktighet)
+
+    /// Alle RH-målinger for en humidor, nyeste først.
+    func fetchRHReadings(humidorId: UUID) async throws -> [HumidorRHReading] {
+        try await supabase
+            .from("humidor_rh_readings")
+            .select("id, humidor_id, rh, temperature, note, measured_at")
+            .eq("humidor_id", value: humidorId.uuidString)
+            .order("measured_at", ascending: false)
+            .execute()
+            .value
+    }
+
+    /// Registrer en ny RH-måling. user_id settes av databasen via auth.uid().
+    func addRHReading(humidorId: UUID, rh: Double, temperature: Double?, note: String?, measuredAt: Date) async throws {
+        let new = NewRHReading(
+            humidorId: humidorId, rh: rh, temperature: temperature,
+            note: note?.isEmpty == false ? note : nil, measuredAt: measuredAt
+        )
+        try await supabase.from("humidor_rh_readings").insert(new).execute()
     }
 
     /// Slett en humidor. Sigarer i den beholdes (humidor_id settes til null via ON DELETE SET NULL).

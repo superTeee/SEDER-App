@@ -18,6 +18,9 @@ struct CreateHumidorSheet: View {
     @State private var type: HumidorType = .desktop
     @State private var location = ""
     @State private var capacityText = ""
+    @State private var targetRhText = ""
+    @State private var rhMinText = ""
+    @State private var rhMaxText = ""
 
     @State private var photoItem: PhotosPickerItem? = nil
     @State private var photoData: Data? = nil
@@ -86,6 +89,24 @@ struct CreateHumidorSheet: View {
                             .keyboardType(.numberPad)
                         Text("sigarer").foregroundColor(Color("TextSecondary"))
                     }
+                }
+
+                Section {
+                    HStack {
+                        TextField("F.eks. 69", text: $targetRhText)
+                            .keyboardType(.numberPad)
+                        Text("% mål-RH").foregroundColor(Color("TextSecondary"))
+                    }
+                    HStack {
+                        TextField("Fra", text: $rhMinText).keyboardType(.numberPad)
+                        Text("–").foregroundColor(Color("TextSecondary"))
+                        TextField("Til", text: $rhMaxText).keyboardType(.numberPad)
+                        Text("% (valgfritt)").foregroundColor(Color("TextSecondary"))
+                    }
+                } header: {
+                    Text("Luftfuktighet (RH)")
+                } footer: {
+                    Text("RH står for relativ luftfuktighet — hvor fuktig det er inne i humidoren. Sett gjerne et mål (f.eks. 69 %) og et valgfritt akseptabelt område.")
                 }
 
                 if let errorMessage {
@@ -159,6 +180,9 @@ struct CreateHumidorSheet: View {
         type = existing.typeEnum ?? .desktop
         location = existing.location ?? ""
         if let cap = existing.capacity { capacityText = String(cap) }
+        if let t = existing.targetRh { targetRhText = String(t) }
+        if let lo = existing.rhMin { rhMinText = String(lo) }
+        if let hi = existing.rhMax { rhMaxText = String(hi) }
     }
 
     private func save() {
@@ -167,14 +191,19 @@ struct CreateHumidorSheet: View {
         let capacity = Int(capacityText.trimmingCharacters(in: .whitespaces))
         let loc = location.trimmingCharacters(in: .whitespaces).isEmpty ? nil : location
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let targetRh = Int(targetRhText.trimmingCharacters(in: .whitespaces))
+        let rhMin = Int(rhMinText.trimmingCharacters(in: .whitespaces))
+        let rhMax = Int(rhMaxText.trimmingCharacters(in: .whitespaces))
         Task {
             do {
                 let humidorId: UUID
                 if let existing {
-                    try await humidorService.updateHumidor(id: existing.id, name: trimmedName, type: type.rawValue, location: loc, capacity: capacity)
+                    try await humidorService.updateHumidor(id: existing.id, name: trimmedName, type: type.rawValue, location: loc, capacity: capacity,
+                                                           targetRh: targetRh, rhMin: rhMin, rhMax: rhMax)
                     humidorId = existing.id
                 } else {
-                    let created = try await humidorService.createHumidor(userId: userId, name: trimmedName, type: type.rawValue, location: loc, capacity: capacity)
+                    let created = try await humidorService.createHumidor(userId: userId, name: trimmedName, type: type.rawValue, location: loc, capacity: capacity,
+                                                                         targetRh: targetRh, rhMin: rhMin, rhMax: rhMax)
                     humidorId = created.id
                 }
                 if let photoData {

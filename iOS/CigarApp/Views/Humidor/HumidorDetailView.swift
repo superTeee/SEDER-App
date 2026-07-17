@@ -21,6 +21,10 @@ struct HumidorDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
 
+    // RH (relativ luftfuktighet)
+    @State private var readings: [HumidorRHReading] = []
+    @State private var showRHSheet = false
+
     // Bilde (cover) — kan lastes opp direkte fra denne visningen
     @State private var coverURL: String?
     @State private var coverItem: PhotosPickerItem?
@@ -55,6 +59,9 @@ struct HumidorDetailView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
+
+                rhSection
+                    .padding(.top, 24)
 
                 cigarListSection
                     .padding(.top, 28)
@@ -94,6 +101,9 @@ struct HumidorDetailView: View {
                     Task { await load() }
                 })
             }
+        }
+        .sheet(isPresented: $showRHSheet) {
+            RHReadingSheet(humidorId: humidor.id, onSaved: { Task { await load() } })
         }
         .onChange(of: coverItem) { _, item in
             guard let item else { return }
@@ -196,6 +206,124 @@ struct HumidorDetailView: View {
         }
     }
 
+    // ── RH-seksjon (relativ luftfuktighet) ───────────────────────────────────
+    @ViewBuilder
+    private var rhSection: some View {
+        let latest = readings.first
+        VStack(alignment: .leading, spacing: 10) {
+            Text("LUFTFUKTIGHET (RH)")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color("TextSecondary")).tracking(0.6)
+                .padding(.horizontal, 20)
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let latest {
+                            Text("\(rhString(latest.rh)) % RH")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(Color("TextPrimary"))
+                        } else {
+                            Text("— % RH")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(Color("TextSecondary"))
+                        }
+                        if let target = humidor.rhTargetLabel {
+                            Text("Mål: \(target)").font(.caption).foregroundColor(Color("TextSecondary"))
+                        }
+                    }
+                    Spacer()
+                    statusBadge(humidor.rhStatus(for: latest?.rh))
+                }
+
+                if let latest {
+                    HStack(spacing: 6) {
+                        Text("Sist målt \(relativeDate(latest.measuredAt))")
+                        if latest.isStale {
+                            Text("· Ikke målt nylig").foregroundColor(Color("Accent"))
+                        }
+                    }
+                    .font(.caption).foregroundColor(Color("TextSecondary"))
+                }
+
+                Button { showRHSheet = true } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle")
+                        Text("Registrer RH").fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                    .background(Color("Accent").opacity(0.12))
+                    .foregroundColor(Color("Accent"))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+            }
+            .padding(16)
+            .background(Color("Card"))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .padding(.horizontal, 16)
+
+            if !readings.isEmpty {
+                Text("Historikk")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color("TextSecondary")).tracking(0.6)
+                    .padding(.horizontal, 20).padding(.top, 8)
+
+                VStack(spacing: 0) {
+                    let shown = Array(readings.prefix(20))
+                    ForEach(shown) { r in
+                        HStack(spacing: 8) {
+                            Text("\(rhString(r.rh)) %")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(Color("TextPrimary"))
+                            if let t = r.temperature {
+                                Text("· \(rhString(t)) °C").font(.caption).foregroundColor(Color("TextSecondary"))
+                            }
+                            if let note = r.note, !note.isEmpty {
+                                Text("· \(note)").font(.caption).foregroundColor(Color("TextSecondary")).lineLimit(1)
+                            }
+                            Spacer()
+                            Text(relativeDate(r.measuredAt)).font(.caption).foregroundColor(Color("TextSecondary"))
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        if r.id != shown.last?.id { Divider().padding(.leading, 16) }
+                    }
+                }
+                .background(Color("Card"))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func statusBadge(_ status: RHStatus) -> some View {
+        let color: Color = {
+            switch status {
+            case .stable:            return Color("Accent")
+            case .none:              return Color(.secondaryLabel)
+            case .tooDry, .tooWet:   return Color(.label)
+            default:                 return Color(.label)
+            }
+        }()
+        Text(status.label)
+            .font(.caption.weight(.semibold))
+            .foregroundColor(color)
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(color.opacity(0.12))
+            .clipShape(Capsule())
+    }
+
+    private func rhString(_ v: Double) -> String {
+        v.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(v)) : String(format: "%.1f", v)
+    }
+
+    private func relativeDate(_ d: Date) -> String {
+        let f = RelativeDateTimeFormatter()
+        f.locale = Locale(identifier: "nb_NO")
+        f.unitsStyle = .full
+        return f.localizedString(for: d, relativeTo: Date())
+    }
+
     // ── Sigarliste ───────────────────────────────────────────────────────────
     @ViewBuilder
     private var cigarListSection: some View {
@@ -273,6 +401,7 @@ struct HumidorDetailView: View {
         isLoading = true
         let all = (try? await humidorService.fetchHumidor(userId: userId)) ?? []
         entries = all.filter { $0.humidorId == humidor.id }
+        readings = (try? await humidorService.fetchRHReadings(humidorId: humidor.id)) ?? []
         isLoading = false
     }
 
@@ -313,6 +442,96 @@ struct HumidorDetailView: View {
             }
             onChanged()
             dismiss()
+        }
+    }
+}
+
+// MARK: - RHReadingSheet
+// Registrer én RH-måling. Brukeren skriver inn selve målingen — appen måler ikke
+// automatisk. Standard tidspunkt = nå.
+
+struct RHReadingSheet: View {
+
+    let humidorId: UUID
+    var onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    private let humidorService = HumidorService()
+
+    @State private var rhText = ""
+    @State private var tempText = ""
+    @State private var note = ""
+    @State private var measuredAt = Date()
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var rhValue: Double? { Double(rhText.replacingOccurrences(of: ",", with: ".")) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        TextField("F.eks. 68", text: $rhText).keyboardType(.decimalPad)
+                        Text("% RH").foregroundColor(Color("TextSecondary"))
+                    }
+                } header: {
+                    Text("Målt RH")
+                } footer: {
+                    Text("RH = relativ luftfuktighet, altså hvor fuktig det er inne i humidoren akkurat nå. Du registrerer selve målingen fra hygrometeret ditt — appen måler ikke automatisk.")
+                }
+
+                Section("Temperatur (valgfritt)") {
+                    HStack {
+                        TextField("F.eks. 20", text: $tempText).keyboardType(.decimalPad)
+                        Text("°C").foregroundColor(Color("TextSecondary"))
+                    }
+                }
+
+                Section("Tidspunkt") {
+                    DatePicker("Målt", selection: $measuredAt, in: ...Date(),
+                               displayedComponents: [.date, .hourAndMinute])
+                }
+
+                Section("Notat (valgfritt)") {
+                    TextField("F.eks. etter bytte av Boveda", text: $note, axis: .vertical)
+                        .lineLimit(2...5)
+                }
+
+                if let errorMessage {
+                    Section { Text(errorMessage).font(.caption).foregroundColor(.red) }
+                }
+            }
+            .navigationTitle("Registrer RH")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Lagre") { save() }
+                        .fontWeight(.semibold)
+                        .disabled(rhValue == nil || isSaving)
+                }
+            }
+        }
+    }
+
+    private func save() {
+        guard let rh = rhValue else { return }
+        let temp = Double(tempText.replacingOccurrences(of: ",", with: "."))
+        isSaving = true
+        errorMessage = nil
+        Task {
+            do {
+                try await humidorService.addRHReading(
+                    humidorId: humidorId, rh: rh, temperature: temp,
+                    note: note.trimmingCharacters(in: .whitespacesAndNewlines), measuredAt: measuredAt
+                )
+                onSaved()
+                dismiss()
+            } catch {
+                errorMessage = "Kunne ikke lagre målingen. Prøv igjen."
+            }
+            isSaving = false
         }
     }
 }
