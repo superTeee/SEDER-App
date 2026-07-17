@@ -1,14 +1,17 @@
 package com.tomerikheggedal.vitola.ui.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +25,7 @@ import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.FlavorIcon
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.Supa
+import com.tomerikheggedal.vitola.data.WishlistRepository
 import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
 import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.launch
@@ -29,18 +33,22 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CigarDetailScreen(id: String, onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
     var cigar by remember { mutableStateOf<Cigar?>(null) }
     var loading by remember { mutableStateOf(true) }
     var addMsg by remember { mutableStateOf<String?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
     var showLogSheet by remember { mutableStateOf(false) }
+    var showReportSheet by remember { mutableStateOf(false) }
     var humidorEntryId by remember { mutableStateOf<String?>(null) }
+    var inWishlist by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(id, reloadKey) {
         loading = true
         cigar = runCatching { CigarRepository.byId(id) }.getOrNull()
         humidorEntryId = runCatching { HumidorRepository.entryIdForCigar(id) }.getOrNull()
+        inWishlist = runCatching { WishlistRepository.isInWishlist(id) }.getOrDefault(false)
         loading = false
     }
 
@@ -51,6 +59,21 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 title = { Text(cigar?.brand ?: "", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tilbake") }
+                },
+                actions = {
+                    if (Supa.client.auth.currentUserOrNull() != null) {
+                        IconButton(onClick = {
+                            scope.launch {
+                                inWishlist = runCatching { WishlistRepository.toggle(id) }.getOrDefault(inWishlist)
+                            }
+                        }) {
+                            Icon(
+                                if (inWishlist) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                contentDescription = if (inWishlist) "Fjern fra ønskeliste" else "Legg i ønskeliste",
+                                tint = if (inWishlist) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -99,13 +122,24 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                     Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
                 }
 
-                if (c.isVerified) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (c.isVerified) {
                         Icon(Icons.Filled.Verified, null, tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
                         Text("Verifisert mot produsent", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.width(6.dp))
+                        Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(6.dp))
                     }
+                    Text(
+                        "Meld feil",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp))
+                            .clickable { requireAuth { showReportSheet = true } }
+                            .padding(vertical = 2.dp, horizontal = 2.dp)
+                    )
                 }
 
                 c.flavorNotes?.takeIf { it.isNotEmpty() }?.let { notes ->
@@ -154,6 +188,13 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 showLogSheet = false
                 addMsg = "Lagt i journalen ✓"
             }
+        )
+    }
+    if (showReportSheet && c != null) {
+        CigarReportSheet(
+            cigar = c,
+            onDismiss = { showReportSheet = false },
+            onSent = { showReportSheet = false; addMsg = "Takk — rettelsen er sendt inn ✓" }
         )
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -131,6 +132,7 @@ class ExploreViewModel : ViewModel() {
 fun ExploreScreen(
     onBrand: (String) -> Unit,
     onCigar: (String) -> Unit,
+    onWishlist: () -> Unit = {},
     vm: ExploreViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
@@ -179,6 +181,11 @@ fun ExploreScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Utforsk", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onWishlist) {
+                        Icon(Icons.Outlined.BookmarkBorder, "Ønskeliste")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )

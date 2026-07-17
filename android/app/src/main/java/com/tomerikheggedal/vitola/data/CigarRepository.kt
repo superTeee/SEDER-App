@@ -183,10 +183,68 @@ object CigarRepository {
             .decodeList<IdRow>()
             .size
     }
+
+    /** Meld feil på sigardata (report_cigar-RPC leser bruker fra auth.uid()). */
+    suspend fun reportCigar(cigarId: String, field: String, comment: String) {
+        val trimmed = comment.trim().ifBlank { null }
+        Supa.client.postgrest.rpc(
+            "report_cigar",
+            ReportCigarParams(p_cigar_id = cigarId, p_field = field, p_comment = trimmed)
+        )
+    }
+
+    /** Opprett en privat sigar for brukeren, evt. send til review-kø. Returnerer id-en. */
+    suspend fun createOwnCigar(
+        brand: String,
+        series: String,
+        vitola: String,
+        country: String,
+        wrapper: String,
+        ringGauge: Int?,
+        lengthInches: Double?,
+        note: String,
+        suggest: Boolean,
+    ): String {
+        fun clean(s: String) = s.trim().ifBlank { null }
+        return Supa.client.postgrest.rpc(
+            "create_own_cigar",
+            CreateOwnCigarParams(
+                p_brand = brand.trim(),
+                p_series = clean(series),
+                p_vitola = clean(vitola),
+                p_country = clean(country),
+                p_wrapper = clean(wrapper),
+                p_ring_gauge = ringGauge,
+                p_length_inches = lengthInches,
+                p_note = clean(note),
+                p_suggest = suggest,
+            )
+        ).decodeAs<String>()
+    }
 }
 
 // Ett søketreff + hva det matchet på (smaksnote-etikett, eller null for tekst-treff).
 data class SearchHit(val cigar: Cigar, val matchedFlavor: String?)
+
+@kotlinx.serialization.Serializable
+private data class ReportCigarParams(
+    val p_cigar_id: String,
+    val p_field: String,
+    val p_comment: String?,
+)
+
+@kotlinx.serialization.Serializable
+private data class CreateOwnCigarParams(
+    val p_brand: String,
+    val p_series: String?,
+    val p_vitola: String?,
+    val p_country: String?,
+    val p_wrapper: String?,
+    val p_ring_gauge: Int?,
+    val p_length_inches: Double?,
+    val p_note: String?,
+    val p_suggest: Boolean,
+)
 
 @kotlinx.serialization.Serializable
 private data class TopParams(val p_limit: Int, val p_min_votes: Int)

@@ -38,9 +38,9 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ⬜ Push-varsel ved ny forespørsel
 
 ### Sigar
-- ⬜ Ønskeliste («Legg i ønskeliste»)
+- ✅ Ønskeliste (bokmerke-toggle på detalj + egen ønskeliste-side via Utforsk)
 - ⬜ Legg til sigar manuelt (når AI/søk ikke finner den)
-- ⬜ Rapporter feil på en sigar
+- ✅ Rapporter feil på en sigar («Meld feil» → report_cigar)
 - ⬜ Hurtighandlinger ved langt trykk
 
 ### Humidor
