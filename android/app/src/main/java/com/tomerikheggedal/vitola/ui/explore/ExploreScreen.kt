@@ -138,7 +138,6 @@ class ExploreViewModel : ViewModel() {
 fun ExploreScreen(
     onBrand: (String) -> Unit,
     onCigar: (String) -> Unit,
-    onWishlist: () -> Unit = {},
     vm: ExploreViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
@@ -192,11 +191,6 @@ fun ExploreScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Utforsk", fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = onWishlist) {
-                        Icon(Icons.Outlined.BookmarkBorder, "Ønskeliste")
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )

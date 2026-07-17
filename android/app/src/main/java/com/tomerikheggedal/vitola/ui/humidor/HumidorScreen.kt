@@ -26,9 +26,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.HumidorUi
 import com.tomerikheggedal.vitola.data.Supa
+import com.tomerikheggedal.vitola.data.WishlistRepository
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
@@ -36,7 +38,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HumidorScreen(onHumidor: (String) -> Unit = {}) {
+fun HumidorScreen(onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
@@ -47,6 +49,11 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}) {
     var showAdd by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
 
+    // Segmentert fane: 0 = Humidor, 1 = Ønskeliste (som iOS).
+    var tab by remember { mutableStateOf(0) }
+    var wishlist by remember { mutableStateOf<List<Cigar>>(emptyList()) }
+    var loadingWishlist by remember { mutableStateOf(false) }
+
     // Last humidorene når man er (blir) innlogget, eller etter at en ny er lagt til.
     LaunchedEffect(isAuthed, reloadKey) {
         if (isAuthed) {
@@ -56,6 +63,15 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}) {
             loading = false
         } else {
             humidors = emptyList()
+        }
+    }
+
+    // Last ønskelista hver gang fanen vises (så bokmerke-endringer reflekteres).
+    LaunchedEffect(isAuthed, tab) {
+        if (isAuthed && tab == 1) {
+            loadingWishlist = true
+            wishlist = runCatching { WishlistRepository.list() }.getOrDefault(emptyList())
+            loadingWishlist = false
         }
     }
 
@@ -80,33 +96,77 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}) {
             )
         }
     ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
-            when {
-                !isAuthed -> LoginPrompt { scope.launch { Supa.client.auth.signInWith(Google) } }
-                loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                error != null -> Text(
-                    error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp)
-                )
-                humidors.isEmpty() -> Column(
-                    Modifier.align(Alignment.Center).padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            // Segment-velger (Humidor / Ønskeliste) — kun innlogget.
+            if (isAuthed) {
+                SingleChoiceSegmentedButtonRow(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    Text(
-                        "Du har ingen humidorer ennå.",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = { showAdd = true }) { Text("Opprett humidor") }
+                    SegmentedButton(
+                        selected = tab == 0, onClick = { tab = 0 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) { Text("Humidor") }
+                    SegmentedButton(
+                        selected = tab == 1, onClick = { tab = 1 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) { Text("Ønskeliste") }
                 }
-                else -> LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(humidors, key = { it.row.id }) { h -> HumidorCard(h) { onHumidor(h.row.id) } }
+            }
+
+            Box(Modifier.fillMaxSize()) {
+                when {
+                    !isAuthed -> LoginPrompt { scope.launch { Supa.client.auth.signInWith(Google) } }
+
+                    tab == 1 -> when {
+                        loadingWishlist -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                        wishlist.isEmpty() -> Column(
+                            Modifier.align(Alignment.Center).padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Ønskelisten er tom.", style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.height(6.dp))
+                            Text("Finn sigarer i Utforsk og trykk bokmerket for å lagre dem her.",
+                                textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        else -> LazyColumn(Modifier.fillMaxSize()) {
+                            item {
+                                Text("Ønskeliste (${wishlist.size})",
+                                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp))
+                            }
+                            items(wishlist, key = { it.id }) { c ->
+                                WishlistRow(cigar = c, onClick = { onCigar(c.id) })
+                                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            }
+                        }
+                    }
+
+                    loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    error != null -> Text(
+                        error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.align(Alignment.Center).padding(24.dp)
+                    )
+                    humidors.isEmpty() -> Column(
+                        Modifier.align(Alignment.Center).padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "Du har ingen humidorer ennå.",
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = { showAdd = true }) { Text("Opprett humidor") }
+                    }
+                    else -> LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(humidors, key = { it.row.id }) { h -> HumidorCard(h) { onHumidor(h.row.id) } }
+                    }
                 }
             }
         }
@@ -117,6 +177,22 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}) {
             onDismiss = { showAdd = false },
             onCreated = { showAdd = false; reloadKey++ }
         )
+    }
+}
+
+// Rad i ønskelista: sigarnavn + format, tappbar til detalj.
+@Composable
+private fun WishlistRow(cigar: Cigar, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(cigar.brand, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            val sub = listOfNotNull(cigar.series, cigar.vitola).joinToString(" · ")
+            if (sub.isNotBlank()) Text(sub, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

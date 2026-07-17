@@ -32,7 +32,6 @@ import androidx.navigation.compose.rememberNavController
 import com.tomerikheggedal.vitola.ui.detail.CigarDetailScreen
 import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
 import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
-import com.tomerikheggedal.vitola.ui.explore.WishlistScreen
 import com.tomerikheggedal.vitola.ui.feed.FeedScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
@@ -128,13 +127,6 @@ fun VitolaApp() {
             composable("explore") {
                 ExploreScreen(
                     onBrand = { nav.navigate("brand/${it}") },
-                    onCigar = { nav.navigate("cigar/${it}") },
-                    onWishlist = { nav.navigate("wishlist") }
-                )
-            }
-            composable("wishlist") {
-                WishlistScreen(
-                    onBack = { nav.popBackStack() },
                     onCigar = { nav.navigate("cigar/${it}") }
                 )
             }
@@ -152,7 +144,10 @@ fun VitolaApp() {
                 )
             }
             composable("humidor") {
-                HumidorScreen(onHumidor = { nav.navigate("humidorDetail/${it}") })
+                HumidorScreen(
+                    onHumidor = { nav.navigate("humidorDetail/${it}") },
+                    onCigar = { nav.navigate("cigar/${it}") }
+                )
             }
             composable("humidorDetail/{id}") { entry ->
                 HumidorDetailScreen(
