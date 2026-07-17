@@ -88,6 +88,23 @@ object FeedRepository {
             ) { filter { eq("id", inserted.id) } }
         }
     }
+
+    // MARK: Moderering (slett / rapporter / blokker) — samme RPC-er som iOS.
+
+    /** Slett eget innlegg. RLS sørger for at kun eier kan slette. */
+    suspend fun deletePost(postId: String) {
+        Supa.client.from("posts").delete { filter { eq("id", postId) } }
+    }
+
+    /** Rapporter et innlegg med oppgitt grunn. */
+    suspend fun reportPost(postId: String, reason: String) {
+        Supa.client.postgrest.rpc("report_post", ReportParams(postId, reason))
+    }
+
+    /** Blokker en bruker — skjuler innhold begge veier og fjerner evt. vennskap. */
+    suspend fun blockUser(userId: String) {
+        Supa.client.postgrest.rpc("block_user", BlockParams(userId))
+    }
 }
 
 @Serializable
@@ -101,6 +118,12 @@ private data class NewComment(val user_id: String, val post_id: String, val cont
 
 @Serializable
 private data class NewPost(val user_id: String, val content: String? = null)
+
+@Serializable
+private data class ReportParams(val p_post_id: String, val p_reason: String)
+
+@Serializable
+private data class BlockParams(val p_blocked_id: String)
 
 @Serializable
 private data class InsertedId(val id: String)

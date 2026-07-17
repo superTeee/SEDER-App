@@ -50,7 +50,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ⬜ Tell ned antall ved «Marker som røkt»
 
 ### Feed
-- ⬜ 3-prikks-meny på innlegg (slett eget, rapporter, blokker)
+- ✅ 3-prikks-meny på innlegg (slett eget, rapporter m/grunn, blokker bruker)
 
 ### Skanning
 - ⬜ Strekkode-skanning

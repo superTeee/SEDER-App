@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -74,6 +75,7 @@ fun FeedScreen(onUser: (String) -> Unit = {}) {
     val isAuthed = status is SessionStatus.Authenticated
 
     val context = LocalContext.current
+    val currentUserId = Supa.client.auth.currentUserOrNull()?.id
     var posts by remember { mutableStateOf<List<FeedPost>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var openPost by remember { mutableStateOf<FeedPost?>(null) }
@@ -133,7 +135,24 @@ fun FeedScreen(onUser: (String) -> Unit = {}) {
                             onComments = { openPost = post },
                             onShare = { sharePost(context, post) },
                             onOpen = { openPost = post },
-                            onAuthor = { onUser(post.userId) }
+                            onAuthor = { onUser(post.userId) },
+                            currentUserId = currentUserId,
+                            onDelete = {
+                                scope.launch {
+                                    runCatching { FeedRepository.deletePost(post.id) }
+                                    posts = posts.filterNot { it.id == post.id }
+                                }
+                            },
+                            onReport = { reason ->
+                                scope.launch { runCatching { FeedRepository.reportPost(post.id, reason) } }
+                                android.widget.Toast.makeText(context, "Takk for rapporten", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            onBlock = {
+                                scope.launch {
+                                    runCatching { FeedRepository.blockUser(post.userId) }
+                                    posts = posts.filterNot { it.userId == post.userId }
+                                }
+                            }
                         )
                         // Skillestrek mellom innlegg (Facebook-stil).
                         HorizontalDivider(thickness = 8.dp, color = MaterialTheme.colorScheme.background)
@@ -251,6 +270,93 @@ private fun compressImage(context: android.content.Context, uri: android.net.Uri
     return out.toByteArray()
 }
 
+// 3-prikks kontekstmeny på et innlegg (som iOS PostMenuButton).
+@Composable
+private fun PostMenu(
+    post: FeedPost,
+    currentUserId: String?,
+    onDelete: () -> Unit,
+    onReport: (String) -> Unit,
+    onBlock: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var showDelete by remember { mutableStateOf(false) }
+    var showBlock by remember { mutableStateOf(false) }
+    var showReport by remember { mutableStateOf(false) }
+    val isOwner = currentUserId != null && post.userId == currentUserId
+
+    Box {
+        IconButton(onClick = { expanded = true }, modifier = Modifier.size(30.dp)) {
+            Icon(Icons.Filled.MoreVert, contentDescription = "Mer",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (isOwner) {
+                DropdownMenuItem(text = { Text("Slett innlegg") },
+                    onClick = { expanded = false; showDelete = true })
+            } else {
+                DropdownMenuItem(text = { Text("Rapporter innlegg") },
+                    onClick = { expanded = false; showReport = true })
+                DropdownMenuItem(text = { Text("Blokker ${post.authorName}") },
+                    onClick = { expanded = false; showBlock = true })
+            }
+        }
+    }
+
+    if (showDelete) {
+        AlertDialog(
+            onDismissRequest = { showDelete = false },
+            title = { Text("Slett innlegg?") },
+            text = { Text("Dette fjerner innlegget permanent. Handlingen kan ikke angres.") },
+            confirmButton = {
+                TextButton(onClick = { showDelete = false; onDelete() }) {
+                    Text("Slett", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Avbryt") } }
+        )
+    }
+    if (showBlock) {
+        AlertDialog(
+            onDismissRequest = { showBlock = false },
+            title = { Text("Blokker ${post.authorName}?") },
+            text = { Text("Du vil ikke lenger se innlegg eller kommentarer fra ${post.authorName}, og dere fjernes som venner.") },
+            confirmButton = {
+                TextButton(onClick = { showBlock = false; onBlock() }) {
+                    Text("Blokker", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { showBlock = false }) { Text("Avbryt") } }
+        )
+    }
+    if (showReport) {
+        AlertDialog(
+            onDismissRequest = { showReport = false },
+            title = { Text("Rapporter innlegg") },
+            text = {
+                Column {
+                    Text("Hvorfor rapporterer du dette innlegget?",
+                        modifier = Modifier.padding(bottom = 4.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOf(
+                        "spam" to "Spam eller villedende",
+                        "inappropriate" to "Upassende innhold",
+                        "harassment" to "Trakassering eller hat",
+                        "other" to "Annet",
+                    ).forEach { (code, label) ->
+                        Text(label, style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable { showReport = false; onReport(code) }
+                                .padding(vertical = 12.dp))
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showReport = false }) { Text("Avbryt") } }
+        )
+    }
+}
+
 @Composable
 private fun PostCard(
     post: FeedPost,
@@ -259,6 +365,10 @@ private fun PostCard(
     onOpen: (() -> Unit)? = null,
     onAuthor: (() -> Unit)? = null,
     showCommentPreview: Boolean = true,
+    currentUserId: String? = null,
+    onDelete: (() -> Unit)? = null,
+    onReport: ((String) -> Unit)? = null,
+    onBlock: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     // Lokalt optimistisk like-state.
@@ -290,6 +400,10 @@ private fun PostCard(
                 Text(post.authorName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
                 Text(relativeTime(post.createdAt), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // 3-prikks-meny (slett eget / rapporter / blokker) — kun i feed-lista.
+            if (onReport != null && onBlock != null && onDelete != null) {
+                PostMenu(post, currentUserId, onDelete, onReport, onBlock)
             }
         }
 
