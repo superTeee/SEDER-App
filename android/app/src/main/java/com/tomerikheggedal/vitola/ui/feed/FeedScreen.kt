@@ -196,9 +196,7 @@ private fun NewPostSheet(onDismiss: () -> Unit, onPosted: () -> Unit) {
     var posting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) imageUri = uri
-    }
+    val pickImage = com.tomerikheggedal.vitola.ui.rememberCropPicker(0, 0) { uri -> imageUri = uri }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface) {
@@ -224,7 +222,7 @@ private fun NewPostSheet(onDismiss: () -> Unit, onPosted: () -> Unit) {
             }
 
             TextButton(
-                onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                onClick = pickImage,
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Icon(Icons.Filled.CameraAlt, null, modifier = Modifier.size(18.dp))

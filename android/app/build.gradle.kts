@@ -69,6 +69,9 @@ dependencies {
     // On-device OCR (iOS bruker Apple Vision; ML Kit er Android-motparten).
     implementation("com.google.mlkit:text-recognition:16.0.1")
 
+    // Bilde-beskjæring ved opplasting (iOS bruker Mantis; dette er Android-motparten).
+    implementation("com.vanniktech:android-image-cropper:4.6.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
 }

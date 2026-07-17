@@ -51,10 +51,8 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
     var entryMenu by remember { mutableStateOf<HumidorContentRow?>(null) }
     var showMove by remember { mutableStateOf<HumidorContentRow?>(null) }
 
-    val coverPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) scope.launch {
+    val pickCover = com.tomerikheggedal.vitola.ui.rememberCropPicker(16, 9) { uri ->
+        scope.launch {
             uploadingCover = true
             val jpeg = uriToJpeg(context, uri)
             if (jpeg != null) runCatching { HumidorRepository.uploadCover(id, jpeg) }
@@ -91,12 +89,7 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
                             DropdownMenuItem(text = { Text("Rediger humidor") },
                                 onClick = { menuOpen = false; showEdit = true })
                             DropdownMenuItem(text = { Text("Bytt forsidebilde") },
-                                onClick = {
-                                    menuOpen = false
-                                    coverPicker.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                })
+                                onClick = { menuOpen = false; pickCover() })
                             DropdownMenuItem(text = { Text("Slett humidor") },
                                 onClick = { menuOpen = false; showDelete = true })
                         }

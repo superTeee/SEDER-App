@@ -82,30 +82,26 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
     var uploadingCover by remember { mutableStateOf(false) }
     var showBioEditor by remember { mutableStateOf(false) }
 
-    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            uploadingAvatar = true
-            scope.launch {
-                runCatching {
-                    val jpeg = withContext(Dispatchers.IO) { compressImage(context, uri, 800) }
-                    if (jpeg != null) ProfileRepository.uploadAvatar(jpeg)
-                }
-                uploadingAvatar = false
-                reloadKey++
+    val pickAvatar = com.tomerikheggedal.vitola.ui.rememberCropPicker(1, 1) { uri ->
+        uploadingAvatar = true
+        scope.launch {
+            runCatching {
+                val jpeg = withContext(Dispatchers.IO) { compressImage(context, uri, 800) }
+                if (jpeg != null) ProfileRepository.uploadAvatar(jpeg)
             }
+            uploadingAvatar = false
+            reloadKey++
         }
     }
-    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            uploadingCover = true
-            scope.launch {
-                runCatching {
-                    val jpeg = withContext(Dispatchers.IO) { compressImage(context, uri, 1400) }
-                    if (jpeg != null) ProfileRepository.uploadCover(jpeg)
-                }
-                uploadingCover = false
-                reloadKey++
+    val pickCover = com.tomerikheggedal.vitola.ui.rememberCropPicker(16, 9) { uri ->
+        uploadingCover = true
+        scope.launch {
+            runCatching {
+                val jpeg = withContext(Dispatchers.IO) { compressImage(context, uri, 1400) }
+                if (jpeg != null) ProfileRepository.uploadCover(jpeg)
             }
+            uploadingCover = false
+            reloadKey++
         }
     }
 
@@ -151,7 +147,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
                         CoverBanner(
                             url = profile?.coverUrl,
                             uploading = uploadingCover,
-                            onClick = { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                            onClick = pickCover
                         )
                         Box(
                             Modifier.align(Alignment.BottomCenter).offset(y = 44.dp)
@@ -160,7 +156,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
                             Avatar(
                                 url = profile?.avatarUrl ?: ProfileRepository.authAvatar(),
                                 uploading = uploadingAvatar,
-                                onClick = { avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                                onClick = pickAvatar
                             )
                         }
                     }

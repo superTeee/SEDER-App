@@ -65,7 +65,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
   - NB: Apple-provideren må være aktivert i Supabase-dashbordet for at knappen skal virke
 
 ### Bilder
-- ⬜ Beskjæring (cropper) ved opplasting
+- ✅ Beskjæring (cropper) ved opplasting — android-image-cropper koblet inn på avatar (1:1), cover (16:9), humidor-cover (16:9) og feed-innlegg (fritt)
 - ✅ Cover-bilde på profil (banner + overlappende avatar, uploadCover → cover_url)
 
 ### Admin
