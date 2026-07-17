@@ -44,10 +44,10 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ✅ Hurtighandlinger ved langt trykk (humidor / røkt / ønskeliste / del)
 
 ### Humidor
-- ⬜ Rediger / slett humidor
-- ⬜ Cover-bilde på humidor
-- ⬜ Flytt sigar mellom humidorer / fjern sigar
-- ⬜ Tell ned antall ved «Marker som røkt»
+- ✅ Rediger / slett humidor (3-prikks-meny → rediger-ark / slett m/bekreftelse)
+- ✅ Cover-bilde på humidor («Bytt forsidebilde» → humidor-covers-bøtta)
+- ✅ Flytt sigar mellom humidorer / fjern sigar (long-trykk på sigar-rad)
+- ✅ Tell ned antall ved «Marker som røkt» (dekrementer humidor-oppføring, min 0)
 
 ### Feed
 - ✅ 3-prikks-meny på innlegg (slett eget, rapporter m/grunn, blokker bruker)

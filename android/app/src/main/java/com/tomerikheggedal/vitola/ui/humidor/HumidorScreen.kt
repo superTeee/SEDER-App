@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.HumidorRepository
+import com.tomerikheggedal.vitola.data.HumidorRow
 import com.tomerikheggedal.vitola.data.HumidorUi
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.WishlistRepository
@@ -215,14 +216,15 @@ private fun LoginPrompt(onLogin: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
+fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit, existing: HumidorRow? = null) {
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val editing = existing != null
 
-    var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf<String?>("Desktop") }
-    var location by remember { mutableStateOf("") }
-    var capacityText by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var type by remember { mutableStateOf<String?>(existing?.type ?: "Desktop") }
+    var location by remember { mutableStateOf(existing?.location ?: "") }
+    var capacityText by remember { mutableStateOf(existing?.capacity?.toString() ?: "") }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -234,7 +236,8 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Ny humidor", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(if (editing) "Rediger humidor" else "Ny humidor",
+                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
 
             OutlinedTextField(
                 value = name,
@@ -283,15 +286,25 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                     saving = true; error = null
                     scope.launch {
                         try {
-                            HumidorRepository.createHumidor(
-                                name = name.trim(),
-                                type = type,
-                                location = location.trim(),
-                                capacity = capacityText.toIntOrNull()
-                            )
+                            if (editing) {
+                                HumidorRepository.updateHumidor(
+                                    id = existing!!.id,
+                                    name = name.trim(),
+                                    type = type,
+                                    location = location.trim(),
+                                    capacity = capacityText.toIntOrNull()
+                                )
+                            } else {
+                                HumidorRepository.createHumidor(
+                                    name = name.trim(),
+                                    type = type,
+                                    location = location.trim(),
+                                    capacity = capacityText.toIntOrNull()
+                                )
+                            }
                             onCreated()
                         } catch (e: Exception) {
-                            error = e.message ?: "Kunne ikke opprette humidor"
+                            error = e.message ?: "Kunne ikke lagre humidor"
                             saving = false
                         }
                     }
@@ -303,7 +316,7 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit) {
                 else {
                     Icon(Icons.Filled.Check, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Opprett humidor")
+                    Text(if (editing) "Lagre endringer" else "Opprett humidor")
                 }
             }
         }

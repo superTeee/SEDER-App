@@ -4,8 +4,11 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.Instant
 
 @Serializable
@@ -24,6 +27,7 @@ data class HumidorUi(val row: HumidorRow, val count: Int)
 /** Én rad i en humidor: sigaren + antall. */
 @Serializable
 data class HumidorContentRow(
+    val id: String? = null,   // oppførings-id (for flytt/fjern)
     val quantity: Int? = null,
     @SerialName("added_to_humidor_at") val addedAt: String? = null,
     @SerialName("cigars") val cigar: Cigar? = null,
@@ -65,7 +69,7 @@ object HumidorRepository {
     suspend fun humidorContents(humidorId: String): List<HumidorContentRow> {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
         return Supa.client.from("humidor")
-            .select(columns = Columns.raw("quantity, added_to_humidor_at, cigars(*)")) {
+            .select(columns = Columns.raw("id, quantity, added_to_humidor_at, cigars(*)")) {
                 filter {
                     eq("humidor_id", humidorId)
                     eq("user_id", userId)
@@ -129,10 +133,76 @@ object HumidorRepository {
             )
         )
     }
+
+    // MARK: Rediger/slett humidor + flytt/fjern oppføring — samme tabeller som iOS.
+
+    /** Oppdater en humidor. */
+    suspend fun updateHumidor(id: String, name: String, type: String?, location: String?, capacity: Int?) {
+        Supa.client.from("humidors").update(
+            HumidorPatch(name = name, type = type, location = location?.ifBlank { null }, capacity = capacity)
+        ) { filter { eq("id", id) } }
+    }
+
+    /** Slett en humidor. Sigarene beholdes (humidor_id → null via ON DELETE SET NULL). */
+    suspend fun deleteHumidor(id: String) {
+        Supa.client.from("humidors").delete { filter { eq("id", id) } }
+    }
+
+    /** Flytt en sigar-oppføring til en annen humidor. */
+    suspend fun moveEntry(entryId: String, toHumidorId: String) {
+        Supa.client.from("humidor").update(
+            buildJsonObject { put("humidor_id", toHumidorId) }
+        ) { filter { eq("id", entryId) } }
+    }
+
+    /** Fjern en sigar-oppføring helt fra humidoren. */
+    suspend fun removeEntry(entryId: String) {
+        Supa.client.from("humidor").delete { filter { eq("id", entryId) } }
+    }
+
+    /** Sett nytt antall på en oppføring. */
+    suspend fun updateQuantity(entryId: String, quantity: Int) {
+        Supa.client.from("humidor").update(
+            buildJsonObject { put("quantity", quantity) }
+        ) { filter { eq("id", entryId) } }
+    }
+
+    /** Dekrementer antall med 1 (minst 0) — brukes når man markerer en sigar som røkt. */
+    suspend fun decrementEntry(entryId: String) {
+        val current = Supa.client.from("humidor")
+            .select(columns = Columns.list("quantity")) { filter { eq("id", entryId) } }
+            .decodeList<QuantityRow>()
+            .firstOrNull()?.quantity ?: return
+        updateQuantity(entryId, (current - 1).coerceAtLeast(0))
+    }
+
+    /** Last opp forsidebilde (bucket: humidor-covers, lowercase path for RLS) og skriv image_url. */
+    suspend fun uploadCover(humidorId: String, imageJpeg: ByteArray) {
+        val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
+        val path = "${userId.lowercase()}/${humidorId.lowercase()}.jpg"
+        Supa.client.storage.from("humidor-covers").upload(path, imageJpeg, upsert = true)
+        // Cache-buster så det nye bildet vises (path er deterministisk).
+        val url = Supa.client.storage.from("humidor-covers").publicUrl(path) +
+            "?v=${System.currentTimeMillis() / 1000}"
+        Supa.client.from("humidors").update(
+            buildJsonObject { put("image_url", url) }
+        ) { filter { eq("id", humidorId) } }
+    }
 }
 
 @Serializable
 private data class EntryIdRow(val id: String)
+
+@Serializable
+private data class QuantityRow(val quantity: Int? = null)
+
+@Serializable
+private data class HumidorPatch(
+    val name: String,
+    val type: String? = null,
+    val location: String? = null,
+    val capacity: Int? = null,
+)
 
 @Serializable
 private data class EntryCount(

@@ -98,6 +98,10 @@ object JournalRepository {
                 store = store?.ifBlank { null },
             )
         )
+        // Røyker man en sigar fra en humidor, teller vi ned antallet (minst 0) — som iOS.
+        if (humidorEntryId != null) {
+            runCatching { HumidorRepository.decrementEntry(humidorEntryId) }
+        }
     }
 }
 
