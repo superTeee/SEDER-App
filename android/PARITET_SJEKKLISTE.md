@@ -1,7 +1,7 @@
 # Vitola Android — paritet-sjekkliste
 
 Status for Android-appen sammenlignet med iOS. Oppdateres etter hvert som vi jobber.
-Sist oppdatert: 2026-07-17
+Sist oppdatert: 2026-07-16
 
 Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 
@@ -11,6 +11,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 
 - ✅ Feed: alle innlegg, likes, kommentarer, nytt innlegg m/bilde, del, detaljvisning
 - ✅ Feed: klikk forfatter → begrenset profil
+- ✅ Feed: Facebook-stil (full bredde, hele bildet uten crop, 2 kommentarer forhåndsvist, skillestrek mellom innlegg) — begge plattformer
 - ✅ Utforsk: søk (merke/serie/form + smaksnoter), treff-teller
 - ✅ Utforsk: avansert filter (alle iOS-kategorier), søkehistorikk
 - ✅ Utforsk: Brukernes topp 3 + Dagens utvalgte
