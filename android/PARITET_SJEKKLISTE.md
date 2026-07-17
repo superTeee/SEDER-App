@@ -17,6 +17,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ✅ Utforsk: Brukernes topp 3 + Dagens utvalgte
 - ✅ AI-skanning av sigarbånd (scan-cigar Edge Function)
 - ✅ Humidor: liste, opprett (m/type-forklaringer), legg i humidor, detalj
+- ✅ RH-logging per humidor: mål-RH/område, RH-kort m/rolig status, «Registrer RH»-ark, historikk (begge plattformer; DB-migrasjon humidor_rh)
 - ✅ Journal: liste + rediger/slett innlegg
 - ✅ Profil: hero, 4-cellers stats, smaksprofil, sist røkt, avatar-opplasting
 - ✅ Innstillinger: konto, tema (system/lys/mørk), endre navn/sted, tilbakemelding, logg ut

@@ -225,6 +225,9 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit, existing: Humi
     var type by remember { mutableStateOf<String?>(existing?.type ?: "Desktop") }
     var location by remember { mutableStateOf(existing?.location ?: "") }
     var capacityText by remember { mutableStateOf(existing?.capacity?.toString() ?: "") }
+    var targetRh by remember { mutableStateOf(existing?.targetRh?.toString() ?: "") }
+    var rhMin by remember { mutableStateOf(existing?.rhMin?.toString() ?: "") }
+    var rhMax by remember { mutableStateOf(existing?.rhMax?.toString() ?: "") }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -287,6 +290,31 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit, existing: Humi
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // Luftfuktighet (RH)
+            Text("Luftfuktighet (RH)", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("RH står for relativ luftfuktighet — hvor fuktig det er inne i humidoren. Sett gjerne et mål (f.eks. 69 %) og et valgfritt område.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = targetRh,
+                onValueChange = { targetRh = it.filter { c -> c.isDigit() }.take(3) },
+                label = { Text("Mål-RH (%)") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = rhMin, onValueChange = { rhMin = it.filter { c -> c.isDigit() }.take(3) },
+                    label = { Text("Fra (%)") }, singleLine = true, modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = rhMax, onValueChange = { rhMax = it.filter { c -> c.isDigit() }.take(3) },
+                    label = { Text("Til (%)") }, singleLine = true, modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
 
             Button(
@@ -301,14 +329,20 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit, existing: Humi
                                     name = name.trim(),
                                     type = type,
                                     location = location.trim(),
-                                    capacity = capacityText.toIntOrNull()
+                                    capacity = capacityText.toIntOrNull(),
+                                    targetRh = targetRh.toIntOrNull(),
+                                    rhMin = rhMin.toIntOrNull(),
+                                    rhMax = rhMax.toIntOrNull(),
                                 )
                             } else {
                                 HumidorRepository.createHumidor(
                                     name = name.trim(),
                                     type = type,
                                     location = location.trim(),
-                                    capacity = capacityText.toIntOrNull()
+                                    capacity = capacityText.toIntOrNull(),
+                                    targetRh = targetRh.toIntOrNull(),
+                                    rhMin = rhMin.toIntOrNull(),
+                                    rhMax = rhMax.toIntOrNull(),
                                 )
                             }
                             onCreated()

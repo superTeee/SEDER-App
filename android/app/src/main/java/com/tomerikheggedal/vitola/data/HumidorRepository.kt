@@ -19,7 +19,63 @@ data class HumidorRow(
     val location: String? = null,
     val capacity: Int? = null,
     @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("target_rh") val targetRh: Int? = null,
+    @SerialName("rh_min") val rhMin: Int? = null,
+    @SerialName("rh_max") val rhMax: Int? = null,
+) {
+    /** «69 %» eller «67–71 %» — mål-RH for visning, eller null. */
+    val rhTargetLabel: String?
+        get() = when {
+            rhMin != null && rhMax != null -> "$rhMin–$rhMax %"
+            targetRh != null -> "$targetRh %"
+            else -> null
+        }
+}
+
+// Én registrert RH-måling. Matcher humidor_rh_readings-tabellen.
+@Serializable
+data class RhReading(
+    val id: String,
+    @SerialName("humidor_id") val humidorId: String,
+    val rh: Double,
+    val temperature: Double? = null,
+    val note: String? = null,
+    @SerialName("measured_at") val measuredAt: String,
 )
+
+// Rolig status basert på siste MÅLTE RH mot mål/område (samme logikk som iOS).
+enum class RhStatus(val label: String) {
+    NONE("Ingen målinger"),
+    TOO_DRY("For tørr"),
+    SLIGHTLY_LOW("Litt under målet"),
+    STABLE("Stabil"),
+    SLIGHTLY_HIGH("Litt over målet"),
+    TOO_WET("For fuktig"),
+}
+
+fun rhStatus(rh: Double?, targetRh: Int?, rhMin: Int?, rhMax: Int?): RhStatus {
+    if (rh == null) return RhStatus.NONE
+    if (rhMin != null && rhMax != null) {
+        return when {
+            rh < rhMin - 3 -> RhStatus.TOO_DRY
+            rh < rhMin -> RhStatus.SLIGHTLY_LOW
+            rh <= rhMax -> RhStatus.STABLE
+            rh <= rhMax + 3 -> RhStatus.SLIGHTLY_HIGH
+            else -> RhStatus.TOO_WET
+        }
+    }
+    if (targetRh != null) {
+        val d = rh - targetRh
+        return when {
+            d < -4 -> RhStatus.TOO_DRY
+            d < -1 -> RhStatus.SLIGHTLY_LOW
+            d <= 1 -> RhStatus.STABLE
+            d <= 4 -> RhStatus.SLIGHTLY_HIGH
+            else -> RhStatus.TOO_WET
+        }
+    }
+    return RhStatus.STABLE
+}
 
 /** Humidor + antall sigarer (antall regnes separat, ikke fra tabellen). */
 data class HumidorUi(val row: HumidorRow, val count: Int)
@@ -40,7 +96,7 @@ object HumidorRepository {
     /** Brukerens humidorer med antall sigarer. */
     suspend fun myHumidors(): List<HumidorUi> {
         val humidors = Supa.client.from("humidors")
-            .select(columns = Columns.list("id", "name", "type", "location", "capacity", "image_url"))
+            .select(columns = Columns.list("id", "name", "type", "location", "capacity", "image_url", "target_rh", "rh_min", "rh_max"))
             .decodeList<HumidorRow>()
 
         val entries = Supa.client.from("humidor")
@@ -58,7 +114,7 @@ object HumidorRepository {
     /** Én humidor (metadata). */
     suspend fun humidorById(id: String): HumidorRow? {
         return Supa.client.from("humidors")
-            .select(columns = Columns.list("id", "name", "type", "location", "capacity", "image_url")) {
+            .select(columns = Columns.list("id", "name", "type", "location", "capacity", "image_url", "target_rh", "rh_min", "rh_max")) {
                 filter { eq("id", id) }
             }
             .decodeList<HumidorRow>()
@@ -94,7 +150,10 @@ object HumidorRepository {
     )
 
     /** Opprett en ny humidor for den innloggede brukeren. */
-    suspend fun createHumidor(name: String, type: String?, location: String?, capacity: Int?) {
+    suspend fun createHumidor(
+        name: String, type: String?, location: String?, capacity: Int?,
+        targetRh: Int? = null, rhMin: Int? = null, rhMax: Int? = null,
+    ) {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
         Supa.client.from("humidors").insert(
             NewHumidor(
@@ -102,7 +161,33 @@ object HumidorRepository {
                 name = name,
                 type = type,
                 location = location?.ifBlank { null },
-                capacity = capacity
+                capacity = capacity,
+                target_rh = targetRh,
+                rh_min = rhMin,
+                rh_max = rhMax,
+            )
+        )
+    }
+
+    /** Alle RH-målinger for en humidor, nyeste først. */
+    suspend fun readings(humidorId: String): List<RhReading> {
+        return Supa.client.from("humidor_rh_readings")
+            .select(columns = Columns.list("id", "humidor_id", "rh", "temperature", "note", "measured_at")) {
+                filter { eq("humidor_id", humidorId) }
+                order("measured_at", Order.DESCENDING)
+            }
+            .decodeList()
+    }
+
+    /** Registrer en ny RH-måling. user_id settes av DB via auth.uid(). */
+    suspend fun addReading(humidorId: String, rh: Double, temperature: Double?, note: String?, measuredAt: String) {
+        Supa.client.from("humidor_rh_readings").insert(
+            NewRhReading(
+                humidor_id = humidorId,
+                rh = rh,
+                temperature = temperature,
+                note = note?.ifBlank { null },
+                measured_at = measuredAt,
             )
         )
     }
@@ -137,9 +222,15 @@ object HumidorRepository {
     // MARK: Rediger/slett humidor + flytt/fjern oppføring — samme tabeller som iOS.
 
     /** Oppdater en humidor. */
-    suspend fun updateHumidor(id: String, name: String, type: String?, location: String?, capacity: Int?) {
+    suspend fun updateHumidor(
+        id: String, name: String, type: String?, location: String?, capacity: Int?,
+        targetRh: Int? = null, rhMin: Int? = null, rhMax: Int? = null,
+    ) {
         Supa.client.from("humidors").update(
-            HumidorPatch(name = name, type = type, location = location?.ifBlank { null }, capacity = capacity)
+            HumidorPatch(
+                name = name, type = type, location = location?.ifBlank { null }, capacity = capacity,
+                target_rh = targetRh, rh_min = rhMin, rh_max = rhMax,
+            )
         ) { filter { eq("id", id) } }
     }
 
@@ -202,6 +293,18 @@ private data class HumidorPatch(
     val type: String? = null,
     val location: String? = null,
     val capacity: Int? = null,
+    val target_rh: Int? = null,
+    val rh_min: Int? = null,
+    val rh_max: Int? = null,
+)
+
+@Serializable
+private data class NewRhReading(
+    val humidor_id: String,
+    val rh: Double,
+    val temperature: Double? = null,
+    val note: String? = null,
+    val measured_at: String,
 )
 
 @Serializable
@@ -217,6 +320,9 @@ private data class NewHumidor(
     val type: String? = null,
     val location: String? = null,
     val capacity: Int? = null,
+    val target_rh: Int? = null,
+    val rh_min: Int? = null,
+    val rh_max: Int? = null,
 )
 
 @Serializable

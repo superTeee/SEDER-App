@@ -7,17 +7,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -26,6 +33,9 @@ import com.tomerikheggedal.vitola.data.HumidorContentRow
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.HumidorRow
 import com.tomerikheggedal.vitola.data.HumidorUi
+import com.tomerikheggedal.vitola.data.RhReading
+import com.tomerikheggedal.vitola.data.RhStatus
+import com.tomerikheggedal.vitola.data.rhStatus
 import com.tomerikheggedal.vitola.ui.components.ListCard
 import com.tomerikheggedal.vitola.ui.components.NavRow
 import com.tomerikheggedal.vitola.ui.components.RowDivider
@@ -40,9 +50,11 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
 
     var humidor by remember { mutableStateOf<HumidorRow?>(null) }
     var contents by remember { mutableStateOf<List<HumidorContentRow>>(emptyList()) }
+    var readings by remember { mutableStateOf<List<com.tomerikheggedal.vitola.data.RhReading>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var reloadKey by remember { mutableStateOf(0) }
+    var showRhSheet by remember { mutableStateOf(false) }
 
     var menuOpen by remember { mutableStateOf(false) }
     var showEdit by remember { mutableStateOf(false) }
@@ -66,6 +78,7 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
         try {
             humidor = HumidorRepository.humidorById(id)
             contents = HumidorRepository.humidorContents(id)
+            readings = runCatching { HumidorRepository.readings(id) }.getOrDefault(emptyList())
         } catch (e: Exception) {
             error = e.message ?: "Kunne ikke laste humidoren"
         }
@@ -108,6 +121,10 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
             }
             else -> LazyColumn(Modifier.padding(padding).fillMaxSize()) {
                 item { HumidorHeader(humidor, contents.sumOf { it.quantity ?: 1 }, uploadingCover) }
+
+                item {
+                    humidor?.let { RhCard(it, readings, onRegister = { showRhSheet = true }) }
+                }
 
                 if (contents.isEmpty()) {
                     item {
@@ -199,6 +216,20 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
                 scope.launch { row.id?.let { runCatching { HumidorRepository.moveEntry(it, targetId) } }; reloadKey++ }
             },
             onDismiss = { showMove = null }
+        )
+    }
+
+    // Registrer RH-måling
+    if (showRhSheet) {
+        RhReadingSheet(
+            onDismiss = { showRhSheet = false },
+            onSave = { rh, temp, note, measuredAt ->
+                showRhSheet = false
+                scope.launch {
+                    runCatching { HumidorRepository.addReading(id, rh, temp, note, measuredAt) }
+                    reloadKey++
+                }
+            }
         )
     }
 }
@@ -311,6 +342,161 @@ private fun MoveHumidorPickerSheet(currentId: String, onPick: (String) -> Unit, 
             }
         }
     }
+}
+
+// RH-kort: sist målte RH + mål/status + Registrer RH-knapp + historikk.
+@Composable
+private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: () -> Unit) {
+    val latest = readings.firstOrNull()
+    val status = rhStatus(latest?.rh, humidor.targetRh, humidor.rhMin, humidor.rhMax)
+    val stale = latest?.let { rhIsStale(it.measuredAt) } ?: false
+    val badgeColor = when (status) {
+        RhStatus.STABLE -> MaterialTheme.colorScheme.primary
+        RhStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text("LUFTFUKTIGHET (RH)", style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp))
+
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surface).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (latest != null) "${rhStr(latest.rh)} % RH" else "— % RH",
+                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                        color = if (latest != null) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    humidor.rhTargetLabel?.let {
+                        Text("Mål: $it", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Text(
+                    status.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+                    color = badgeColor,
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                )
+            }
+            latest?.let {
+                Row {
+                    Text("Sist målt ${rhRelative(it.measuredAt)}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (stale) {
+                        Text(" · Ikke målt nylig", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+            OutlinedButton(onClick = onRegister, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Registrer RH")
+            }
+        }
+
+        if (readings.isNotEmpty()) {
+            Spacer(Modifier.height(14.dp))
+            Text("HISTORIKK", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)) {
+                val shown = readings.take(20)
+                shown.forEachIndexed { i, r ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text("${rhStr(r.rh)} %", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        r.temperature?.let {
+                            Text(" · ${rhStr(it)} °C", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        Text(rhRelative(r.measuredAt), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (i < shown.lastIndex) HorizontalDivider(Modifier.padding(start = 16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RhReadingSheet(onDismiss: () -> Unit, onSave: (Double, Double?, String?, String) -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var rh by remember { mutableStateOf("") }
+    var temp by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    val rhVal = rh.replace(',', '.').toDoubleOrNull()
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp).padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text("Registrer RH", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("RH = relativ luftfuktighet — hvor fuktig det er inne i humidoren akkurat nå. Du registrerer selve målingen fra hygrometeret ditt; appen måler ikke automatisk. Tidspunkt settes til nå.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            OutlinedTextField(
+                value = rh, onValueChange = { rh = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                label = { Text("Målt RH (%)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(
+                value = temp, onValueChange = { temp = it.filter { c -> c.isDigit() || c == '.' || c == ',' || c == '-' } },
+                label = { Text("Temperatur °C (valgfritt)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(
+                value = note, onValueChange = { note = it },
+                label = { Text("Notat (valgfritt)") }, minLines = 2, modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = {
+                    rhVal?.let {
+                        onSave(it, temp.replace(',', '.').toDoubleOrNull(), note, java.time.Instant.now().toString())
+                    }
+                },
+                enabled = rhVal != null, modifier = Modifier.fillMaxWidth()
+            ) { Text("Lagre måling") }
+        }
+    }
+}
+
+private fun rhStr(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toString() else String.format("%.1f", v)
+
+private fun rhInstant(iso: String): java.time.Instant? =
+    runCatching { java.time.OffsetDateTime.parse(iso).toInstant() }
+        .recoverCatching { java.time.Instant.parse(iso) }.getOrNull()
+
+private fun rhRelative(iso: String): String {
+    val inst = rhInstant(iso) ?: return ""
+    val diff = (java.time.Instant.now().epochSecond - inst.epochSecond).coerceAtLeast(0)
+    return when {
+        diff < 60 -> "nå nettopp"
+        diff < 3600 -> "for ${diff / 60} min siden"
+        diff < 86400 -> "for ${diff / 3600} t siden"
+        diff < 604800 -> "for ${diff / 86400} d siden"
+        else -> inst.atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("d. MMM yyyy", java.util.Locale("nb", "NO")))
+    }
+}
+
+private fun rhIsStale(iso: String): Boolean {
+    val inst = rhInstant(iso) ?: return false
+    return java.time.Instant.now().epochSecond - inst.epochSecond > 7 * 86400
 }
 
 // Galleri-Uri → nedskalert JPEG (maks 1400px).
