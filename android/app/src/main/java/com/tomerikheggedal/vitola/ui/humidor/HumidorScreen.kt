@@ -250,14 +250,23 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit, existing: Humi
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Type", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                // Grafisk liste: ikon + navn + forklaring synlig fra start.
-                HumidorRepository.types.forEach { t ->
-                    HumidorTypeOption(
-                        type = t,
-                        explanation = HumidorRepository.typeExplanations[t] ?: "",
-                        selected = type == t,
-                        onClick = { type = t }
-                    )
+                // 2-kolonners grid av radio-kort (navn + forklaring synlig fra start).
+                HumidorRepository.types.chunked(2).forEach { rowTypes ->
+                    Row(
+                        Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowTypes.forEach { t ->
+                            HumidorTypeCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                type = t,
+                                explanation = HumidorRepository.typeExplanations[t] ?: "",
+                                selected = type == t,
+                                onClick = { type = t }
+                            )
+                        }
+                        if (rowTypes.size == 1) Spacer(Modifier.weight(1f))
+                    }
                 }
             }
 
@@ -323,17 +332,17 @@ fun AddHumidorSheet(onDismiss: () -> Unit, onCreated: () -> Unit, existing: Humi
     }
 }
 
-// Radio-kort for humidortype: radioknapp + tittel + forklaring som metadata under.
+// Radio-kort for humidortype i grid: radioknapp + tittel øverst, forklaring under.
 @Composable
-private fun HumidorTypeOption(
+private fun HumidorTypeCard(
+    modifier: Modifier = Modifier,
     type: String,
     explanation: String,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
+    Column(
+        modifier
             .clip(RoundedCornerShape(8.dp))
             .border(
                 1.dp,
@@ -346,16 +355,16 @@ private fun HumidorTypeOption(
             )
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        RadioButton(selected = selected, onClick = null)
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(selected = selected, onClick = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
             Text(type, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            if (explanation.isNotBlank()) {
-                Text(explanation, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        }
+        if (explanation.isNotBlank()) {
+            Text(explanation, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
