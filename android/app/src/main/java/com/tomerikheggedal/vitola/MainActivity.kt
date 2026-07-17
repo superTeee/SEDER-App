@@ -87,10 +87,7 @@ class MainActivity : ComponentActivity() {
                         })
                         // Vent på lagret sesjon før velkomstskjermen vises (unngå blink).
                         loadingSession -> Box(Modifier.fillMaxSize().background(CreamBackground))
-                        !(isAuthed || skipped) -> AuthWelcomeScreen(
-                            onLogin = { scope.launch { Supa.client.auth.signInWith(Google) } },
-                            onSkip = { skipped = true }
-                        )
+                        !(isAuthed || skipped) -> AuthWelcomeScreen(onSkip = { skipped = true })
                         // Vent på profil-sjekk etter innlogging (unngå blink app→onboarding).
                         isAuthed && !nameChecked -> Box(Modifier.fillMaxSize().background(CreamBackground))
                         isAuthed && needsName -> OnboardingNameScreen(onComplete = { needsName = false })

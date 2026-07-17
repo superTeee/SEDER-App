@@ -61,7 +61,8 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ✅ Aldersbekreftelse + personvern-samtykke (oppstartsporter, lagres lokalt)
 - ✅ Onboarding av navn etter første innlogging (når display_name mangler)
 - ✅ PIN-kodelås (SHA256 i prefs; sett i Innstillinger, opplåsing ved oppstart)
-- ⬜ Innlogging med Apple og e-post (har kun Google)
+- ✅ Innlogging med Apple (Supabase OAuth) og e-post/passord, i tillegg til Google
+  - NB: Apple-provideren må være aktivert i Supabase-dashbordet for at knappen skal virke
 
 ### Bilder
 - ⬜ Beskjæring (cropper) ved opplasting
