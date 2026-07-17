@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,6 +46,7 @@ import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarFilter
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.ScanHit
+import com.tomerikheggedal.vitola.data.ScanOutcome
 import com.tomerikheggedal.vitola.data.ScanRepository
 import com.tomerikheggedal.vitola.data.SearchHistory
 import com.tomerikheggedal.vitola.data.SearchHit
@@ -147,24 +149,35 @@ fun ExploreScreen(
     var recent by remember { mutableStateOf(SearchHistory.load(context)) }
     var scanning by remember { mutableStateOf(false) }
     var scanResults by remember { mutableStateOf<List<ScanHit>?>(null) }
+    var pendingShape by remember { mutableStateOf<ScanOutcome?>(null) }
+    var pendingWrapper by remember { mutableStateOf<ScanOutcome?>(null) }
     var showManualAdd by remember { mutableStateOf(false) }
     // Hurtighandlinger (long-trykk) — som iOS contextMenu.
     var quickCigar by remember { mutableStateOf<Cigar?>(null) }
     var qaAddHumidor by remember { mutableStateOf<Cigar?>(null) }
     var qaLog by remember { mutableStateOf<Cigar?>(null) }
 
-    // Kjør AI-skanning på et JPEG-bilde og håndter resultatet.
+    // Håndter resultatet av en full skann (OCR → DB → AI + avklaring).
+    fun finishOutcome(outcome: ScanOutcome) {
+        when {
+            outcome.autoSelected != null -> onCigar(outcome.autoSelected!!.id)
+            outcome.needsShape -> pendingShape = outcome
+            outcome.needsWrapper -> pendingWrapper = outcome
+            outcome.hits.isEmpty() ->
+                scope.launch { snackbar.showSnackbar("Fant ingen sigar. Prøv et tydeligere bilde av båndet.") }
+            outcome.hits.size == 1 -> onCigar(outcome.hits.first().cigar.id)
+            else -> scanResults = outcome.hits
+        }
+    }
+
     fun runScan(jpeg: ByteArray?) {
         if (jpeg == null) return
         scanning = true
         scope.launch {
-            val hits = runCatching { ScanRepository.scan(jpeg) }.getOrDefault(emptyList())
+            val outcome = runCatching { ScanRepository.scanBand(jpeg) }.getOrNull()
             scanning = false
-            when {
-                hits.isEmpty() -> snackbar.showSnackbar("Fant ingen sigar. Prøv et tydeligere bilde av båndet.")
-                hits.size == 1 -> onCigar(hits.first().cigar.id)
-                else -> scanResults = hits
-            }
+            if (outcome == null) { snackbar.showSnackbar("Skanningen feilet. Prøv igjen."); return@launch }
+            finishOutcome(outcome)
         }
     }
 
@@ -174,6 +187,30 @@ fun ExploreScreen(
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> if (uri != null) scope.launch { runScan(uriToJpeg(context, uri)) } }
+
+    // Kamera for form-/wrapper-avklaring (bilde av hele sigaren).
+    val shapeCam = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bmp ->
+        val pending = pendingShape
+        pendingShape = null
+        if (bmp == null || pending == null) return@rememberLauncherForActivityResult
+        scanning = true
+        scope.launch {
+            val resolved = runCatching { ScanRepository.resolveShape(pending.candidates, bitmapToJpeg(bmp)) }.getOrNull()
+            scanning = false
+            if (resolved != null) onCigar(resolved.id) else scanResults = pending.hits
+        }
+    }
+    val wrapperCam = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bmp ->
+        val pending = pendingWrapper
+        pendingWrapper = null
+        if (bmp == null || pending == null) return@rememberLauncherForActivityResult
+        scanning = true
+        scope.launch {
+            val resolved = runCatching { ScanRepository.resolveWrapper(pending.candidates, bitmapToJpeg(bmp)) }.getOrNull()
+            scanning = false
+            if (resolved != null) onCigar(resolved.id) else scanResults = pending.hits
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -364,6 +401,25 @@ fun ExploreScreen(
         )
     }
 
+    // Form-avklaring: samme bånd matchet flere størrelser.
+    pendingShape?.let { p ->
+        ScanConfirmOverlay(
+            title = "Fant flere størrelser",
+            body = "Samme bånd brukes på flere varianter av denne sigaren. Ta ett bilde av HELE sigaren, så ser vi formen og velger riktig variant.",
+            onTakePhoto = { shapeCam.launch(null) },
+            onSkip = { scanResults = p.hits; pendingShape = null }
+        )
+    }
+    // Wrapper-avklaring: samme serie, ulik wrapper-type.
+    pendingWrapper?.let { p ->
+        ScanConfirmOverlay(
+            title = "Fant flere varianter",
+            body = "Denne serien finnes med flere wrapper-typer. Ta ett bilde av HELE sigaren, så ser vi fargen på bladet og velger riktig variant.",
+            onTakePhoto = { wrapperCam.launch(null) },
+            onSkip = { scanResults = p.hits; pendingWrapper = null }
+        )
+    }
+
     // Skanner-overlay mens AI-en jobber.
     if (scanning) {
         Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f)),
@@ -481,6 +537,34 @@ private fun QuickActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(16.dp))
         Text(label, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+// Full-skjerm avklaring: be om ett bilde av hele sigaren (form/wrapper) — som iOS.
+@Composable
+private fun ScanConfirmOverlay(title: String, body: String, onTakePhoto: () -> Unit, onSkip: () -> Unit) {
+    Box(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Icon(Icons.Outlined.HelpOutline, null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(48.dp))
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center)
+            Text(body, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Button(onClick = onTakePhoto, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Filled.CameraAlt, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Ta bilde av hele sigaren")
+            }
+            TextButton(onClick = onSkip) { Text("Hopp over, vis alle treff") }
+        }
     }
 }
 

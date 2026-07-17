@@ -11,6 +11,7 @@ data class Cigar(
     val series: String? = null,
     val vitola: String? = null,
     @SerialName("common_format") val commonFormat: String? = null,
+    @SerialName("body_type") val bodyType: String? = null,
     @SerialName("country_origin") val countryOrigin: String? = null,
     @SerialName("wrapper_country") val wrapperCountry: String? = null,
     @SerialName("wrapper_leaf") val wrapperLeaf: String? = null,

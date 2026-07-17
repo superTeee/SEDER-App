@@ -66,6 +66,9 @@ dependencies {
     // Custom Tabs for nettleser-basert OAuth-redirect
     implementation("androidx.browser:browser:1.8.0")
 
+    // On-device OCR (iOS bruker Apple Vision; ML Kit er Android-motparten).
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
 }

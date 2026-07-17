@@ -53,8 +53,9 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ✅ 3-prikks-meny på innlegg (slett eget, rapporter m/grunn, blokker bruker)
 
 ### Skanning
-- ⬜ Strekkode-skanning
-- ⬜ On-device OCR + form/wrapper-avklaring før AI (Android går rett på AI)
+- ⏭️ Strekkode-skanning — bevisst utelatt på Android (Toms valg)
+- ✅ On-device OCR (ML Kit) → DB-søk → AI-fallback + form/wrapper-avklaring
+  - NB: ML Kit mangler Vision sin vokabular-biasing + pålitelige konfidens, så OCR-delen er en tilnærming
 
 ### Konto / oppstart
 - ⬜ Aldersbekreftelse + personvern-samtykke
