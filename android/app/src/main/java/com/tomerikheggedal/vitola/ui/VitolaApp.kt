@@ -36,6 +36,7 @@ import com.tomerikheggedal.vitola.ui.feed.FeedScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 import com.tomerikheggedal.vitola.ui.journal.JournalScreen
+import com.tomerikheggedal.vitola.ui.profile.FriendsScreen
 import com.tomerikheggedal.vitola.ui.profile.ProfileScreen
 import com.tomerikheggedal.vitola.ui.profile.SettingsScreen
 import com.tomerikheggedal.vitola.ui.profile.UserProfileScreen
@@ -156,9 +157,18 @@ fun VitolaApp() {
                 JournalScreen(onCigar = { nav.navigate("cigar/${it}") })
             }
             composable("profile") {
-                ProfileScreen(onSettings = { nav.navigate("settings") })
+                ProfileScreen(
+                    onSettings = { nav.navigate("settings") },
+                    onFriends = { nav.navigate("friends") }
+                )
             }
             composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
+            composable("friends") {
+                FriendsScreen(
+                    onBack = { nav.popBackStack() },
+                    onUser = { nav.navigate("user/${it}") }
+                )
+            }
         }
     }
 }

@@ -35,6 +35,15 @@ data class FriendEntry(
     val direction: String,            // outgoing / incoming
 )
 
+// Brukersøk-treff (search_users RPC).
+@Serializable
+data class UserSearchResult(
+    val id: String,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("friend_code") val friendCode: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+)
+
 enum class FriendState { NONE, PENDING_OUT, PENDING_IN, FRIENDS, SELF }
 
 object FriendRepository {
@@ -66,9 +75,36 @@ object FriendRepository {
         Supa.client.postgrest.rpc("request_friendship", buildJsonObject { put("p_user_id", userId) })
     }
 
+    /** Søk etter brukere på navn. */
+    suspend fun searchUsers(query: String): List<UserSearchResult> {
+        if (query.isBlank()) return emptyList()
+        return runCatching {
+            Supa.client.postgrest.rpc("search_users", buildJsonObject { put("p_query", query) })
+                .decodeList<UserSearchResult>()
+        }.getOrDefault(emptyList())
+    }
+
+    /** Send venneforespørsel via vennekode. */
+    suspend fun sendByCode(code: String) {
+        Supa.client.postgrest.rpc("send_friend_request", buildJsonObject { put("p_code", code.trim().uppercase()) })
+    }
+
+    /** Egen vennekode (fra profiles). */
+    suspend fun myFriendCode(): String? {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: return null
+        return runCatching {
+            Supa.client.from("profiles")
+                .select(io.github.jan.supabase.postgrest.query.Columns.list("friend_code")) { filter { eq("id", uid) } }
+                .decodeList<CodeRow>().firstOrNull()?.friendCode
+        }.getOrNull()
+    }
+
     suspend fun respond(friendshipId: String, accept: Boolean) {
         Supa.client.from("friendships").update(
             buildJsonObject { put("status", if (accept) "accepted" else "declined") }
         ) { filter { eq("id", friendshipId) } }
     }
 }
+
+@Serializable
+private data class CodeRow(@SerialName("friend_code") val friendCode: String? = null)

@@ -65,7 +65,7 @@ private fun strengthLabel(s: Double?): String? = s?.let {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onSettings: () -> Unit = {}) {
+fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
@@ -116,6 +116,9 @@ fun ProfileScreen(onSettings: () -> Unit = {}) {
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
+                    IconButton(onClick = onFriends) {
+                        Icon(Icons.Filled.Group, contentDescription = "Venner")
+                    }
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "Innstillinger")
                     }

@@ -28,11 +28,12 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 
 ## Gjenstår på Android
 
-### Venner (høyest prioritet — fullfører sosial flyt)
-- ⬜ Egen Venner-side (venneliste)
-- ⬜ Forespørsel-innboks (godta/avslå samlet)
-- ⬜ Søk etter brukere på navn
-- ⬜ Legg til venn via vennekode
+### Venner
+- ✅ Egen Venner-side (venneliste, åpnes fra Venner-ikon i profil)
+- ✅ Forespørsel-innboks (innkommende godta/avslå + utgående venter)
+- ✅ Søk etter brukere på navn → legg til
+- ✅ Vis egen vennekode («Din kode»)
+- 🟡 Legg til via andres vennekode (repo-metode finnes; eget kode-felt ikke lagt til — iOS bruker navnesøk)
 - ⬜ Push-varsel ved ny forespørsel
 
 ### Sigar
