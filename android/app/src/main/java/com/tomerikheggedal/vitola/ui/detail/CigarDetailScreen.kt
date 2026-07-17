@@ -60,21 +60,6 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tilbake") }
                 },
-                actions = {
-                    if (Supa.client.auth.currentUserOrNull() != null) {
-                        IconButton(onClick = {
-                            scope.launch {
-                                inWishlist = runCatching { WishlistRepository.toggle(id) }.getOrDefault(inWishlist)
-                            }
-                        }) {
-                            Icon(
-                                if (inWishlist) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                                contentDescription = if (inWishlist) "Fjern fra ønskeliste" else "Legg i ønskeliste",
-                                tint = if (inWishlist) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                            )
-                        }
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -117,6 +102,25 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                         Spacer(Modifier.width(8.dp))
                         Text("Marker som røkt")
                     }
+                }
+
+                // Ønskeliste-knapp (som iOS): full bredde, bokmerke + veksel-tekst.
+                OutlinedButton(
+                    onClick = {
+                        requireAuth {
+                            scope.launch {
+                                inWishlist = runCatching { WishlistRepository.toggle(id) }.getOrDefault(inWishlist)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        if (inWishlist) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                        null, modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (inWishlist) "I ønskelisten" else "Legg i ønskeliste")
                 }
                 addMsg?.let {
                     Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
