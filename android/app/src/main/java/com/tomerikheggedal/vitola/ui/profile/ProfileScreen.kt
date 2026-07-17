@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -78,6 +79,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
     var loading by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
     var uploadingAvatar by remember { mutableStateOf(false) }
+    var uploadingCover by remember { mutableStateOf(false) }
     var showBioEditor by remember { mutableStateOf(false) }
 
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -89,6 +91,19 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
                     if (jpeg != null) ProfileRepository.uploadAvatar(jpeg)
                 }
                 uploadingAvatar = false
+                reloadKey++
+            }
+        }
+    }
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            uploadingCover = true
+            scope.launch {
+                runCatching {
+                    val jpeg = withContext(Dispatchers.IO) { compressImage(context, uri, 1400) }
+                    if (jpeg != null) ProfileRepository.uploadCover(jpeg)
+                }
+                uploadingCover = false
                 reloadKey++
             }
         }
@@ -131,15 +146,28 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
                 !isAuthed -> LoginPrompt { scope.launch { Supa.client.auth.signInWith(Google) } }
                 loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                 else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    // Hero
-                    Column(Modifier.fillMaxWidth().padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                        Avatar(
-                            url = profile?.avatarUrl ?: ProfileRepository.authAvatar(),
-                            uploading = uploadingAvatar,
-                            onClick = { avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                    // Cover + overlappende avatar (som iOS)
+                    Box(Modifier.fillMaxWidth()) {
+                        CoverBanner(
+                            url = profile?.coverUrl,
+                            uploading = uploadingCover,
+                            onClick = { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
                         )
-                        Spacer(Modifier.height(14.dp))
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).offset(y = 44.dp)
+                                .clip(CircleShape).background(MaterialTheme.colorScheme.background).padding(3.dp)
+                        ) {
+                            Avatar(
+                                url = profile?.avatarUrl ?: ProfileRepository.authAvatar(),
+                                uploading = uploadingAvatar,
+                                onClick = { avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(52.dp))
+
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             profile?.displayName ?: ProfileRepository.authName() ?: "Vitola-bruker",
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
@@ -200,6 +228,32 @@ private fun SectionLabel(text: String) {
     Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.sp,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 22.dp, bottom = 10.dp))
+}
+
+@Composable
+private fun CoverBanner(url: String?, uploading: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().height(140.dp).clickable(onClick = onClick)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+    ) {
+        if (url != null) {
+            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize())
+        } else {
+            Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.AddPhotoAlternate, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(6.dp))
+                Text("Legg til toppbilde", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (uploading) {
+            Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = androidx.compose.ui.graphics.Color.White)
+            }
+        }
+    }
 }
 
 @Composable

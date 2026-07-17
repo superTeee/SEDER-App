@@ -17,6 +17,7 @@ data class Profile(
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("friend_code") val friendCode: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("cover_url") val coverUrl: String? = null,
     val bio: String? = null,
     val city: String? = null,
     val country: String? = null,
@@ -50,7 +51,7 @@ object ProfileRepository {
     suspend fun myProfile(): Profile? {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: return null
         return Supa.client.from("profiles")
-            .select(columns = Columns.list("id", "display_name", "friend_code", "avatar_url", "bio", "city", "country")) {
+            .select(columns = Columns.list("id", "display_name", "friend_code", "avatar_url", "cover_url", "bio", "city", "country")) {
                 filter { eq("id", uid) }
             }
             .decodeList<Profile>()
@@ -126,6 +127,18 @@ object ProfileRepository {
         val url = Supa.client.storage.from("avatars").publicUrl(path) + "?v=${System.currentTimeMillis() / 1000}"
         Supa.client.from("profiles").update(
             buildJsonObject { put("avatar_url", url) }
+        ) { filter { eq("id", uid) } }
+        return url
+    }
+
+    /** Last opp toppbilde (cover), skriv cover_url. Bruker avatars-bøtta (som iOS). */
+    suspend fun uploadCover(jpeg: ByteArray): String? {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: return null
+        val path = "${uid.lowercase()}/cover.jpg"   // lowercase for RLS
+        Supa.client.storage.from("avatars").upload(path, jpeg, upsert = true)
+        val url = Supa.client.storage.from("avatars").publicUrl(path) + "?v=${System.currentTimeMillis() / 1000}"
+        Supa.client.from("profiles").update(
+            buildJsonObject { put("cover_url", url) }
         ) { filter { eq("id", uid) } }
         return url
     }

@@ -66,7 +66,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 
 ### Bilder
 - ⬜ Beskjæring (cropper) ved opplasting
-- ⬜ Cover-bilde på profil
+- ✅ Cover-bilde på profil (banner + overlappende avatar, uploadCover → cover_url)
 
 ### Admin
 - ⬜ Hele admin-delen (datahull, fyll sigar, kø)
