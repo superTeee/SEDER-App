@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -142,6 +143,7 @@ fun ExploreScreen(
     var recent by remember { mutableStateOf(SearchHistory.load(context)) }
     var scanning by remember { mutableStateOf(false) }
     var scanResults by remember { mutableStateOf<List<ScanHit>?>(null) }
+    var showManualAdd by remember { mutableStateOf(false) }
 
     // Kjør AI-skanning på et JPEG-bilde og håndter resultatet.
     fun runScan(jpeg: ByteArray?) {
@@ -248,6 +250,17 @@ fun ExploreScreen(
                         )
                     }
                     searchHitGroups(vm.results, onCigar)
+                    // Fant ikke sigaren? La brukeren legge den inn selv (som iOS).
+                    item {
+                        OutlinedButton(
+                            onClick = { showManualAdd = true },
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        ) {
+                            Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (vm.results.isEmpty()) "Legg til sigaren manuelt" else "Fant ikke sigaren? Legg til manuelt")
+                        }
+                    }
                 }
                 vm.filterLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 vm.filter.isActive -> LazyColumn(
@@ -367,6 +380,15 @@ fun ExploreScreen(
             hits = hits,
             onDismiss = { scanResults = null },
             onPick = { scanResults = null; onCigar(it) }
+        )
+    }
+
+    // Legg til sigar manuelt.
+    if (showManualAdd) {
+        AddCigarSheet(
+            initialBrand = vm.query,
+            onDismiss = { showManualAdd = false },
+            onCreated = { newId -> showManualAdd = false; onCigar(newId) }
         )
     }
 }
