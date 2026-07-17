@@ -41,7 +41,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ✅ Ønskeliste (bokmerke-toggle på detalj + egen ønskeliste-side via Utforsk)
 - ✅ Legg til sigar manuelt (fra søkeresultat → create_own_cigar, m/foreslå til delt DB)
 - ✅ Rapporter feil på en sigar («Meld feil» → report_cigar)
-- ⬜ Hurtighandlinger ved langt trykk
+- ✅ Hurtighandlinger ved langt trykk (humidor / røkt / ønskeliste / del)
 
 ### Humidor
 - ⬜ Rediger / slett humidor

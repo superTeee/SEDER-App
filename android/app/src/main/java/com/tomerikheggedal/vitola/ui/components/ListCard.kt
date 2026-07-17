@@ -1,7 +1,9 @@
 package com.tomerikheggedal.vitola.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,18 +57,21 @@ fun ColumnScopeRows.RowDivider() {
 }
 
 // Standard navigasjonsrad: tittel + valgfri undertittel/detalj + chevron.
+// onLongClick gir hurtighandlinger (long-trykk), som iOS contextMenu.
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ColumnScopeRows.NavRow(
     title: String,
     subtitle: String? = null,
     detail: String? = null,
     titleBold: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

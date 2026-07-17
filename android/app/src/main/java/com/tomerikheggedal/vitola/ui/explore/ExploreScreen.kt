@@ -16,9 +16,11 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.History
@@ -46,6 +48,9 @@ import com.tomerikheggedal.vitola.data.ScanHit
 import com.tomerikheggedal.vitola.data.ScanRepository
 import com.tomerikheggedal.vitola.data.SearchHistory
 import com.tomerikheggedal.vitola.data.SearchHit
+import com.tomerikheggedal.vitola.data.WishlistRepository
+import com.tomerikheggedal.vitola.ui.detail.SmokingLogSheet
+import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
 import com.tomerikheggedal.vitola.ui.components.ListCard
 import com.tomerikheggedal.vitola.ui.components.NavRow
 import com.tomerikheggedal.vitola.ui.components.RowDivider
@@ -144,6 +149,10 @@ fun ExploreScreen(
     var scanning by remember { mutableStateOf(false) }
     var scanResults by remember { mutableStateOf<List<ScanHit>?>(null) }
     var showManualAdd by remember { mutableStateOf(false) }
+    // Hurtighandlinger (long-trykk) — som iOS contextMenu.
+    var quickCigar by remember { mutableStateOf<Cigar?>(null) }
+    var qaAddHumidor by remember { mutableStateOf<Cigar?>(null) }
+    var qaLog by remember { mutableStateOf<Cigar?>(null) }
 
     // Kjør AI-skanning på et JPEG-bilde og håndter resultatet.
     fun runScan(jpeg: ByteArray?) {
@@ -249,7 +258,7 @@ fun ExploreScreen(
                             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
                         )
                     }
-                    searchHitGroups(vm.results, onCigar)
+                    searchHitGroups(vm.results, onCigar) { quickCigar = it }
                     // Fant ikke sigaren? La brukeren legge den inn selv (som iOS).
                     item {
                         OutlinedButton(
@@ -292,7 +301,7 @@ fun ExploreScreen(
                             )
                         }
                     } else {
-                        brandGroups(vm.filterResults, onCigar)
+                        brandGroups(vm.filterResults, onCigar) { quickCigar = it }
                     }
                 }
                 else -> LazyColumn(
@@ -391,6 +400,94 @@ fun ExploreScreen(
             onCreated = { newId -> showManualAdd = false; onCigar(newId) }
         )
     }
+
+    // Hurtighandlinger (long-trykk på en sigar-rad).
+    quickCigar?.let { c ->
+        CigarQuickActionsSheet(
+            cigar = c,
+            onDismiss = { quickCigar = null },
+            onAddHumidor = { quickCigar = null; qaAddHumidor = c },
+            onLog = { quickCigar = null; qaLog = c },
+            onWishlist = {
+                quickCigar = null
+                scope.launch { runCatching { WishlistRepository.add(c.id) } }
+                android.widget.Toast.makeText(context, "Lagt i ønskelisten ✓", android.widget.Toast.LENGTH_SHORT).show()
+            },
+            onShare = { quickCigar = null; shareCigar(context, c) }
+        )
+    }
+    qaAddHumidor?.let { c ->
+        AddToHumidorSheet(
+            cigar = c,
+            onDismiss = { qaAddHumidor = null },
+            onAdded = { name ->
+                qaAddHumidor = null
+                android.widget.Toast.makeText(context, "Lagt i $name ✓", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+    qaLog?.let { c ->
+        SmokingLogSheet(
+            cigar = c,
+            humidorEntryId = null,
+            onDismiss = { qaLog = null },
+            onLogged = {
+                qaLog = null
+                android.widget.Toast.makeText(context, "Lagt i journalen ✓", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+}
+
+// Deler en sigar via Androids delingsark.
+private fun shareCigar(context: android.content.Context, cigar: Cigar) {
+    val name = listOfNotNull(cigar.brand, cigar.series, cigar.vitola).joinToString(" ")
+    val body = "$name — sjekk ut denne sigaren i Vitola\n\nhttps://vitola.app"
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, body)
+    }
+    runCatching { context.startActivity(android.content.Intent.createChooser(intent, "Del sigar")) }
+}
+
+// Hurtigmeny (bunn-ark) med sigar-handlinger.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CigarQuickActionsSheet(
+    cigar: Cigar,
+    onDismiss: () -> Unit,
+    onAddHumidor: () -> Unit,
+    onLog: () -> Unit,
+    onWishlist: () -> Unit,
+    onShare: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            Text(
+                listOfNotNull(cigar.brand, cigar.series, cigar.vitola).joinToString(" "),
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+            QuickActionRow(Icons.Filled.Inventory2, "Legg i humidor", onAddHumidor)
+            QuickActionRow(Icons.Filled.LocalFireDepartment, "Marker som røkt", onLog)
+            QuickActionRow(Icons.Outlined.BookmarkBorder, "Legg i ønskeliste", onWishlist)
+            QuickActionRow(Icons.Filled.Share, "Del", onShare)
+        }
+    }
+}
+
+@Composable
+private fun QuickActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(16.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -441,7 +538,9 @@ private fun uriToJpeg(context: android.content.Context, uri: android.net.Uri, ma
 }
 
 // Søketreff gruppert per merke; viser hva treffet matchet på (smaksnote som accent-tag).
-private fun LazyListScope.searchHitGroups(hits: List<SearchHit>, onCigar: (String) -> Unit) {
+private fun LazyListScope.searchHitGroups(
+    hits: List<SearchHit>, onCigar: (String) -> Unit, onLong: (Cigar) -> Unit = {},
+) {
     hits.groupBy { it.cigar.brand }.forEach { (brand, list) ->
         item(key = "sh_$brand") { SectionLabel(brand) }
         item(key = "sc_$brand") {
@@ -452,6 +551,7 @@ private fun LazyListScope.searchHitGroups(hits: List<SearchHit>, onCigar: (Strin
                         title = listOfNotNull(c.series, c.vitola).joinToString(" · ").ifBlank { c.brand },
                         subtitle = listOfNotNull(c.commonFormat, c.dimensionsLabel).joinToString(" · ").ifBlank { null },
                         detail = hit.matchedFlavor?.let { "Smak: $it" },
+                        onLongClick = { onLong(c) },
                     ) { onCigar(c.id) }
                     if (i < list.lastIndex) RowDivider()
                 }
@@ -461,7 +561,9 @@ private fun LazyListScope.searchHitGroups(hits: List<SearchHit>, onCigar: (Strin
 }
 
 // Søketreff/filtertreff gruppert per merke, ett kort per merke (som iOS).
-private fun LazyListScope.brandGroups(cigars: List<Cigar>, onCigar: (String) -> Unit) {
+private fun LazyListScope.brandGroups(
+    cigars: List<Cigar>, onCigar: (String) -> Unit, onLong: (Cigar) -> Unit = {},
+) {
     cigars.groupBy { it.brand }.forEach { (brand, list) ->
         item(key = "h_$brand") { SectionLabel(brand) }
         item(key = "c_$brand") {
@@ -472,6 +574,7 @@ private fun LazyListScope.brandGroups(cigars: List<Cigar>, onCigar: (String) -> 
                             .joinToString(" · ").ifBlank { cigar.brand },
                         detail = listOfNotNull(cigar.commonFormat, cigar.dimensionsLabel)
                             .joinToString(" · ").ifBlank { null },
+                        onLongClick = { onLong(cigar) },
                     ) { onCigar(cigar.id) }
                     if (i < list.lastIndex) RowDivider()
                 }
