@@ -41,13 +41,27 @@
   @media(max-width:720px){ .nav-links a.hide-sm{display:none} }
 
   /* Hero */
-  .hero{background:radial-gradient(1200px 520px at 72% -10%,var(--wood-2),var(--wood)); color:#EDE7DA; padding:76px 0 70px; text-align:center}
-  .hero img.wordmark{height:70px; width:auto; margin:0 auto 26px; display:block}
-  .hero h1{font-size:clamp(32px,5.4vw,54px); margin:0 0 16px; color:#fff}
-  .hero p.lead{font-size:clamp(17px,2.4vw,21px); color:#C9BFAC; max-width:560px; margin:0 auto 30px}
+  .hero{position:relative; min-height:640px; display:flex; align-items:center; color:#EDE7DA;
+    background:
+      linear-gradient(90deg, rgba(12,17,13,.95) 0%, rgba(12,17,13,.80) 30%, rgba(12,17,13,.28) 55%, rgba(12,17,13,0) 78%),
+      #12160f url('assets/hero.jpg') center right / cover no-repeat}
+  .hero .wrap{padding-top:70px; padding-bottom:70px}
+  .hero .hero-content{max-width:540px}
+  .hero img.wordmark{height:62px; width:auto; margin:0 0 24px; display:block}
+  .hero h1{font-size:clamp(32px,5vw,52px); margin:0 0 16px; color:#fff}
+  .hero p.lead{font-size:clamp(17px,2.4vw,21px); color:#D6CDBB; max-width:520px; margin:0 0 30px}
   .hero .tag{display:inline-block; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-    color:var(--accent); background:rgba(184,148,77,.15); padding:6px 12px; border-radius:999px; margin-bottom:22px}
-  .stores{display:flex; flex-wrap:wrap; gap:12px; justify-content:center}
+    color:#D9B876; background:rgba(184,148,77,.18); padding:6px 12px; border-radius:999px; margin-bottom:22px}
+  .stores{display:flex; flex-wrap:wrap; gap:12px}
+  @media(max-width:760px){
+    .hero{min-height:auto; text-align:center;
+      background:linear-gradient(180deg, rgba(12,17,13,.78) 0%, rgba(12,17,13,.62) 42%, rgba(12,17,13,.9) 100%),
+        #12160f url('assets/hero.jpg') center / cover no-repeat}
+    .hero .hero-content{max-width:100%}
+    .hero img.wordmark{margin-left:auto; margin-right:auto}
+    .hero p.lead{margin-left:auto; margin-right:auto}
+    .hero .stores{justify-content:center}
+  }
   .store{display:inline-flex; align-items:center; gap:10px; background:#0d1611; border:1px solid #2a4034; color:#EDE7DA;
     padding:11px 18px; border-radius:12px; font-weight:600; transition:.15s}
   .store:hover{border-color:var(--accent); color:#fff}
@@ -162,16 +176,18 @@
 
   <div class="hero">
     <div class="wrap">
-      <span class="tag">Shazam for cigars</span>
-      <img class="wordmark" src="assets/vitola-logo.png" alt="Vitola" />
-      <h1>Your digital humidor and tasting journal.</h1>
-      <p class="lead">Scan the cigar band with AI, track the humidity in your humidor, log your smokes, and share your favorites with friends.</p>
-      <div class="stores">
-        <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
-        <a class="store" href="#" data-store="testflight"><span>✈️</span><span><small>Beta via</small><b>TestFlight</b></span></a>
-        <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Get it for</small><b>Android</b></span></a>
+      <div class="hero-content">
+        <span class="tag">Shazam for cigars</span>
+        <img class="wordmark" src="assets/vitola-logo.png" alt="Vitola" />
+        <h1>Your digital humidor and tasting journal.</h1>
+        <p class="lead">Scan the cigar band with AI, track the humidity in your humidor, log your smokes, and share your favorites with friends.</p>
+        <div class="stores">
+          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
+          <a class="store" href="#" data-store="testflight"><span>✈️</span><span><small>Beta via</small><b>TestFlight</b></span></a>
+          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Get it for</small><b>Android</b></span></a>
+        </div>
+        <p class="note">Download links go live at launch. Vitola is for ages 18 and over.</p>
       </div>
-      <p class="note">Download links go live at launch. Vitola is for ages 18 and over.</p>
     </div>
   </div>
 
