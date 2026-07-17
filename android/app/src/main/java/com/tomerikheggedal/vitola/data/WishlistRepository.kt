@@ -32,7 +32,7 @@ object WishlistRepository {
                 filter { eq("user_id", id); eq("cigar_id", cigarId) }
                 limit(1)
             }
-            .decodeList<IdRow>()
+            .decodeList<WishIdRow>()
             .isNotEmpty()
     }
 
@@ -65,4 +65,4 @@ private data class WishlistRow(
 private data class NewItem(val user_id: String, val cigar_id: String)
 
 @Serializable
-private data class IdRow(val id: String)
+private data class WishIdRow(val id: String)
