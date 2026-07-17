@@ -163,7 +163,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
                     }
 
                     // Stats
-                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats) }
+                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats, onFriends) }
 
                     // Smaksprofil
                     SectionLabel("Smaksprofil")
@@ -223,7 +223,7 @@ private fun Avatar(url: String?, uploading: Boolean, onClick: () -> Unit) {
 
 // 4-cellers stats-kort med ikoner og skillelinjer — som iOS.
 @Composable
-private fun StatsCard(stats: ProfileStats) {
+private fun StatsCard(stats: ProfileStats, onFriends: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surface).padding(vertical = 16.dp),
@@ -235,7 +235,8 @@ private fun StatsCard(stats: ProfileStats) {
         StatDivider()
         StatCell(Icons.Filled.Public, stats.brandsTried, "Merker prøvd", Modifier.weight(1f))
         StatDivider()
-        StatCell(Icons.Filled.Group, stats.friends, "Venner", Modifier.weight(1f))
+        StatCell(Icons.Filled.Group, stats.friends, "Venner",
+            Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFriends))
     }
 }
 
