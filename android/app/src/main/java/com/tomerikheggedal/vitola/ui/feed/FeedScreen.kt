@@ -27,7 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -123,11 +126,7 @@ fun FeedScreen(onUser: (String) -> Unit = {}) {
                     textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.Center).padding(32.dp)
                 )
-                else -> LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                else -> LazyColumn(Modifier.fillMaxSize()) {
                     items(posts, key = { it.id }) { post ->
                         PostCard(
                             post = post,
@@ -136,6 +135,8 @@ fun FeedScreen(onUser: (String) -> Unit = {}) {
                             onOpen = { openPost = post },
                             onAuthor = { onUser(post.userId) }
                         )
+                        // Skillestrek mellom innlegg (Facebook-stil).
+                        HorizontalDivider(thickness = 8.dp, color = MaterialTheme.colorScheme.background)
                     }
                 }
             }
@@ -257,54 +258,62 @@ private fun PostCard(
     onShare: () -> Unit,
     onOpen: (() -> Unit)? = null,
     onAuthor: (() -> Unit)? = null,
+    showCommentPreview: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
     // Lokalt optimistisk like-state.
     var liked by remember(post.id) { mutableStateOf(post.likedByMe) }
     var likeCount by remember(post.id) { mutableStateOf(post.likeCount) }
+    // Forhåndsvisning av de nyeste kommentarene (som Facebook).
+    var preview by remember(post.id) { mutableStateOf<List<com.tomerikheggedal.vitola.data.FeedComment>>(emptyList()) }
+    LaunchedEffect(post.id, post.commentCount) {
+        preview = if (showCommentPreview && post.commentCount > 0)
+            runCatching { FeedRepository.comments(post.id) }.getOrDefault(emptyList()).takeLast(2)
+        else emptyList()
+    }
+
+    val hPad = Modifier.padding(horizontal = 14.dp)
 
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
+        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
             .let { if (onOpen != null) it.clickable(onClick = onOpen) else it }
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(top = 12.dp, bottom = 6.dp)
     ) {
         // Forfatter (klikkbar → begrenset profil)
         Row(
-            Modifier.let { if (onAuthor != null) it.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAuthor) else it },
+            hPad.fillMaxWidth().let { if (onAuthor != null) it.clickable(onClick = onAuthor) else it },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AuthorAvatar(post.authorAvatarUrl, 36.dp)
+            AuthorAvatar(post.authorAvatarUrl, 40.dp)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(post.authorName, fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyLarge)
+                Text(post.authorName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
                 Text(relativeTime(post.createdAt), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
         post.content?.takeIf { it.isNotBlank() }?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(8.dp))
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 6, modifier = hPad)
         }
 
-        // Bilde (innlegg eller tasting-foto)
+        // Bilde — full bredde, stort (Facebook-stil).
         (post.imageUrl ?: post.tastingPhotoUrl)?.let { url ->
-            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(6.dp)))
+            Spacer(Modifier.height(10.dp))
+            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth())
         }
 
         // Sigar-kobling
         post.cigarDisplayName?.let { name ->
+            Spacer(Modifier.height(8.dp))
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                    .padding(10.dp),
+                hPad.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium)
+                Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 post.cigarRating?.let { r ->
                     Text(
                         "$r" + (post.cigarScoreLabel?.let { " · $it" } ?: ""),
@@ -318,8 +327,12 @@ private fun PostCard(
             }
         }
 
-        // Likes + kommentarer
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+        Spacer(Modifier.height(8.dp))
+        HorizontalDivider(hPad, color = MaterialTheme.colorScheme.surfaceVariant)
+
+        // Handlingsrad: like, kommentar, del
+        Row(hPad.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable {
@@ -327,33 +340,45 @@ private fun PostCard(
                     liked = !wasLiked
                     likeCount += if (wasLiked) -1 else 1
                     scope.launch { runCatching { FeedRepository.toggleLike(post.id) } }
-                }.padding(4.dp)
+                }.padding(6.dp)
             ) {
-                Icon(
-                    if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Lik",
+                Icon(if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, "Lik",
                     tint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
+                    modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("$likeCount", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("$likeCount", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onComments).padding(4.dp)
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onComments).padding(6.dp)
             ) {
                 Icon(Icons.Outlined.ChatBubbleOutline, "Kommentarer",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("${post.commentCount}", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${post.commentCount}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Outlined.Share, "Del",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onShare)
-                    .padding(4.dp).size(20.dp))
+            Icon(Icons.Outlined.Share, "Del", tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onShare).padding(6.dp).size(20.dp))
+        }
+
+        // Kommentar-forhåndsvisning (som Facebook)
+        if (showCommentPreview && post.commentCount > preview.size && post.commentCount > 0) {
+            Text("Vis alle ${post.commentCount} kommentarer",
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = hPad.clickable(onClick = onComments).padding(top = 4.dp, bottom = 2.dp))
+        }
+        preview.forEach { c ->
+            Row(hPad.fillMaxWidth().padding(vertical = 3.dp)) {
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(c.authorName) }
+                        append("  "); append(c.content)
+                    },
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
@@ -445,7 +470,7 @@ private fun PostDetailScreen(post: FeedPost, onBack: () -> Unit, onShare: () -> 
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item { PostCard(post = post, onComments = {}, onShare = onShare, onOpen = null, onAuthor = { onUser(post.userId) }) }
+            item { PostCard(post = post, onComments = {}, onShare = onShare, onOpen = null, onAuthor = { onUser(post.userId) }, showCommentPreview = false) }
             item {
                 Text("Kommentarer", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
