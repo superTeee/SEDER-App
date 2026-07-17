@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html lang="nb">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Vitola — Shazam for sigarer</title>
-<meta name="description" content="Vitola er din digitale humidor og tasting-journal. Skann sigarbånd med AI, følg luftfuktighet, loggfør røyk og del med venner." />
+<title>Vitola — Shazam for cigars</title>
+<meta name="description" content="Vitola is your digital humidor and tasting journal. Scan cigar bands with AI, track humidity, log your smokes, and share with friends." />
+<link rel="icon" href="assets/vitola-mark.png" />
 <style>
   :root{
     --bg:#F2F0E9; --surface:#FFFFFF; --surface-2:#FBF9F3;
     --ink:#2A241C; --muted:#7C7264; --line:#E4DFD2;
-    --accent:#8F7B51; --accent-dark:#6E5E3E; --wood:#1B1712; --wood-2:#2A2119;
+    --accent:#B8944D; --accent-dark:#8F7B51; --wood:#122019; --wood-2:#1c2f24;
     --ok:#3FA34D; --warn:#E0A400; --bad:#D64545;
     --radius:12px; --maxw:1080px;
   }
@@ -22,10 +23,10 @@
   h1,h2,h3{line-height:1.15; letter-spacing:-.02em}
   .btn{display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;
     border:none; border-radius:10px; padding:12px 20px; font-size:15px; transition:.15s}
-  .btn-primary{background:var(--accent); color:#fff}
-  .btn-primary:hover{background:var(--accent-dark)}
+  .btn-primary{background:var(--accent-dark); color:#fff}
+  .btn-primary:hover{background:#7a683f}
   .btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
-  .btn-ghost:hover{border-color:var(--accent)}
+  .btn-ghost:hover{border-color:var(--accent-dark)}
   .btn-block{width:100%; justify-content:center}
 
   /* Nav */
@@ -33,21 +34,21 @@
     backdrop-filter:saturate(180%) blur(10px); border-bottom:1px solid var(--line)}
   .nav-inner{display:flex; align-items:center; justify-content:space-between; height:64px}
   .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; letter-spacing:-.03em}
-  .brand .mark{width:30px; height:30px; border-radius:7px; background:linear-gradient(135deg,var(--accent),var(--accent-dark));
-    display:grid; place-items:center; color:#fff; font-weight:800; font-size:16px}
+  .brand img{width:34px; height:34px; border-radius:8px; display:block}
   .nav-links{display:flex; align-items:center; gap:22px}
   .nav-links a{color:var(--ink); font-weight:500; font-size:15px}
   .nav-links a:hover{color:var(--accent-dark)}
   @media(max-width:720px){ .nav-links a.hide-sm{display:none} }
 
   /* Hero */
-  .hero{background:radial-gradient(1200px 500px at 70% -10%,var(--wood-2),var(--wood)); color:#EDE7DA; padding:84px 0 76px}
-  .hero h1{font-size:clamp(34px,6vw,60px); margin:0 0 16px; color:#fff}
-  .hero p.lead{font-size:clamp(17px,2.4vw,21px); color:#C9BFAC; max-width:560px; margin:0 0 30px}
+  .hero{background:radial-gradient(1200px 520px at 72% -10%,var(--wood-2),var(--wood)); color:#EDE7DA; padding:76px 0 70px; text-align:center}
+  .hero img.wordmark{height:70px; width:auto; margin:0 auto 26px; display:block}
+  .hero h1{font-size:clamp(32px,5.4vw,54px); margin:0 0 16px; color:#fff}
+  .hero p.lead{font-size:clamp(17px,2.4vw,21px); color:#C9BFAC; max-width:560px; margin:0 auto 30px}
   .hero .tag{display:inline-block; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-    color:var(--accent); background:rgba(143,123,81,.15); padding:6px 12px; border-radius:999px; margin-bottom:22px}
-  .stores{display:flex; flex-wrap:wrap; gap:12px}
-  .store{display:inline-flex; align-items:center; gap:10px; background:#0f0c09; border:1px solid #3a2f22; color:#EDE7DA;
+    color:var(--accent); background:rgba(184,148,77,.15); padding:6px 12px; border-radius:999px; margin-bottom:22px}
+  .stores{display:flex; flex-wrap:wrap; gap:12px; justify-content:center}
+  .store{display:inline-flex; align-items:center; gap:10px; background:#0d1611; border:1px solid #2a4034; color:#EDE7DA;
     padding:11px 18px; border-radius:12px; font-weight:600; transition:.15s}
   .store:hover{border-color:var(--accent); color:#fff}
   .store small{display:block; font-size:11px; color:#A99C86; font-weight:500}
@@ -59,23 +60,34 @@
   .eyebrow{color:var(--accent-dark); font-weight:700; font-size:13px; letter-spacing:.09em; text-transform:uppercase; margin:0 0 10px}
   h2.section-title{font-size:clamp(26px,4vw,40px); margin:0 0 14px}
   .section-sub{color:var(--muted); font-size:18px; max-width:620px; margin:0 0 40px}
+  .center{text-align:center} .center .section-sub{margin-left:auto;margin-right:auto}
   .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
   @media(max-width:860px){ .grid{grid-template-columns:1fr} }
   .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px}
-  .card .ic{width:44px; height:44px; border-radius:11px; background:rgba(143,123,81,.12); display:grid; place-items:center;
+  .card .ic{width:44px; height:44px; border-radius:11px; background:rgba(184,148,77,.12); display:grid; place-items:center;
     font-size:22px; margin-bottom:14px}
   .card h3{margin:0 0 8px; font-size:19px}
   .card p{margin:0; color:var(--muted); font-size:15px}
 
-  .split{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center}
-  @media(max-width:860px){ .split{grid-template-columns:1fr} }
-  .phone{aspect-ratio:9/17; max-width:280px; margin:0 auto; border-radius:34px; background:linear-gradient(160deg,var(--wood-2),var(--wood));
-    border:10px solid #0c0a07; box-shadow:0 30px 60px rgba(0,0,0,.25); display:grid; place-items:center; color:#8f7b51; position:relative}
-  .phone .scr{position:absolute; inset:14px; border-radius:24px; background:
-    linear-gradient(180deg,#211a13,#0f0c09); display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px; color:#C9BFAC; padding:20px; text-align:center}
+  /* Screenshots */
+  .shots{display:flex; gap:24px; overflow-x:auto; padding:6px 2px 16px; scroll-snap-type:x mandatory}
+  .shots::-webkit-scrollbar{height:8px} .shots::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px}
+  .phone{flex:0 0 auto; width:250px; aspect-ratio:9/19.5; border-radius:34px; padding:9px; scroll-snap-align:center;
+    background:linear-gradient(160deg,#20140c,#0c0a07); box-shadow:0 24px 48px rgba(0,0,0,.22); position:relative}
+  .phone .screen{position:absolute; inset:9px; border-radius:27px; overflow:hidden; background:var(--wood);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px}
+  .phone .screen img{width:100%; height:100%; object-fit:cover; display:block}
+  .phone .ph{color:#8f7b51; text-align:center; padding:20px}
+  .phone .ph img{width:64px; height:64px; border-radius:14px; margin-bottom:10px}
+  .phone .ph small{display:block; color:#A99C86; font-size:12px}
 
   /* Download band */
   .band{background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center}
+  @media(max-width:860px){ .split{grid-template-columns:1fr} .split .stores{justify-content:flex-start} }
+  .split .stores{justify-content:flex-start}
+  .split-mark{display:grid; place-items:center}
+  .split-mark img{width:220px; height:220px; border-radius:28px; box-shadow:0 24px 50px rgba(0,0,0,.18)}
 
   /* Terms */
   .terms{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:8px 28px}
@@ -83,16 +95,16 @@
   .terms details:last-child{border-bottom:none}
   .terms summary{font-weight:600; font-size:17px; cursor:pointer; list-style:none; display:flex; justify-content:space-between}
   .terms summary::-webkit-details-marker{display:none}
-  .terms summary::after{content:"+"; color:var(--accent); font-weight:700; font-size:22px; line-height:1}
+  .terms summary::after{content:"+"; color:var(--accent-dark); font-weight:700; font-size:22px; line-height:1}
   .terms details[open] summary::after{content:"–"}
   .terms p{color:var(--muted); margin:12px 0 2px}
 
-  footer{background:var(--wood); color:#A99C86; padding:40px 0; font-size:14px}
+  footer{background:var(--wood); color:#A99C86; padding:36px 0; font-size:14px}
   footer .brand{color:#EDE7DA}
   footer a{color:#C9BFAC}
 
   /* Modal */
-  .modal-bg{position:fixed; inset:0; background:rgba(20,16,12,.55); backdrop-filter:blur(4px); z-index:100;
+  .modal-bg{position:fixed; inset:0; background:rgba(12,20,16,.6); backdrop-filter:blur(4px); z-index:100;
     display:none; align-items:center; justify-content:center; padding:20px}
   .modal-bg.open{display:flex}
   .modal{background:var(--surface); border-radius:16px; width:100%; max-width:400px; padding:28px; box-shadow:0 30px 80px rgba(0,0,0,.3)}
@@ -101,7 +113,7 @@
   label{display:block; font-size:13px; font-weight:600; color:var(--muted); margin:14px 0 6px}
   input,textarea,select{width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:9px; font-size:15px;
     background:var(--surface-2); color:var(--ink); font-family:inherit}
-  input:focus,textarea:focus{outline:none; border-color:var(--accent)}
+  input:focus,textarea:focus{outline:none; border-color:var(--accent-dark)}
   .msg{font-size:14px; margin-top:12px; min-height:18px}
   .msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
   .modal .x{float:right; cursor:pointer; color:var(--muted); font-size:22px; line-height:1; border:none; background:none}
@@ -113,7 +125,7 @@
   .admin-top .nav-inner{height:auto}
   .tabs{display:flex; gap:8px; margin:24px 0}
   .tab{padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:var(--surface); cursor:pointer; font-weight:600; font-size:14px}
-  .tab.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .tab.active{background:var(--accent-dark); color:#fff; border-color:var(--accent-dark)}
   .gap-card,.queue-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:12px}
   .gap-head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; cursor:pointer}
   .gap-head h4{margin:0 0 4px; font-size:17px}
@@ -127,7 +139,7 @@
   @media(max-width:640px){ .form-grid{grid-template-columns:1fr} }
   .verified-chip{font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:rgba(63,163,77,.15); color:var(--ok)}
   .empty{text-align:center; color:var(--muted); padding:60px 20px}
-  .spinner{display:inline-block; width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite}
+  .spinner{display:inline-block; width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent-dark); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle}
   @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -137,82 +149,97 @@
 <div id="site">
   <header class="nav">
     <div class="wrap nav-inner">
-      <div class="brand"><span class="mark">V</span> Vitola</div>
+      <div class="brand"><img src="assets/vitola-mark.png" alt="Vitola" /> Vitola</div>
       <nav class="nav-links">
-        <a href="#funksjoner" class="hide-sm">Funksjoner</a>
-        <a href="#last-ned" class="hide-sm">Last ned</a>
-        <a href="#vilkar" class="hide-sm">Vilkår</a>
-        <a href="#" id="openLogin">Logg inn</a>
+        <a href="#features" class="hide-sm">Features</a>
+        <a href="#screenshots" class="hide-sm">Screenshots</a>
+        <a href="#download" class="hide-sm">Download</a>
+        <a href="#terms" class="hide-sm">Terms</a>
+        <a href="#" id="openLogin">Log in</a>
       </nav>
     </div>
   </header>
 
   <div class="hero">
     <div class="wrap">
-      <span class="tag">Shazam for sigarer</span>
-      <h1>Din digitale humidor og tasting-journal.</h1>
-      <p class="lead">Skann sigarbåndet med AI, følg luftfuktigheten i humidoren, loggfør røykene dine og del favorittene med venner.</p>
+      <span class="tag">Shazam for cigars</span>
+      <img class="wordmark" src="assets/vitola-logo.png" alt="Vitola" />
+      <h1>Your digital humidor and tasting journal.</h1>
+      <p class="lead">Scan the cigar band with AI, track the humidity in your humidor, log your smokes, and share your favorites with friends.</p>
       <div class="stores">
-        <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Last ned på</small><b>App Store</b></span></a>
+        <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
         <a class="store" href="#" data-store="testflight"><span>✈️</span><span><small>Beta via</small><b>TestFlight</b></span></a>
-        <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Last ned for</small><b>Android</b></span></a>
+        <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Get it for</small><b>Android</b></span></a>
       </div>
-      <p class="note">Nedlastingslenkene oppdateres ved lansering. Appen er kun for personer over 18 år.</p>
+      <p class="note">Download links go live at launch. Vitola is for ages 18 and over.</p>
     </div>
   </div>
 
-  <section id="funksjoner">
+  <section id="features">
+    <div class="wrap center">
+      <p class="eyebrow">Features</p>
+      <h2 class="section-title">Everything for the cigar enthusiast</h2>
+      <p class="section-sub">From identifying an unknown cigar to keeping your collection in perfect shape.</p>
+    </div>
     <div class="wrap">
-      <p class="eyebrow">Funksjoner</p>
-      <h2 class="section-title">Alt for sigarentusiasten</h2>
-      <p class="section-sub">Fra å kjenne igjen en ukjent sigar til å holde samlingen i perfekt stand.</p>
       <div class="grid">
-        <div class="card"><div class="ic">📷</div><h3>AI-skanning</h3><p>Ta bilde av båndet, så kjenner Vitola igjen sigaren automatisk — med on-device tekstlesing og AI-fallback.</p></div>
-        <div class="card"><div class="ic">💧</div><h3>Humidor med RH</h3><p>Loggfør relativ luftfuktighet per humidor, sett mål og område, og se en rolig trafikklys-status.</p></div>
-        <div class="card"><div class="ic">📖</div><h3>Tasting-journal</h3><p>Vurder trekk, brenning og smak, gi poeng og notater, og bygg din egen smaksprofil over tid.</p></div>
-        <div class="card"><div class="ic">🔎</div><h3>Utforsk</h3><p>Søk i tusenvis av sigarer på merke, serie, form og smaksnoter — med brukernes topp 3 og dagens utvalgte.</p></div>
-        <div class="card"><div class="ic">👥</div><h3>Feed &amp; venner</h3><p>Del røyk i en sosial feed, følg venner, kommenter og lik — og finn nye favoritter.</p></div>
-        <div class="card"><div class="ic">🗄️</div><h3>Humidor-styring</h3><p>Flere humidorer, flytt sigarer mellom dem, tell ned antall når du røyker, og hold oversikt.</p></div>
+        <div class="card"><div class="ic">📷</div><h3>AI scanning</h3><p>Snap the band and Vitola recognizes the cigar automatically — with on-device text reading and an AI fallback.</p></div>
+        <div class="card"><div class="ic">💧</div><h3>Humidor with RH</h3><p>Log relative humidity per humidor, set a target and range, and see a calm traffic-light status.</p></div>
+        <div class="card"><div class="ic">📖</div><h3>Tasting journal</h3><p>Rate draw, burn and flavor, add a score and notes, and build your own taste profile over time.</p></div>
+        <div class="card"><div class="ic">🔎</div><h3>Explore</h3><p>Search thousands of cigars by brand, series, shape and flavor notes — with users' top 3 and a daily pick.</p></div>
+        <div class="card"><div class="ic">👥</div><h3>Feed &amp; friends</h3><p>Share smokes in a social feed, follow friends, comment and like — and discover new favorites.</p></div>
+        <div class="card"><div class="ic">🗄️</div><h3>Humidor management</h3><p>Multiple humidors, move cigars between them, count down as you smoke, and stay organized.</p></div>
       </div>
     </div>
   </section>
 
-  <section id="last-ned" class="band">
+  <section id="screenshots" class="band">
+    <div class="wrap center">
+      <p class="eyebrow">Screenshots</p>
+      <h2 class="section-title">See it in action</h2>
+      <p class="section-sub">A quick look at Explore, your humidor, and the tasting journal.</p>
+    </div>
+    <div class="wrap">
+      <div class="shots" id="shots"></div>
+    </div>
+  </section>
+
+  <section id="download">
     <div class="wrap split">
       <div>
-        <p class="eyebrow">Last ned</p>
-        <h2 class="section-title">Ta med hele samlingen i lomma</h2>
-        <p class="section-sub">Vitola finnes for iPhone og Android. Last ned og logg inn med Apple, Google eller e-post.</p>
+        <p class="eyebrow">Download</p>
+        <h2 class="section-title">Take your whole collection in your pocket</h2>
+        <p class="section-sub">Vitola is available for iPhone and Android. Download and sign in with Apple, Google or email.</p>
         <div class="stores">
-          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Last ned på</small><b>App Store</b></span></a>
-          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Last ned for</small><b>Android</b></span></a>
+          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
+          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Get it for</small><b>Android</b></span></a>
         </div>
       </div>
-      <div class="phone"><div class="scr"><div style="font-size:34px">🚬</div><b style="color:#EDE7DA">Vitola</b><span style="font-size:13px">Din digitale humidor</span></div></div>
+      <div class="split-mark"><img src="assets/vitola-mark.png" alt="Vitola" /></div>
     </div>
   </section>
 
-  <section id="vilkar">
+  <section id="terms">
     <div class="wrap">
-      <p class="eyebrow">Vilkår</p>
-      <h2 class="section-title">Personvern &amp; vilkår</h2>
-      <p class="section-sub">Kort fortalt: vi samler bare det appen trenger, selger ikke data, og bruker den ikke til reklame.</p>
+      <p class="eyebrow">Terms</p>
+      <h2 class="section-title">Privacy &amp; terms</h2>
+      <p class="section-sub">In short: we only collect what the app needs, never sell your data, and don't use it for advertising.</p>
       <div class="terms">
-        <details open><summary>Hva vi samler inn</summary><p>E-postadresse (for innlogging), navn/kallenavn (valgfritt), sigarnotater og vurderinger du selv legger inn, og by/sted (valgfritt).</p></details>
-        <details><summary>Hva vi ikke samler inn</summary><p>Helseopplysninger, betalingsinformasjon, lokasjonsdata eller data fra tredjepart uten din godkjenning.</p></details>
-        <details><summary>Hvordan vi bruker dataene</summary><p>Dataene brukes utelukkende for å drive Vitola-appen: lagre og vise sigarjournalen din, identifisere kontoen din og la deg logge inn. Vi selger ikke dataene dine til tredjepart, og de brukes ikke til reklame.</p></details>
-        <details><summary>Hvem ser dataene dine</summary><p>Dataene lagres i Supabase (USA). Vi deler ikke data med andre aktører. Innlogging via Apple eller Google håndteres av henholdsvis Apple og Google etter deres egne personvernregler.</p></details>
-        <details><summary>Dine rettigheter</summary><p>Du kan se, korrigere eller slette dataene dine når som helst. Slett kontoen direkte i appen under Innstillinger → Slett konto.</p></details>
-        <details><summary>Aldersgrense &amp; tobakk</summary><p>Vitola er kun beregnet for brukere over 18 år. Appen selger ikke tobakk og driver ikke tobakksreklame — den er et verktøy for å organisere og loggføre din egen samling.</p></details>
-        <details><summary>Kontakt</summary><p>Spørsmål om personvern? Send e-post til theggedal@gmail.com. Sist oppdatert: juli 2026.</p></details>
+        <details open><summary>What we collect</summary><p>Email address (for sign-in), name/nickname (optional), the cigar notes and ratings you enter yourself, and city/location (optional).</p></details>
+        <details><summary>What we don't collect</summary><p>Health data, payment information, location tracking, or third-party data without your consent.</p></details>
+        <details><summary>How we use your data</summary><p>Your data is used solely to run the Vitola app: to store and show your cigar journal, identify your account and let you sign in. We do not sell your data to third parties, and it is not used for advertising.</p></details>
+        <details><summary>Who sees your data</summary><p>Data is stored in Supabase (USA). We do not share data with other parties. Sign-in via Apple or Google is handled by Apple and Google respectively under their own privacy policies.</p></details>
+        <details><summary>Your rights</summary><p>You can view, correct or delete your data at any time. Delete your account directly in the app under Settings → Delete account.</p></details>
+        <details><summary>Age limit &amp; tobacco</summary><p>Vitola is intended only for users aged 18 and over. The app does not sell tobacco and does not run tobacco advertising — it is a tool to organize and log your own collection.</p></details>
+        <details><summary>Contact</summary><p>Questions about privacy? Email theggedal@gmail.com. Last updated: July 2026.</p></details>
       </div>
     </div>
   </section>
 
   <footer>
     <div class="wrap" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; align-items:center">
-      <div class="brand"><span class="mark">V</span> Vitola</div>
-      <div>© 2026 Vitola · <a href="#vilkar">Personvern</a> · <a href="#" id="openLogin2">Admin</a></div>
+      <div class="brand"><img src="assets/vitola-mark.png" alt="Vitola" style="width:30px;height:30px;border-radius:7px" /> Vitola</div>
+      <div>© 2026 Vitola · <a href="#terms">Privacy</a> · <a href="#" id="openLogin2">Admin</a></div>
     </div>
   </footer>
 </div>
@@ -221,14 +248,14 @@
 <div class="modal-bg" id="loginModal">
   <div class="modal">
     <button class="x" id="closeLogin">×</button>
-    <h3>Logg inn</h3>
-    <p class="sub">Admin-tilgang til datahull og kø. Bruk e-post og passord.</p>
-    <label>E-post</label>
-    <input type="email" id="email" autocomplete="username" placeholder="deg@epost.no" />
-    <label>Passord</label>
+    <h3>Log in</h3>
+    <p class="sub">Admin access to data gaps and the review queue. Use email and password.</p>
+    <label>Email</label>
+    <input type="email" id="email" autocomplete="username" placeholder="you@email.com" />
+    <label>Password</label>
     <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" />
     <div class="msg" id="loginMsg"></div>
-    <button class="btn btn-primary btn-block" id="loginBtn" style="margin-top:16px">Logg inn</button>
+    <button class="btn btn-primary btn-block" id="loginBtn" style="margin-top:16px">Log in</button>
   </div>
 </div>
 
@@ -236,17 +263,17 @@
 <div id="admin">
   <div class="admin-top">
     <div class="wrap nav-inner">
-      <div class="brand"><span class="mark">V</span> Vitola · Admin</div>
+      <div class="brand"><img src="assets/vitola-mark.png" alt="Vitola" /> Vitola · Admin</div>
       <div style="display:flex; gap:14px; align-items:center">
         <span id="adminEmail" style="color:#C9BFAC; font-size:14px"></span>
-        <button class="btn btn-ghost" id="logoutBtn" style="color:#EDE7DA; border-color:#3a2f22">Logg ut</button>
+        <button class="btn btn-ghost" id="logoutBtn" style="color:#EDE7DA; border-color:#2a4034">Log out</button>
       </div>
     </div>
   </div>
   <div class="wrap">
     <div class="tabs">
-      <button class="tab active" data-tab="gaps">Datahull <span id="gapsCount"></span></button>
-      <button class="tab" data-tab="queue">Kø <span id="queueCount"></span></button>
+      <button class="tab active" data-tab="gaps">Data gaps <span id="gapsCount"></span></button>
+      <button class="tab" data-tab="queue">Queue <span id="queueCount"></span></button>
     </div>
     <div id="tab-gaps"></div>
     <div id="tab-queue" style="display:none"></div>
@@ -258,6 +285,16 @@
 const SUPABASE_URL = "https://wpcricosogcmzebkplwp.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY3JpY29zb2djbXplYmtwbHdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjE0OTQsImV4cCI6MjA5NzEzNzQ5NH0.wdTDMuY1EzZFkoFdLP-HKx-Jx_cfT1OlPjMpet9gL44";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ---- Screenshots: drop 1.png … 5.png into web/screenshots/. Missing ones show a placeholder. ----
+const shotLabels = ["Explore","Humidor & RH","Tasting journal","Feed","Cigar detail"];
+document.getElementById('shots').innerHTML = shotLabels.map((label,i)=>{
+  const n=i+1;
+  return `<div class="phone"><div class="screen">
+    <div class="ph"><img src="assets/vitola-mark.png" alt=""><b style="color:#EDE7DA">${label}</b><small>Add screenshots/${n}.png</small></div>
+    <img src="screenshots/${n}.png" alt="Vitola — ${label}" onload="this.parentElement.querySelector('.ph').style.display='none'" onerror="this.remove()">
+  </div></div>`;
+}).join('');
 
 // ---- Modal ----
 const loginModal = document.getElementById('loginModal');
@@ -273,19 +310,19 @@ const loginMsg = document.getElementById('loginMsg');
 document.getElementById('loginBtn').onclick = async () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  loginMsg.className='msg'; loginMsg.textContent='Logger inn…';
+  loginMsg.className='msg'; loginMsg.textContent='Logging in…';
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error){ loginMsg.className='msg err'; loginMsg.textContent='Innlogging feilet. Sjekk e-post og passord.'; return; }
+  if (error){ loginMsg.className='msg err'; loginMsg.textContent='Login failed. Check your email and password.'; return; }
   await gateAdmin();
 };
 document.getElementById('logoutBtn').onclick = async () => { await sb.auth.signOut(); showSite(); };
 
 async function gateAdmin(){
-  loginMsg.className='msg'; loginMsg.textContent='Sjekker tilgang…';
+  loginMsg.className='msg'; loginMsg.textContent='Checking access…';
   const { data: isAdmin, error } = await sb.rpc('is_admin');
   if (error || !isAdmin){
     loginMsg.className='msg err';
-    loginMsg.textContent = 'Denne kontoen har ikke admin-tilgang.';
+    loginMsg.textContent = 'This account does not have admin access.';
     await sb.auth.signOut();
     return;
   }
@@ -298,7 +335,7 @@ async function gateAdmin(){
 function showSite(){ document.getElementById('admin').classList.remove('open'); document.getElementById('site').style.display=''; }
 function showAdmin(){ document.getElementById('site').style.display='none'; document.getElementById('admin').classList.add('open'); }
 
-// Gjenoppta økt
+// Resume session
 (async ()=>{ const { data:{ session } } = await sb.auth.getSession(); if(session) gateAdmin(); })();
 
 // ---- Tabs ----
@@ -312,20 +349,20 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
 
 const esc = (s)=> (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-// ---- Datahull ----
+// ---- Data gaps ----
 async function loadGaps(){
   const el = document.getElementById('tab-gaps');
-  el.innerHTML = '<div class="empty"><span class="spinner"></span> Laster datahull…</div>';
+  el.innerHTML = '<div class="empty"><span class="spinner"></span> Loading data gaps…</div>';
   const { data, error } = await sb.rpc('admin_data_gaps');
-  if (error){ el.innerHTML = '<div class="empty">Kunne ikke laste datahull.</div>'; return; }
+  if (error){ el.innerHTML = '<div class="empty">Could not load data gaps.</div>'; return; }
   document.getElementById('gapsCount').textContent = data.length ? `(${data.length})` : '';
-  if (!data.length){ el.innerHTML = '<div class="empty">🎉 Ingen datahull — alt er utfylt!</div>'; return; }
+  if (!data.length){ el.innerHTML = '<div class="empty">🎉 No data gaps — everything is filled in!</div>'; return; }
   el.innerHTML = data.map(renderGap).join('');
 }
 
 function renderGap(g){
   const missing = (g.missing||[]).map(m=>`<span class="badge">${esc(m)}</span>`).join('');
-  const ver = g.verified ? '<span class="verified-chip">Verifisert</span>' : '';
+  const ver = g.verified ? '<span class="verified-chip">Verified</span>' : '';
   return `<div class="gap-card" data-id="${g.id}">
     <div class="gap-head" onclick="this.parentElement.querySelector('.fill-form').classList.toggle('open')">
       <div>
@@ -333,21 +370,21 @@ function renderGap(g){
         <div class="brand-sm">${esc(g.brand||'')}${g.source_tier?' · '+esc(g.source_tier):''}</div>
         <div class="badges">${missing}</div>
       </div>
-      <span class="count-pill">${g.gap_count} hull</span>
+      <span class="count-pill">${g.gap_count} gaps</span>
     </div>
     <div class="fill-form">
       <div class="form-grid">
-        <div><label>Kilde-URL (påkrevd)</label><input data-f="p_source_url" placeholder="https://produsent.no/…"></div>
+        <div><label>Source URL (required)</label><input data-f="p_source_url" placeholder="https://manufacturer.com/…"></div>
         <div><label>Ring gauge</label><input data-f="p_ring_gauge" inputmode="numeric" value="${g.ring_gauge??''}"></div>
-        <div><label>Lengde (tommer)</label><input data-f="p_length_inches" inputmode="decimal" value="${g.length_inches??''}"></div>
-        <div><label>Opprinnelsesland</label><input data-f="p_country_origin" value="${esc(g.country_origin||'')}"></div>
-        <div><label>Dekkblad</label><input data-f="p_wrapper_leaf" value="${esc(g.wrapper_leaf||'')}"></div>
-        <div><label>Styrke (1–5)</label><input data-f="p_strength" inputmode="decimal" value="${g.strength??''}"></div>
-        <div style="grid-column:1/-1"><label>Smaksnoter (kommaseparert)</label><input data-f="p_flavor_notes" placeholder="cedar, pepper, cream"></div>
-        <div style="grid-column:1/-1"><label>Beskrivelse</label><textarea data-f="p_description" rows="2"></textarea></div>
+        <div><label>Length (inches)</label><input data-f="p_length_inches" inputmode="decimal" value="${g.length_inches??''}"></div>
+        <div><label>Country of origin</label><input data-f="p_country_origin" value="${esc(g.country_origin||'')}"></div>
+        <div><label>Wrapper</label><input data-f="p_wrapper_leaf" value="${esc(g.wrapper_leaf||'')}"></div>
+        <div><label>Strength (1–5)</label><input data-f="p_strength" inputmode="decimal" value="${g.strength??''}"></div>
+        <div style="grid-column:1/-1"><label>Flavor notes (comma separated)</label><input data-f="p_flavor_notes" placeholder="cedar, pepper, cream"></div>
+        <div style="grid-column:1/-1"><label>Description</label><textarea data-f="p_description" rows="2"></textarea></div>
       </div>
       <div class="msg" data-msg></div>
-      <button class="btn btn-primary" style="margin-top:12px" onclick="fillCigar('${g.id}', this)">Lagre og verifiser</button>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="fillCigar('${g.id}', this)">Save &amp; verify</button>
     </div>
   </div>`;
 }
@@ -364,27 +401,27 @@ async function fillCigar(id, btn){
     else if (key==='p_flavor_notes') v = v.split(',').map(s=>s.trim()).filter(Boolean);
     params[key] = v;
   });
-  if (!params.p_source_url){ msg.className='msg err'; msg.textContent='Kilde-URL er påkrevd.'; return; }
-  msg.className='msg'; msg.textContent='Lagrer…'; btn.disabled=true;
+  if (!params.p_source_url){ msg.className='msg err'; msg.textContent='Source URL is required.'; return; }
+  msg.className='msg'; msg.textContent='Saving…'; btn.disabled=true;
   const { error } = await sb.rpc('admin_fill_cigar', params);
   btn.disabled=false;
-  if (error){ msg.className='msg err'; msg.textContent='Feil: '+error.message; return; }
-  card.style.transition='.3s'; card.style.opacity='0'; card.style.height=card.offsetHeight+'px';
+  if (error){ msg.className='msg err'; msg.textContent='Error: '+error.message; return; }
+  card.style.transition='.3s'; card.style.opacity='0';
   setTimeout(()=>{ card.remove(); const n=document.querySelectorAll('#tab-gaps .gap-card').length;
     document.getElementById('gapsCount').textContent = n?`(${n})`:'';
-    if(!n) document.getElementById('tab-gaps').innerHTML='<div class="empty">🎉 Ingen datahull — alt er utfylt!</div>'; },300);
+    if(!n) document.getElementById('tab-gaps').innerHTML='<div class="empty">🎉 No data gaps — everything is filled in!</div>'; },300);
 }
 
-// ---- Kø (rapporter + innsendinger) ----
+// ---- Queue (reports + submissions) ----
 async function loadQueue(){
   const el = document.getElementById('tab-queue');
-  el.innerHTML = '<div class="empty"><span class="spinner"></span> Laster kø…</div>';
+  el.innerHTML = '<div class="empty"><span class="spinner"></span> Loading queue…</div>';
   const [rep, sub] = await Promise.all([ sb.rpc('admin_pending_reports'), sb.rpc('admin_pending_submissions') ]);
   const reports = rep.data||[]; const subs = sub.data||[];
   document.getElementById('queueCount').textContent = (reports.length+subs.length) ? `(${reports.length+subs.length})` : '';
   let html='';
   if (reports.length){
-    html += '<h3 style="margin:8px 0 12px">Feilrapporter</h3>';
+    html += '<h3 style="margin:8px 0 12px">Error reports</h3>';
     html += reports.map(r=>`<div class="queue-card" data-id="${r.id}">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
         <div><h4 style="margin:0 0 4px">${esc(r.cigar_navn)}</h4>
@@ -392,34 +429,34 @@ async function loadQueue(){
           ${r.comment?`<p style="margin:8px 0 0;color:var(--muted)">${esc(r.comment)}</p>`:''}</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn btn-primary" onclick="resolveReport('${r.id}','resolved',this)">Løst</button>
-        <button class="btn btn-ghost" onclick="resolveReport('${r.id}','dismissed',this)">Avvis</button>
+        <button class="btn btn-primary" onclick="resolveReport('${r.id}','resolved',this)">Resolve</button>
+        <button class="btn btn-ghost" onclick="resolveReport('${r.id}','dismissed',this)">Dismiss</button>
       </div></div>`).join('');
   }
   if (subs.length){
-    html += '<h3 style="margin:22px 0 12px">Brukerinnsendte sigarer</h3>';
+    html += '<h3 style="margin:22px 0 12px">User-submitted cigars</h3>';
     html += subs.map(s=>`<div class="queue-card" data-id="${s.id}">
       <h4 style="margin:0 0 4px">${esc(s.cigar_navn)}</h4>
-      <div class="brand-sm">Foreslått av ${esc(s.foreslatt_av||'')} · ${[s.ring_gauge,s.length_inches].filter(Boolean).join(' × ')} · ${esc(s.country_origin||'')}</div>
+      <div class="brand-sm">Submitted by ${esc(s.foreslatt_av||'')} · ${[s.ring_gauge,s.length_inches].filter(Boolean).join(' × ')} · ${esc(s.country_origin||'')}</div>
       ${s.note?`<p style="margin:8px 0 0;color:var(--muted)">${esc(s.note)}</p>`:''}
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn btn-primary" onclick="subAction('${s.id}','admin_approve_submission',this)">Godkjenn</button>
-        <button class="btn btn-ghost" onclick="subAction('${s.id}','admin_reject_submission',this)">Avvis</button>
+        <button class="btn btn-primary" onclick="subAction('${s.id}','admin_approve_submission',this)">Approve</button>
+        <button class="btn btn-ghost" onclick="subAction('${s.id}','admin_reject_submission',this)">Reject</button>
       </div></div>`).join('');
   }
-  el.innerHTML = html || '<div class="empty">✅ Køen er tom.</div>';
+  el.innerHTML = html || '<div class="empty">✅ The queue is empty.</div>';
 }
 
 async function resolveReport(id, status, btn){
   btn.disabled=true;
   const { error } = await sb.rpc('admin_resolve_report', { p_report_id:id, p_status:status });
-  if (error){ btn.disabled=false; alert('Feil: '+error.message); return; }
+  if (error){ btn.disabled=false; alert('Error: '+error.message); return; }
   removeCard(btn);
 }
 async function subAction(id, fn, btn){
   btn.disabled=true;
   const { error } = await sb.rpc(fn, { p_submission_id:id });
-  if (error){ btn.disabled=false; alert('Feil: '+error.message); return; }
+  if (error){ btn.disabled=false; alert('Error: '+error.message); return; }
   removeCard(btn);
 }
 function removeCard(btn){
