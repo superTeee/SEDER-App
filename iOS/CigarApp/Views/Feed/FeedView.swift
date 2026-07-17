@@ -84,7 +84,7 @@ struct FeedView: View {
 
     private var postsList: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 0) {
                 ForEach(posts) { post in
                     FeedPostCard(
                         post: post,
@@ -102,10 +102,10 @@ struct FeedView: View {
                         .padding(.top, 14)
                         .padding(.trailing, 14)
                     }
+                    // Facebook-stil skillestrek mellom innlegg
+                    Color("Background").frame(height: 8)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
         .background(Color("Background"))
     }
@@ -315,6 +315,9 @@ struct FeedPostCard: View {
     var onLike: () async -> Void
 
     @State private var showShareSheet = false
+    @State private var previewComments: [FeedComment] = []
+
+    private let feedService = FeedService()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -330,7 +333,7 @@ struct FeedPostCard: View {
 
             // ── Header: forfatter + tid ──────────────────────
             HStack(spacing: 10) {
-                AvatarView(url: post.authorAvatarUrl, name: post.authorName, size: 36)
+                AvatarView(url: post.authorAvatarUrl, name: post.authorName, size: 40)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(post.authorName)
                         .font(.subheadline.weight(.semibold))
@@ -348,6 +351,17 @@ struct FeedPostCard: View {
             .padding(.horizontal, 14)
             .padding(.top, 14)
             .padding(.bottom, 10)
+
+            // ── Tekst (over bildet, som Facebook) ─────────────
+            if let text = post.content, !text.isEmpty {
+                Text(text)
+                    .font(.system(size: 15))
+                    .foregroundColor(Color("TextPrimary"))
+                    .lineLimit(6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 10)
+            }
 
             // ── Sigar-chip (hvis koblet til tasting_log) ────
             if let name = post.cigarDisplayName {
@@ -373,35 +387,17 @@ struct FeedPostCard: View {
                 .padding(.bottom, 8)
             }
 
-            // ── Bilde ────────────────────────────────────────
+            // ── Bilde — full bredde, naturlig format (ingen crop, som Facebook) ──
             let photoUrl = post.imageUrl ?? post.tastingPhotoUrl
             if let urlStr = photoUrl, let url = URL(string: urlStr) {
-                // Beholder bestemmer størrelsen; bildet ligger som overlay (påvirker
-                // ikke bredden). Samme fiks som i PostDetailView — hindrer at
-                // scaledToFill skyver kortet forbi skjermkanten.
-                Color("Surface")
+                KFImage(url)
+                    .resizable()
+                    .placeholder {
+                        Color("Surface").frame(height: 220).overlay(ProgressView())
+                    }
+                    .fade(duration: 0.15)
+                    .scaledToFit()
                     .frame(maxWidth: .infinity)
-                    .frame(height: 220)
-                    .overlay(
-                        KFImage(url)
-                            .resizable()
-                            .placeholder { ProgressView() }
-                            .fade(duration: 0.15)
-                            .scaledToFill()
-                    )
-                    .clipped()
-                    .padding(.bottom, 8)
-            }
-
-            // ── Tekst ─────────────────────────────────────────
-            if let text = post.content, !text.isEmpty {
-                Text(text)
-                    .font(.system(size: 15))
-                    .foregroundColor(Color("TextPrimary"))
-                    .lineLimit(5)
-                    .padding(.horizontal, 14)
-                    .padding(.top, 4)
-                    .padding(.bottom, 14)
             }
 
               }
@@ -467,9 +463,42 @@ struct FeedPostCard: View {
                 }
             }
             .padding(.horizontal, 6)
+
+            // ── Kommentar-forhåndsvisning (som Facebook) ─────
+            if post.commentCount > 0 {
+                Divider().padding(.horizontal, 14)
+                VStack(alignment: .leading, spacing: 6) {
+                    if post.commentCount > previewComments.count {
+                        NavigationLink {
+                            PostDetailView(post: post)
+                                .environmentObject(authService)
+                        } label: {
+                            Text("Vis alle \(post.commentCount) kommentarer")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(Color("TextSecondary"))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    ForEach(previewComments) { c in
+                        (Text(c.authorName).font(.subheadline.weight(.semibold))
+                            + Text("  ").font(.subheadline)
+                            + Text(c.content).font(.subheadline))
+                            .foregroundColor(Color("TextPrimary"))
+                            .lineLimit(3)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+            }
         }
         .background(Color("Card"))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .task {
+            if post.commentCount > 0 {
+                previewComments = (try? await feedService.fetchComments(postId: post.id).suffix(2).map { $0 }) ?? []
+            }
+        }
     }
 
     private func scoreColor(for rating: Int?) -> Color {
@@ -709,20 +738,17 @@ struct PostDetailView: View {
                     }
 
                     if let urlStr = post.imageUrl ?? post.tastingPhotoUrl, let url = URL(string: urlStr) {
-                        // Full kortbredde som i feeden: negativ horisontal padding
-                        // kansellerer kortets .padding(16) så bildet når kortkantene.
-                        // Beholder (Color) setter størrelsen; bildet som overlay påvirker
-                        // ikke bredden (hindrer scaledToFill-forskyvningen).
-                        Color("Surface")
+                        // Full kortbredde, naturlig format (ingen crop) — som i feeden.
+                        // Negativ horisontal padding kansellerer kortets .padding(16)
+                        // så bildet når kortkantene.
+                        KFImage(url)
+                            .resizable()
+                            .placeholder {
+                                Color("Surface").frame(height: 220).overlay(ProgressView())
+                            }
+                            .fade(duration: 0.15)
+                            .scaledToFit()
                             .frame(maxWidth: .infinity)
-                            .frame(height: 240)
-                            .overlay(
-                                KFImage(url)
-                                    .resizable()
-                                    .fade(duration: 0.15)
-                                    .scaledToFill()
-                            )
-                            .clipped()
                             .padding(.horizontal, -16)
                     }
 
