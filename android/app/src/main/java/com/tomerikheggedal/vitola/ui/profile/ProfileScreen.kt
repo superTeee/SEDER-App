@@ -68,7 +68,7 @@ private fun strengthLabel(s: Double?): String? = s?.let {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
+fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFavorites: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
@@ -194,7 +194,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
                     }
 
                     // Stats
-                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats, myFavorites.size, onFriends) }
+                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats, myFavorites.size, onFriends, onFavorites) }
 
                     // Sist røkt
                     lastLog?.let { log ->
@@ -286,7 +286,7 @@ private fun Avatar(url: String?, uploading: Boolean, onClick: () -> Unit) {
 
 // 4-cellers stats-kort med ikoner og skillelinjer — som iOS.
 @Composable
-private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () -> Unit) {
+private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () -> Unit, onFavorites: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surface).padding(vertical = 16.dp),
@@ -296,7 +296,8 @@ private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () ->
         StatDivider()
         StatCell(Icons.Filled.LocalFireDepartment, stats.cigars, "Røkt", Modifier.weight(1f))
         StatDivider()
-        StatCell(Icons.Filled.Star, favoritesCount, "Favoritter", Modifier.weight(1f))
+        StatCell(Icons.Filled.Star, favoritesCount, "Favoritter",
+            Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFavorites))
         StatDivider()
         StatCell(Icons.Filled.Group, stats.friends, "Venner",
             Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFriends))

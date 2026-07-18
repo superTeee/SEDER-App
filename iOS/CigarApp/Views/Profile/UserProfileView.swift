@@ -317,8 +317,17 @@ struct UserProfileView: View {
 
             statDivider()
 
-            // Favoritter (erstattet «Merker prøvd»)
-            statCell(icon: "star.fill", value: myFavorites.count, label: "Favoritter")
+            // Favoritter → HumidorView på Favoritter-fanen (kun egen profil)
+            if isOwnProfile {
+                NavigationLink {
+                    HumidorView(initialTab: .favorites).environmentObject(authService)
+                } label: {
+                    statCell(icon: "star.fill", value: myFavorites.count, label: "Favoritter")
+                }
+                .buttonStyle(.plain)
+            } else {
+                statCell(icon: "star.fill", value: myFavorites.count, label: "Favoritter")
+            }
 
             statDivider()
 

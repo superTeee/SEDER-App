@@ -47,7 +47,8 @@ struct HumidorView: View {
 
     // Styl den native segmented-controlleren så den matcher paletten (varme kort-toner
     // i stedet for Apples kalde system-grå).
-    init() {
+    init(initialTab: HumidorTab = .humidor) {
+        _selectedTab = State(initialValue: initialTab)
         let seg = UISegmentedControl.appearance()
         // Valgt segment bruker en tydelig lysere, varm tone (SegmentActive) enn track-en
         // (Background) — paletten er ellers så mørk-tett at Card ikke ga nok kontrast.
@@ -204,6 +205,8 @@ struct HumidorView: View {
             .onAppear {
                 humidorHasNew = false  // Fjern badge når bruker ser humidor-siden
                 Task { await loadHumidor() }
+                if selectedTab == .favorites { Task { await loadFavorites() } }
+                if selectedTab == .wishlist { Task { await loadWishlist() } }
             }
             .refreshable { await loadHumidor() }
             .sheet(isPresented: $showLoginSheet) {

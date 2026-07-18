@@ -44,7 +44,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HumidorScreen(onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = {}) {
+fun HumidorScreen(initialTab: Int = 0, onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
@@ -56,7 +56,7 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = 
     var reloadKey by remember { mutableStateOf(0) }
 
     // Segmentert fane: 0 = Humidor, 1 = Favoritter, 2 = Ønskeliste (som iOS).
-    var tab by remember { mutableStateOf(0) }
+    var tab by remember { mutableStateOf(initialTab) }
     var wishlist by remember { mutableStateOf<List<Cigar>>(emptyList()) }
     var loadingWishlist by remember { mutableStateOf(false) }
     var favorites by remember { mutableStateOf<List<Cigar>>(emptyList()) }

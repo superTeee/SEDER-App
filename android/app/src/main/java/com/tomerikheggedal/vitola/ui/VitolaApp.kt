@@ -25,6 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -54,13 +56,15 @@ fun VitolaApp() {
 
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
+    // Basisrute uten query-argumenter (f.eks. "humidor?tab={tab}" → "humidor").
+    val currentBase = current?.substringBefore("?")
 
     // Behold markert fane også når man går innover i detaljer (som iOS).
     // Oppdateres kun når man lander på en topp-fane, ellers holdes forrige.
     var selectedTab by remember { mutableStateOf("explore") }
-    LaunchedEffect(current) {
-        if (current in listOf("feed", "explore", "humidor", "journal", "profile")) {
-            selectedTab = current!!
+    LaunchedEffect(currentBase) {
+        if (currentBase in listOf("feed", "explore", "humidor", "journal", "profile")) {
+            selectedTab = currentBase!!
         }
     }
 
@@ -143,8 +147,12 @@ fun VitolaApp() {
                     onBack = { nav.popBackStack() }
                 )
             }
-            composable("humidor") {
+            composable(
+                "humidor?tab={tab}",
+                arguments = listOf(navArgument("tab") { type = NavType.IntType; defaultValue = 0 })
+            ) { entry ->
                 HumidorScreen(
+                    initialTab = entry.arguments?.getInt("tab") ?: 0,
                     onHumidor = { nav.navigate("humidorDetail/${it}") },
                     onCigar = { nav.navigate("cigar/${it}") }
                 )
@@ -162,7 +170,8 @@ fun VitolaApp() {
             composable("profile") {
                 ProfileScreen(
                     onSettings = { nav.navigate("settings") },
-                    onFriends = { nav.navigate("friends") }
+                    onFriends = { nav.navigate("friends") },
+                    onFavorites = { nav.navigate("humidor?tab=1") }
                 )
             }
             composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
