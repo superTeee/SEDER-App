@@ -4,13 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -87,13 +89,17 @@ fun JournalScreen(onCigar: (String) -> Unit) {
                     }
                     LazyColumn(
                         Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
                         byMonth.forEach { (month, monthLogs) ->
                             item(key = "m_$month") { SectionLabel(month) }
-                            items(monthLogs, key = { it.id }) { log ->
-                                JournalCard(log) { editLog = log }
+                            itemsIndexed(monthLogs, key = { _, it -> it.id }) { index, log ->
+                                JournalTimelineEntry(
+                                    log = log,
+                                    isFirst = index == 0,
+                                    isLast = index == monthLogs.lastIndex,
+                                    onClick = { editLog = log }
+                                )
                             }
                         }
                     }
@@ -111,12 +117,46 @@ fun JournalScreen(onCigar: (String) -> Unit) {
     }
 }
 
+// Én journaloppføring med vertikal tidslinje til venstre (som iOS): linje over/under
+// og et accent-punkt, med linja skjult over første og under siste innlegg i måneden.
+@Composable
+private fun JournalTimelineEntry(
+    log: TastingLog,
+    isFirst: Boolean,
+    isLast: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(
+            Modifier.width(24.dp).fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                Modifier.width(1.5.dp).weight(1f)
+                    .background(if (isFirst) Color.Transparent else MaterialTheme.colorScheme.outlineVariant)
+            )
+            Box(Modifier.size(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+            Box(
+                Modifier.width(1.5.dp).weight(1f)
+                    .background(if (isLast) Color.Transparent else MaterialTheme.colorScheme.outlineVariant)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            JournalCard(log, onClick)
+            if (!isLast) Spacer(Modifier.height(10.dp))
+        }
+    }
+}
+
 @Composable
 private fun JournalCard(log: TastingLog, onClick: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)

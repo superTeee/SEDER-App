@@ -44,7 +44,12 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HumidorScreen(initialTab: Int = 0, onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = {}) {
+fun HumidorScreen(
+    requestedTab: Int? = null,
+    onTabConsumed: () -> Unit = {},
+    onHumidor: (String) -> Unit = {},
+    onCigar: (String) -> Unit = {},
+) {
     val scope = rememberCoroutineScope()
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
@@ -56,7 +61,12 @@ fun HumidorScreen(initialTab: Int = 0, onHumidor: (String) -> Unit = {}, onCigar
     var reloadKey by remember { mutableStateOf(0) }
 
     // Segmentert fane: 0 = Humidor, 1 = Favoritter, 2 = Ønskeliste (som iOS).
-    var tab by remember { mutableStateOf(initialTab) }
+    var tab by remember { mutableStateOf(0) }
+    // Åpne på forespurt fane (f.eks. når man kom fra «Favoritter» på profilen), og
+    // nullstill forespørselen etterpå så vanlig navigasjon ikke overstyrer valget.
+    LaunchedEffect(requestedTab) {
+        if (requestedTab != null) { tab = requestedTab; onTabConsumed() }
+    }
     var wishlist by remember { mutableStateOf<List<Cigar>>(emptyList()) }
     var loadingWishlist by remember { mutableStateOf(false) }
     var favorites by remember { mutableStateOf<List<Cigar>>(emptyList()) }
