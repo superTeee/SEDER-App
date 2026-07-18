@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +41,7 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
     var friendshipId by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var working by remember { mutableStateOf(false) }
+    var myFavorites by remember { mutableStateOf<List<com.tomerikheggedal.vitola.data.FavoriteListItem>>(emptyList()) }
 
     suspend fun reloadState() {
         val (s, fid) = FriendRepository.stateWith(userId)
@@ -50,6 +52,8 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
         loading = true
         profile = FriendRepository.profile(userId)
         reloadState()
+        myFavorites = runCatching { com.tomerikheggedal.vitola.data.FavoriteRepository.favoriteList(userId) }
+            .getOrDefault(emptyList())
         loading = false
     }
 
@@ -103,7 +107,38 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                     )
 
                     Spacer(Modifier.height(22.dp))
-                    StatsCard(p)
+                    StatsCard(p, myFavorites.size)
+
+                    if (myFavorites.isNotEmpty()) {
+                        Spacer(Modifier.height(22.dp))
+                        Text("FAVORITTER", style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            myFavorites.forEach { fav ->
+                                Row(
+                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Filled.Star, null, tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(fav.brand, style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold, maxLines = 1)
+                                        val sub = listOfNotNull(fav.series, fav.vitola).joinToString(" · ")
+                                        if (sub.isNotBlank()) {
+                                            Text(sub, style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(Modifier.height(32.dp))
                 }
             }
@@ -147,14 +182,14 @@ private fun Avatar(url: String?) {
 }
 
 @Composable
-private fun StatsCard(p: FriendProfile) {
+private fun StatsCard(p: FriendProfile, favoritesCount: Int) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)
         .padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Cell(Icons.Filled.Inventory2, p.humidorCount, "I humidor", Modifier.weight(1f))
         Divider()
         Cell(Icons.Filled.LocalFireDepartment, p.cigarCount, "Røkt", Modifier.weight(1f))
         Divider()
-        Cell(Icons.Filled.Public, p.brandsTried, "Merker prøvd", Modifier.weight(1f))
+        Cell(Icons.Filled.Star, favoritesCount, "Favoritter", Modifier.weight(1f))
         Divider()
         Cell(Icons.Filled.Group, p.friendCount, "Venner", Modifier.weight(1f))
     }

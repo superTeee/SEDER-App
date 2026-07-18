@@ -10,8 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.FlavorIcon
+import com.tomerikheggedal.vitola.data.FavoriteRepository
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.WishlistRepository
@@ -42,6 +45,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     var showReportSheet by remember { mutableStateOf(false) }
     var humidorEntryId by remember { mutableStateOf<String?>(null) }
     var inWishlist by remember { mutableStateOf(false) }
+    var isFavorite by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(id, reloadKey) {
@@ -49,6 +53,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
         cigar = runCatching { CigarRepository.byId(id) }.getOrNull()
         humidorEntryId = runCatching { HumidorRepository.entryIdForCigar(id) }.getOrNull()
         inWishlist = runCatching { WishlistRepository.isInWishlist(id) }.getOrDefault(false)
+        isFavorite = runCatching { FavoriteRepository.isFavorite(id) }.getOrDefault(false)
         loading = false
     }
 
@@ -59,6 +64,20 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 title = { Text(cigar?.brand ?: "", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tilbake") }
+                },
+                actions = {
+                    val authed = Supa.client.auth.currentUserOrNull() != null
+                    IconButton(onClick = {
+                        if (authed) scope.launch {
+                            isFavorite = runCatching { FavoriteRepository.toggle(id) }.getOrDefault(isFavorite)
+                        }
+                    }) {
+                        Icon(
+                            if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = if (isFavorite) "Fjern favoritt" else "Legg til favoritt",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background

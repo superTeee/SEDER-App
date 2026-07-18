@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Straighten
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.JournalRepository
 import com.tomerikheggedal.vitola.data.Profile
+import com.tomerikheggedal.vitola.data.FavoriteRepository
 import com.tomerikheggedal.vitola.data.ProfileFavorites
 import com.tomerikheggedal.vitola.data.ProfileRepository
 import com.tomerikheggedal.vitola.data.ProfileStats
@@ -75,6 +77,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
     var profile by remember { mutableStateOf<Profile?>(null) }
     var stats by remember { mutableStateOf(ProfileStats(0, 0, 0, 0)) }
     var favorites by remember { mutableStateOf<ProfileFavorites?>(null) }
+    var myFavorites by remember { mutableStateOf<List<com.tomerikheggedal.vitola.data.FavoriteListItem>>(emptyList()) }
     var lastLog by remember { mutableStateOf<TastingLog?>(null) }
     var loading by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
@@ -111,10 +114,14 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
             profile = runCatching { ProfileRepository.myProfile() }.getOrNull()
             stats = runCatching { ProfileRepository.myStats() }.getOrDefault(ProfileStats(0, 0, 0, 0))
             favorites = runCatching { ProfileRepository.myFavorites() }.getOrNull()
+            val myUid = Supa.client.auth.currentUserOrNull()?.id
+            myFavorites = if (myUid != null)
+                runCatching { FavoriteRepository.favoriteList(myUid) }.getOrDefault(emptyList())
+            else emptyList()
             lastLog = runCatching { JournalRepository.lastLog() }.getOrNull()
             loading = false
         } else {
-            profile = null; stats = ProfileStats(0, 0, 0, 0); favorites = null; lastLog = null
+            profile = null; stats = ProfileStats(0, 0, 0, 0); favorites = null; myFavorites = emptyList(); lastLog = null
         }
     }
 
@@ -187,19 +194,25 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}) {
                     }
 
                     // Stats
-                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats, onFriends) }
-
-                    // Smaksprofil
-                    SectionLabel("Smaksprofil")
-                    HeroFavoriteCard(favorites)
-                    Spacer(Modifier.height(10.dp))
-                    FavoritesGrid(favorites)
+                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats, myFavorites.size, onFriends) }
 
                     // Sist røkt
                     lastLog?.let { log ->
                         SectionLabel("Sist røkt")
                         LastSmokedCard(log)
                     }
+
+                    // Favoritter
+                    if (myFavorites.isNotEmpty()) {
+                        SectionLabel("Favoritter")
+                        FavoritesList(myFavorites)
+                    }
+
+                    // Smaksprofil
+                    SectionLabel("Smaksprofil")
+                    HeroFavoriteCard(favorites)
+                    Spacer(Modifier.height(10.dp))
+                    FavoritesGrid(favorites)
 
                     Spacer(Modifier.height(32.dp))
                 }
@@ -273,7 +286,7 @@ private fun Avatar(url: String?, uploading: Boolean, onClick: () -> Unit) {
 
 // 4-cellers stats-kort med ikoner og skillelinjer — som iOS.
 @Composable
-private fun StatsCard(stats: ProfileStats, onFriends: () -> Unit) {
+private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surface).padding(vertical = 16.dp),
@@ -283,10 +296,37 @@ private fun StatsCard(stats: ProfileStats, onFriends: () -> Unit) {
         StatDivider()
         StatCell(Icons.Filled.LocalFireDepartment, stats.cigars, "Røkt", Modifier.weight(1f))
         StatDivider()
-        StatCell(Icons.Filled.Public, stats.brandsTried, "Merker prøvd", Modifier.weight(1f))
+        StatCell(Icons.Filled.Star, favoritesCount, "Favoritter", Modifier.weight(1f))
         StatDivider()
         StatCell(Icons.Filled.Group, stats.friends, "Venner",
             Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFriends))
+    }
+}
+
+// Favorittliste-seksjon (navn + vitola). Vises på egen profil og venners.
+@Composable
+private fun FavoritesList(items: List<com.tomerikheggedal.vitola.data.FavoriteListItem>) {
+    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.forEach { fav ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surface).padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Star, null, tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(fav.brand, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+                        maxLines = 1)
+                    val sub = listOfNotNull(fav.series, fav.vitola).joinToString(" · ")
+                    if (sub.isNotBlank()) {
+                        Text(sub, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    }
+                }
+            }
+        }
     }
 }
 

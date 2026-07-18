@@ -34,6 +34,7 @@ import com.tomerikheggedal.vitola.data.HumidorRow
 import com.tomerikheggedal.vitola.data.HumidorUi
 import com.tomerikheggedal.vitola.data.RhStatus
 import com.tomerikheggedal.vitola.data.Supa
+import com.tomerikheggedal.vitola.data.FavoriteRepository
 import com.tomerikheggedal.vitola.data.WishlistRepository
 import com.tomerikheggedal.vitola.data.rhStatus
 import io.github.jan.supabase.gotrue.SessionStatus
@@ -54,10 +55,12 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = 
     var showAdd by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
 
-    // Segmentert fane: 0 = Humidor, 1 = Ønskeliste (som iOS).
+    // Segmentert fane: 0 = Humidor, 1 = Favoritter, 2 = Ønskeliste (som iOS).
     var tab by remember { mutableStateOf(0) }
     var wishlist by remember { mutableStateOf<List<Cigar>>(emptyList()) }
     var loadingWishlist by remember { mutableStateOf(false) }
+    var favorites by remember { mutableStateOf<List<Cigar>>(emptyList()) }
+    var loadingFavorites by remember { mutableStateOf(false) }
 
     // Last humidorene når man er (blir) innlogget, eller etter at en ny er lagt til.
     LaunchedEffect(isAuthed, reloadKey) {
@@ -71,12 +74,17 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = 
         }
     }
 
-    // Last ønskelista hver gang fanen vises (så bokmerke-endringer reflekteres).
+    // Last ønskelista/favoritter hver gang fanen vises (så endringer reflekteres).
     LaunchedEffect(isAuthed, tab) {
-        if (isAuthed && tab == 1) {
+        if (isAuthed && tab == 2) {
             loadingWishlist = true
             wishlist = runCatching { WishlistRepository.list() }.getOrDefault(emptyList())
             loadingWishlist = false
+        }
+        if (isAuthed && tab == 1) {
+            loadingFavorites = true
+            favorites = runCatching { FavoriteRepository.list() }.getOrDefault(emptyList())
+            loadingFavorites = false
         }
     }
 
@@ -109,11 +117,15 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = 
                 ) {
                     SegmentedButton(
                         selected = tab == 0, onClick = { tab = 0 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
                     ) { Text("Humidor") }
                     SegmentedButton(
                         selected = tab == 1, onClick = { tab = 1 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
+                    ) { Text("Favoritter") }
+                    SegmentedButton(
+                        selected = tab == 2, onClick = { tab = 2 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
                     ) { Text("Ønskeliste") }
                 }
             }
@@ -123,6 +135,31 @@ fun HumidorScreen(onHumidor: (String) -> Unit = {}, onCigar: (String) -> Unit = 
                     !isAuthed -> LoginPrompt { scope.launch { Supa.client.auth.signInWith(Google) } }
 
                     tab == 1 -> when {
+                        loadingFavorites -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                        favorites.isEmpty() -> Column(
+                            Modifier.align(Alignment.Center).padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Ingen favoritter ennå.", style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.height(6.dp))
+                            Text("Åpne en sigar og trykk på stjernen øverst for å legge den til her.",
+                                textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        else -> LazyColumn(Modifier.fillMaxSize()) {
+                            item {
+                                Text("Favoritter (${favorites.size})",
+                                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp))
+                            }
+                            items(favorites, key = { it.id }) { c ->
+                                WishlistRow(cigar = c, onClick = { onCigar(c.id) })
+                                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            }
+                        }
+                    }
+
+                    tab == 2 -> when {
                         loadingWishlist -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                         wishlist.isEmpty() -> Column(
                             Modifier.align(Alignment.Center).padding(32.dp),
