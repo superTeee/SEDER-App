@@ -222,8 +222,8 @@ private fun DotRatingRow(label: String, value: Int, onSet: (Int) -> Unit) {
     }
 }
 
-// Galleri-Uri → nedskalert JPEG (maks 1400px).
-private fun journalUriToJpeg(context: android.content.Context, uri: android.net.Uri, maxDim: Int = 1400): ByteArray? {
+// Galleri-Uri → nedskalert JPEG (maks 1200px) — mindre fil = raskere/mer pålitelig lasting (som iOS).
+private fun journalUriToJpeg(context: android.content.Context, uri: android.net.Uri, maxDim: Int = 1200): ByteArray? {
     val bitmap = context.contentResolver.openInputStream(uri)?.use {
         android.graphics.BitmapFactory.decodeStream(it)
     } ?: return null
@@ -234,6 +234,6 @@ private fun journalUriToJpeg(context: android.content.Context, uri: android.net.
             (bitmap.width * r).toInt().coerceAtLeast(1), (bitmap.height * r).toInt().coerceAtLeast(1), true)
     } else bitmap
     val out = java.io.ByteArrayOutputStream()
-    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
     return out.toByteArray()
 }
