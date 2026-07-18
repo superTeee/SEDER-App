@@ -123,14 +123,16 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
             c == null -> Box(Modifier.padding(padding).fillMaxSize(), Alignment.Center) { Text("Fant ikke sigaren") }
             else -> Column(
                 Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
-                // Hero-bilde med opplasting — kun for sigarer i humidoren (som iOS).
+                // Hero-bilde i full bredde (som iOS) — utenfor sideluften.
                 if (humidorEntryId != null) {
                     HeroPhoto(photoUrl = entryPhotoUrl, uploading = uploadingPhoto, onPick = pickEntryPhoto)
                 }
 
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(28.dp)
+                ) {
                 c.series?.let { Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold) }
 
                 // Opprinnelse + format/vitola som ikon-rader (som iOS: kartnål + mål).
@@ -238,6 +240,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 }
 
                 Spacer(Modifier.height(40.dp))
+                }
             }
         }
     }
@@ -366,7 +369,7 @@ private fun IconInfoRow(icon: ImageVector, text: String) {
 @Composable
 private fun HeroPhoto(photoUrl: String?, uploading: Boolean, onPick: () -> Unit) {
     Box(
-        Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(8.dp))
+        Modifier.fillMaxWidth().height(220.dp)
             .background(MaterialTheme.colorScheme.surface)
             .clickable(enabled = !uploading) { onPick() },
         contentAlignment = Alignment.Center
@@ -381,7 +384,7 @@ private fun HeroPhoto(photoUrl: String?, uploading: Boolean, onPick: () -> Unit)
             uploading -> CircularProgressIndicator()
             photoUrl == null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Filled.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(40.dp))
+                    modifier = Modifier.size(32.dp))
                 Spacer(Modifier.height(8.dp))
                 Text("Last opp bilde", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
