@@ -235,10 +235,6 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     }
 }
 
-// Smaksnoter som pills: tintet ikon + norsk etikett når noten har et ikon,
-// ellers bare teksten (ingen tom plassholder).
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
 // Smaksnoter som et kort med header + 4-kolonners ikon-rutenett (som iOS).
 @Composable
 private fun FlavorNotesCard(notes: List<String>) {
