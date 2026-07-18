@@ -9,6 +9,7 @@ enum HumidorTab { case humidor, wishlist }
 struct HumidorView: View {
 
     @EnvironmentObject var authService: AuthService
+    @Environment(\.colorScheme) private var colorScheme
 
     // Humidor-state
     @State private var entries: [HumidorEntry] = []
@@ -145,8 +146,9 @@ struct HumidorView: View {
                 }
             }
             .navigationTitle("Min Humidor")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
             .toolbarBackground(Color("Background"), for: .navigationBar)
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar {
                 if authService.userId != nil && selectedTab == .humidor {
                     ToolbarItem(placement: .topBarTrailing) {

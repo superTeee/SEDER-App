@@ -10,6 +10,7 @@ struct ExploreView: View {
     @StateObject private var scanService  = ScanService()
 
     @EnvironmentObject var authService: AuthService
+    @Environment(\.colorScheme) private var colorScheme
 
     // Legg til egen sigar når søket ikke gir treff
     @State private var showAddCigarSheet = false
@@ -151,8 +152,9 @@ struct ExploreView: View {
                 scanFAB
             }
             .navigationTitle("Utforsk")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
             .toolbarBackground(Color("Background"), for: .navigationBar)
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
             // --- Sheets & navigasjon ---
             .sheet(isPresented: $showFilterSheet) {
                 AdvancedFilterSheet(
@@ -1657,6 +1659,7 @@ private struct FilterChangeModifier: ViewModifier {
 
 struct BrandCigarsView: View {
     let brand: String
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var cigarService = CigarService()
     @State private var cigars: [Cigar] = []
     @State private var isLoading = true
@@ -1728,8 +1731,9 @@ struct BrandCigarsView: View {
             }
         }
         .navigationTitle(brand)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
         .toolbarBackground(Color("Background"), for: .navigationBar)
+        .toolbarColorScheme(colorScheme, for: .navigationBar)
         .task {
             do {
                 cigars    = try await cigarService.fetchCigarsByBrand(brand)

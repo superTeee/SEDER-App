@@ -7,6 +7,7 @@ import SwiftUI
 struct VennerView: View {
 
     @EnvironmentObject var authService: AuthService
+    @Environment(\.colorScheme) private var colorScheme
     private let friendService = FriendService()
 
     @State private var myProfile: Profile?
@@ -87,8 +88,9 @@ struct VennerView: View {
                 }
             }
             .navigationTitle("Venner")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
             .toolbarBackground(Color("Background"), for: .navigationBar)
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
             .onAppear { Task { await loadAll() } }
             .refreshable { await loadAll() }
             .sheet(isPresented: $showLoginSheet) {

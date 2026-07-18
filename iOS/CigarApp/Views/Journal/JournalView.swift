@@ -9,6 +9,7 @@ import Kingfisher
 struct JournalView: View {
 
     @EnvironmentObject var authService: AuthService
+    @Environment(\.colorScheme) private var colorScheme
     @State private var logs: [TastingLog] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -34,8 +35,9 @@ struct JournalView: View {
                     }
                 }
                 .navigationTitle("Journal")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
                 .toolbarBackground(Color("Background"), for: .navigationBar)
+                .toolbarColorScheme(colorScheme, for: .navigationBar)
             .onAppear { Task { await loadLogs() } }
             .refreshable { await loadLogs() }
             .sheet(isPresented: $showLoginSheet) {
