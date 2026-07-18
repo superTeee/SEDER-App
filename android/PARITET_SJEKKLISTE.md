@@ -39,7 +39,7 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 - ⬜ Push-varsel ved ny forespørsel
 
 ### Sigar
-- ⬜ Favoritter (iOS ferdig: stjerne på detalj, «Favoritter»-fane i Humidor, favorittliste på profil erstatter «Merker prøvd», synlig for venner via get_favorites-RPC. Rating/butikk bevisst utelatt i v1. Android gjenstår)
+- ✅ Favoritter (begge plattformer: stjerne på detalj, «Favoritter»-fane i Humidor, favorittliste på profil erstatter «Merker prøvd», synlig for venner via get_favorites-RPC. Rating/butikk bevisst utelatt i v1)
 - ✅ Ønskeliste (bokmerke-toggle på detalj + segmentert «Ønskeliste»-fane i Humidor, som iOS)
 - ✅ Legg til sigar manuelt (fra søkeresultat → create_own_cigar, m/foreslå til delt DB)
 - ✅ Rapporter feil på en sigar («Meld feil» → report_cigar)
