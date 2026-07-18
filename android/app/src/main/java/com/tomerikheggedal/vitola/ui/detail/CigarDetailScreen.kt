@@ -1,6 +1,8 @@
 package com.tomerikheggedal.vitola.ui.detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -99,50 +101,11 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 InfoRow("Opprinnelse", c.countryOrigin)
                 InfoRow("Format", listOfNotNull(c.commonFormat, c.dimensionsLabel).joinToString(" · ").ifBlank { null })
 
-                // Handlingsknapper — speiler iOS:
-                // I humidor → primær «Marker som røkt». Ellers → «Legg i humidor» + sekundær «Marker som røkt».
+                // Innlogging-sjekk for handlinger (brukes av knappene nederst og «Meld feil»).
                 val authed = Supa.client.auth.currentUserOrNull() != null
                 fun requireAuth(action: () -> Unit) {
                     addMsg = null
                     if (!authed) addMsg = "Logg inn på Profil-fanen først." else action()
-                }
-                if (humidorEntryId != null) {
-                    Button(onClick = { requireAuth { showLogSheet = true } }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Marker som røkt")
-                    }
-                } else {
-                    Button(onClick = { requireAuth { showAddSheet = true } }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Legg i humidor")
-                    }
-                    OutlinedButton(onClick = { requireAuth { showLogSheet = true } }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Marker som røkt")
-                    }
-                }
-
-                // Ønskeliste-knapp (som iOS): full bredde, bokmerke + veksel-tekst.
-                OutlinedButton(
-                    onClick = {
-                        requireAuth {
-                            scope.launch {
-                                inWishlist = runCatching { WishlistRepository.toggle(id) }.getOrDefault(inWishlist)
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        if (inWishlist) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                        null, modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(if (inWishlist) "I ønskelisten" else "Legg i ønskeliste")
-                }
-                addMsg?.let {
-                    Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -185,6 +148,57 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 c.description?.takeIf { it.isNotBlank() }?.let {
                     Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+
+                // Handlingsknapper nederst (som iOS), 12px mellomrom. Sekundære (outline)
+                // knapper får accent-kant i mørk modus.
+                val darkMode = com.tomerikheggedal.vitola.ui.theme.ThemeState.isDark(isSystemInDarkTheme())
+                val secondaryBorder = BorderStroke(
+                    1.dp,
+                    if (darkMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                )
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (humidorEntryId != null) {
+                        Button(onClick = { requireAuth { showLogSheet = true } }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Marker som røkt")
+                        }
+                    } else {
+                        Button(onClick = { requireAuth { showAddSheet = true } }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Legg i humidor")
+                        }
+                        OutlinedButton(
+                            onClick = { requireAuth { showLogSheet = true } },
+                            border = secondaryBorder, modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Marker som røkt")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            requireAuth {
+                                scope.launch {
+                                    inWishlist = runCatching { WishlistRepository.toggle(id) }.getOrDefault(inWishlist)
+                                }
+                            }
+                        },
+                        border = secondaryBorder,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            if (inWishlist) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                            null, modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (inWishlist) "I ønskelisten" else "Legg i ønskeliste")
+                    }
+                    addMsg?.let {
+                        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+
                 Spacer(Modifier.height(40.dp))
             }
         }
