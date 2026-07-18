@@ -17,6 +17,7 @@ struct UserProfileView: View {
     @State private var profile: FriendProfile?
     @State private var publicHumidors: [HumidorEntry] = []
     @State private var favorites: ProfileFavorites?
+    @State private var myFavorites: [FavoriteListItem] = []
     @State private var lastLog: TastingLog? = nil
     @State private var isLoading = true
     @State private var showSettings = false
@@ -43,6 +44,7 @@ struct UserProfileView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private let profileService = ProfileService()
+    private let favoriteService = FavoriteService()
 
     // Samme farge som smaksnote-ikonene: #8F7B51 i lys modus, accent i mørk.
     private var accentIconColor: Color {
@@ -60,6 +62,7 @@ struct UserProfileView: View {
                     heroSection(p)
                     statsRow(p)
                     lastSmokedSection
+                    favoritesSection
                     if isOwnProfile {
                         smaksprofilSection
                     }
@@ -314,8 +317,8 @@ struct UserProfileView: View {
 
             statDivider()
 
-            // Merker prøvd
-            statCell(icon: "globe", value: p.brandsTried, label: "Merker prøvd")
+            // Favoritter (erstattet «Merker prøvd»)
+            statCell(icon: "star.fill", value: myFavorites.count, label: "Favoritter")
 
             statDivider()
 
@@ -579,6 +582,44 @@ struct UserProfileView: View {
         }
     }
 
+    @ViewBuilder
+    private var favoritesSection: some View {
+        if !myFavorites.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                sectionHeader("Favoritter")
+                VStack(spacing: 8) {
+                    ForEach(myFavorites) { fav in
+                        HStack(spacing: 12) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(accentIconColor)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(fav.brand)
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(Color("TextPrimary"))
+                                    .lineLimit(1)
+                                let sub = [fav.series, fav.vitola].compactMap { $0 }.joined(separator: " · ")
+                                if !sub.isEmpty {
+                                    Text(sub)
+                                        .font(.caption)
+                                        .foregroundColor(Color("TextSecondary"))
+                                        .lineLimit(1)
+                                }
+                            }
+                            Spacer(minLength: 4)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color("Card"))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
     private var smokeIconBox: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
@@ -669,6 +710,8 @@ struct UserProfileView: View {
             profile        = prof
             publicHumidors = humList
             lastLog        = logs.first
+            // Favorittliste — via RPC med vennskaps-sjekk, virker for egen profil og venner
+            myFavorites = (try? await favoriteService.fetchFavoriteList(userId: userId)) ?? []
             if isOwnProfile {
                 favorites = try? await profileService.fetchOwnFavorites()
             }

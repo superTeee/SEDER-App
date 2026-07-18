@@ -4,7 +4,7 @@ import Kingfisher
 // MARK: - HumidorView
 // Brukerens personlige sigarsamling — med støtte for ønskeliste.
 
-enum HumidorTab { case humidor, wishlist }
+enum HumidorTab { case humidor, favorites, wishlist }
 
 struct HumidorView: View {
 
@@ -25,6 +25,11 @@ struct HumidorView: View {
     @State private var wishlistCigars: [Cigar] = []
     @State private var isLoadingWishlist = false
     private let wishlistService = WishlistService()
+
+    // Favoritt-state
+    @State private var favoriteCigars: [Cigar] = []
+    @State private var isLoadingFavorites = false
+    private let favoriteService = FavoriteService()
 
     // Tab-valg
     @State private var selectedTab: HumidorTab = .humidor
@@ -60,6 +65,7 @@ struct HumidorView: View {
                     if authService.userId != nil {
                         Picker("", selection: $selectedTab) {
                             Text("Humidor").tag(HumidorTab.humidor)
+                            Text("Favoritter").tag(HumidorTab.favorites)
                             Text("Ønskeliste").tag(HumidorTab.wishlist)
                         }
                         .pickerStyle(.segmented)
@@ -68,6 +74,7 @@ struct HumidorView: View {
                         .background(Color("Background"))
                         .onChange(of: selectedTab) { _, tab in
                             if tab == .wishlist { Task { await loadWishlist() } }
+                            if tab == .favorites { Task { await loadFavorites() } }
                         }
                     }
 
@@ -112,6 +119,34 @@ struct HumidorView: View {
                             }
                         }
                         .refreshable { await loadHumidor() }
+                    } else if selectedTab == .favorites {
+                        // Favoritter
+                        List {
+                            if !isLoadingFavorites && !favoriteCigars.isEmpty {
+                                Section(header: Text("Favoritter (\(favoriteCigars.count))").textCase(.none).font(.headline.bold()).foregroundColor(Color("TextPrimary"))) {
+                                    ForEach(favoriteCigars) { cigar in
+                                        NavigationLink(destination: CigarDetailViewDesign(cigar: cigar)) {
+                                            WishlistRow(cigar: cigar)
+                                        }
+                                        .listRowBackground(Color("Card"))
+                                    }
+                                    .onDelete(perform: deleteFavoriteItems)
+                                }
+                            }
+                        }
+                        .scrollContentBackground(.hidden)
+                        .background(Color("Background"))
+                        .overlay {
+                            if isLoadingFavorites {
+                                ProgressView("Laster favoritter...")
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .background(Color("Background"))
+                            } else if favoriteCigars.isEmpty {
+                                EmptyFavoritesView()
+                                    .background(Color("Background"))
+                            }
+                        }
+                        .refreshable { await loadFavorites() }
                     } else {
                         // Ønskeliste
                         List {
@@ -258,6 +293,23 @@ struct HumidorView: View {
             await loadWishlist()
         }
     }
+
+    private func loadFavorites() async {
+        guard let userId = authService.userId else { return }
+        isLoadingFavorites = true
+        favoriteCigars = (try? await favoriteService.fetchFavorites(userId: userId)) ?? []
+        isLoadingFavorites = false
+    }
+
+    private func deleteFavoriteItems(at offsets: IndexSet) {
+        guard let userId = authService.userId else { return }
+        Task {
+            for index in offsets {
+                try? await favoriteService.removeFavorite(userId: userId, cigarId: favoriteCigars[index].id)
+            }
+            await loadFavorites()
+        }
+    }
 }
 
 // MARK: - Wishlist Row
@@ -296,6 +348,27 @@ struct EmptyWishlistView: View {
             Text("Ønskelisten er tom")
                 .font(.title3.bold())
             Text("Finn sigarer i Utforsk og trykk\n«Legg i ønskeliste» for å lagre dem her")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
+    }
+}
+
+// MARK: - Empty Favorites
+struct EmptyFavoritesView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "star")
+                .font(.system(size: 60))
+                .foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Ingen favoritter ennå")
+                .font(.title3.bold())
+            Text("Åpne en sigar og trykk på stjernen\nøverst for å legge den til her")
                 .font(.subheadline)
                 .foregroundColor(Color("TextSecondary"))
                 .multilineTextAlignment(.center)

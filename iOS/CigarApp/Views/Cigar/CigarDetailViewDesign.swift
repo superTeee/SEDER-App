@@ -27,6 +27,8 @@ struct CigarDetailViewDesign: View {
     @State private var showAddToHumidorSheet = false
     @State private var isInWishlist = false
     @State private var isWishlistLoading = false
+    @State private var isFavorite = false
+    @State private var isFavoriteLoading = false
     @State private var showLogSmokedSheet = false
     @State private var showLoginSheet = false
     @State private var showLoggedToast = false
@@ -35,6 +37,7 @@ struct CigarDetailViewDesign: View {
 
     private let humidorService = HumidorService()
     private let wishlistService = WishlistService()
+    private let favoriteService = FavoriteService()
 
     // ── Design-tokens fra Figma ─────────────────────────────────────────────
     // Adaptive farger — følger lys/mørk modus via asset-katalogen
@@ -82,6 +85,17 @@ struct CigarDetailViewDesign: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(textPrimary)
                 }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { toggleFavorite() } label: {
+                    if isFavoriteLoading {
+                        ProgressView().tint(action)
+                    } else {
+                        Image(systemName: isFavorite ? "star.fill" : "star")
+                            .foregroundColor(isFavorite ? action : textPrimary)
+                    }
+                }
+                .disabled(isFavoriteLoading)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: cigar.fullName) {
@@ -216,10 +230,32 @@ struct CigarDetailViewDesign: View {
                 .environmentObject(authService)
         }
         .onAppear {
-            guard entry == nil, let userId = authService.userId else { return }
+            guard let userId = authService.userId else { return }
             Task {
-                isInWishlist = (try? await wishlistService.isInWishlist(userId: userId, cigarId: cigar.id)) ?? false
+                // Ønskeliste-status kun relevant fra Utforsk (ikke når sigaren er i humidor)
+                if entry == nil {
+                    isInWishlist = (try? await wishlistService.isInWishlist(userId: userId, cigarId: cigar.id)) ?? false
+                }
+                // Favoritt-status gjelder overalt (humidor + utforsk)
+                isFavorite = (try? await favoriteService.isFavorite(userId: userId, cigarId: cigar.id)) ?? false
             }
+        }
+    }
+
+    private func toggleFavorite() {
+        guard let userId = authService.userId else { showLoginSheet = true; return }
+        isFavoriteLoading = true
+        Task {
+            do {
+                if isFavorite {
+                    try await favoriteService.removeFavorite(userId: userId, cigarId: cigar.id)
+                    isFavorite = false
+                } else {
+                    try await favoriteService.addFavorite(userId: userId, cigarId: cigar.id)
+                    isFavorite = true
+                }
+            } catch { print("Favoritt-feil: \(error)") }
+            isFavoriteLoading = false
         }
     }
 
