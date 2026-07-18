@@ -968,7 +968,7 @@ class TastingService: ObservableObject {
 
         try await supabase.storage
             .from("log-photos")
-            .upload(path, data: downscaledJPEG(imageData, maxDim: 1400), options: FileOptions(contentType: "image/jpeg", upsert: true))
+            .upload(path, data: downscaledJPEG(imageData, maxDim: 1200, quality: 0.7), options: FileOptions(contentType: "image/jpeg", upsert: true))
 
         let publicURL = try supabase.storage
             .from("log-photos")

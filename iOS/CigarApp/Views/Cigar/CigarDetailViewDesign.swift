@@ -612,11 +612,13 @@ struct CigarDetailViewDesign: View {
     // ── Ratings section ─────────────────────────────────────────────────────
     @ViewBuilder
     private var ratingsSection: some View {
+        // Vis kun barer med faktisk data — en manglende verdi skal ikke tegnes
+        // som en misvisende halvfull bar (før defaultet null til 2.0).
         VStack(alignment: .leading, spacing: 16) {
-            ratingBar(label: "STYRKE",           value: cigar.strength ?? 2.0)
-            ratingBar(label: "KROPP",            value: cigar.body ?? 2.0)
-            ratingBar(label: "SMAKSINTENSITET",  value: cigar.flavorIntensity ?? 2.0)
-            ratingBar(label: "SØDME",            value: cigar.sweetness ?? 2.0)
+            if let v = cigar.strength        { ratingBar(label: "STYRKE",          value: v) }
+            if let v = cigar.body            { ratingBar(label: "KROPP",           value: v) }
+            if let v = cigar.flavorIntensity { ratingBar(label: "SMAKSINTENSITET", value: v) }
+            if let v = cigar.sweetness       { ratingBar(label: "SØDME",           value: v) }
         }
     }
 

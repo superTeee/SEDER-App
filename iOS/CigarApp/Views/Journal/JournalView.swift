@@ -220,14 +220,18 @@ struct JournalRow: View {
             // ── Bilde (hvis finnes) ───────────────────────────
             if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {
                 KFImage(url)
+                    // Nedskaler under dekoding — store bilder (opptil ~2 MB) lastet
+                    // tregt/upålitelig i full oppløsning inn i en liten rad.
+                    .setProcessor(DownsamplingImageProcessor(size: CGSize(width: 1200, height: 712)))
+                    .cacheOriginalImage()
                     .resizable()
                     .placeholder {
-                        Rectangle().fill(Color(.secondarySystemBackground)).frame(height: 154)
+                        Rectangle().fill(Color(.secondarySystemBackground)).frame(height: 178)
                     }
                     .fade(duration: 0.15)
                     .scaledToFill()
                     .frame(maxWidth: .infinity)
-                    .frame(height: 154)
+                    .frame(height: 178)
                     .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .padding(.bottom, 8)
