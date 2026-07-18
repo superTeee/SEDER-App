@@ -10,9 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.StarBorder
@@ -21,10 +24,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.FlavorIcon
@@ -33,13 +40,17 @@ import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.WishlistRepository
 import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
+import com.tomerikheggedal.vitola.ui.rememberCropPicker
 import io.github.jan.supabase.gotrue.auth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var cigar by remember { mutableStateOf<Cigar?>(null) }
     var loading by remember { mutableStateOf(true) }
     var addMsg by remember { mutableStateOf<String?>(null) }
@@ -47,6 +58,8 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     var showLogSheet by remember { mutableStateOf(false) }
     var showReportSheet by remember { mutableStateOf(false) }
     var humidorEntryId by remember { mutableStateOf<String?>(null) }
+    var entryPhotoUrl by remember { mutableStateOf<String?>(null) }
+    var uploadingPhoto by remember { mutableStateOf(false) }
     var inWishlist by remember { mutableStateOf(false) }
     var isFavorite by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
@@ -55,9 +68,25 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
         loading = true
         cigar = runCatching { CigarRepository.byId(id) }.getOrNull()
         humidorEntryId = runCatching { HumidorRepository.entryIdForCigar(id) }.getOrNull()
+        entryPhotoUrl = humidorEntryId?.let { eid ->
+            runCatching { HumidorRepository.entryPhotoUrl(eid) }.getOrNull()
+        }
         inWishlist = runCatching { WishlistRepository.isInWishlist(id) }.getOrDefault(false)
         isFavorite = runCatching { FavoriteRepository.isFavorite(id) }.getOrDefault(false)
         loading = false
+    }
+
+    // Bilde-velger (crop 16:9) for humidor-oppføringens hero-bilde.
+    val pickEntryPhoto = rememberCropPicker(16, 9) { uri ->
+        val eid = humidorEntryId ?: return@rememberCropPicker
+        uploadingPhoto = true
+        scope.launch {
+            runCatching {
+                val jpeg = withContext(Dispatchers.IO) { detailUriToJpeg(context, uri) }
+                if (jpeg != null) entryPhotoUrl = HumidorRepository.uploadEntryPhoto(eid, jpeg)
+            }
+            uploadingPhoto = false
+        }
     }
 
     Scaffold(
@@ -97,10 +126,20 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
+                // Hero-bilde med opplasting — kun for sigarer i humidoren (som iOS).
+                if (humidorEntryId != null) {
+                    HeroPhoto(photoUrl = entryPhotoUrl, uploading = uploadingPhoto, onPick = pickEntryPhoto)
+                }
+
                 c.series?.let { Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold) }
 
-                InfoRow("Opprinnelse", c.countryOrigin)
-                InfoRow("Format", listOfNotNull(c.commonFormat, c.dimensionsLabel).joinToString(" · ").ifBlank { null })
+                // Opprinnelse + format/vitola som ikon-rader (som iOS: kartnål + mål).
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    c.countryOrigin?.takeIf { it.isNotBlank() }?.let { IconInfoRow(Icons.Filled.Place, it) }
+                    val sizeText = listOfNotNull(c.commonFormat ?: c.vitola, c.dimensionsLabel)
+                        .joinToString(" · ").ifBlank { null }
+                    sizeText?.let { IconInfoRow(Icons.Filled.Straighten, it) }
+                }
 
                 // Innlogging-sjekk for handlinger (brukes av knappene nederst og «Meld feil»).
                 val authed = Supa.client.auth.currentUserOrNull() != null
@@ -311,6 +350,74 @@ private fun InfoRow(label: String, value: String?) {
         Text(label, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(120.dp))
         Text(value, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+// Ikon + tekst (som iOS' info-rader: kartnål for opprinnelse, mål for størrelse).
+@Composable
+private fun IconInfoRow(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+// Hero-bilde for en humidor-oppføring: viser bildet, eller en «Last opp bilde»-flate.
+@Composable
+private fun HeroPhoto(photoUrl: String?, uploading: Boolean, onPick: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(enabled = !uploading) { onPick() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (photoUrl != null) {
+            AsyncImage(
+                model = photoUrl, contentDescription = null,
+                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+            )
+        }
+        when {
+            uploading -> CircularProgressIndicator()
+            photoUrl == null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Filled.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp))
+                Spacer(Modifier.height(8.dp))
+                Text("Last opp bilde", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (photoUrl != null && !uploading) {
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(10.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                    .clickable { onPick() }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Bytt bilde", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+// Galleri-Uri → nedskalert JPEG (maks 1400px) for hero-opplasting.
+private fun detailUriToJpeg(context: android.content.Context, uri: android.net.Uri, maxDim: Int = 1400): ByteArray? {
+    val bitmap = context.contentResolver.openInputStream(uri)?.use {
+        android.graphics.BitmapFactory.decodeStream(it)
+    } ?: return null
+    val longest = maxOf(bitmap.width, bitmap.height)
+    val scaled = if (longest > maxDim) {
+        val r = maxDim.toFloat() / longest
+        android.graphics.Bitmap.createScaledBitmap(bitmap,
+            (bitmap.width * r).toInt().coerceAtLeast(1), (bitmap.height * r).toInt().coerceAtLeast(1), true)
+    } else bitmap
+    val out = java.io.ByteArrayOutputStream()
+    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+    return out.toByteArray()
 }
 
 @Composable

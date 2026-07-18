@@ -290,7 +290,30 @@ object HumidorRepository {
             buildJsonObject { put("image_url", url) }
         ) { filter { eq("id", humidorId) } }
     }
+
+    /** Last opp bilde for en humidor-oppføring (bucket: humidor-photos) og skriv photo_url. */
+    suspend fun uploadEntryPhoto(entryId: String, jpeg: ByteArray): String {
+        val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
+        val path = "${userId.lowercase()}/${entryId.lowercase()}.jpg"
+        Supa.client.storage.from("humidor-photos").upload(path, jpeg, upsert = true)
+        val url = Supa.client.storage.from("humidor-photos").publicUrl(path) +
+            "?v=${System.currentTimeMillis() / 1000}"
+        Supa.client.from("humidor").update(
+            buildJsonObject { put("photo_url", url) }
+        ) { filter { eq("id", entryId) } }
+        return url
+    }
+
+    /** Nåværende bilde-URL for en humidor-oppføring, eller null. */
+    suspend fun entryPhotoUrl(entryId: String): String? =
+        Supa.client.from("humidor")
+            .select(Columns.list("photo_url")) { filter { eq("id", entryId) } }
+            .decodeList<PhotoUrlRow>()
+            .firstOrNull()?.photoUrl
 }
+
+@Serializable
+private data class PhotoUrlRow(@SerialName("photo_url") val photoUrl: String? = null)
 
 @Serializable
 private data class EntryIdRow(val id: String)
