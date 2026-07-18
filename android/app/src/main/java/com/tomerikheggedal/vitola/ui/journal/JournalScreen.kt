@@ -147,7 +147,7 @@ private fun JournalTimelineEntry(
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             JournalCard(log, onClick)
-            if (!isLast) Spacer(Modifier.height(10.dp))
+            if (!isLast) Spacer(Modifier.height(18.dp))
         }
     }
 }

@@ -334,7 +334,8 @@ struct ExploreView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color("Card"))
+        // 5% accent i hvile, 10% når feltet er aktivt (fokusert)
+        .background(Color("Accent").opacity(searchFocused ? 0.10 : 0.05))
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 

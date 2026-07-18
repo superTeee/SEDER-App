@@ -101,7 +101,7 @@ struct JournalView: View {
                                     .contentShape(Rectangle())
                                     .onTapGesture { logToEdit = log }
 
-                                if !isLast { Color.clear.frame(height: 10) }
+                                if !isLast { Color.clear.frame(height: 18) }
                             }
                         }
                         .padding(.leading, 12)
