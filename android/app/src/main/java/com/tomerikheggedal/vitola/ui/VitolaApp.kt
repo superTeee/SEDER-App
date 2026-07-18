@@ -92,10 +92,28 @@ fun VitolaApp() {
                                 indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                             ),
                             onClick = {
-                                nav.navigate(tab.route) {
-                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                // Standard Android-mønster: trykker man fanen man allerede
+                                // står på (også når man er på en underside av den), går man
+                                // tilbake til fanens rot i stedet for å gjenopprette undersiden.
+                                val alreadyOnTab = selectedTab == tab.route
+                                if (alreadyOnTab) {
+                                    // Pop av eventuelle undersider → tilbake til fanens rot.
+                                    // Hvis roten ikke ligger i stacken, naviger friskt dit.
+                                    val popped = nav.popBackStack(tab.route, inclusive = false)
+                                    if (!popped) {
+                                        nav.navigate(tab.route) {
+                                            popUpTo(nav.graph.findStartDestination().id)
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                } else {
+                                    // Bytte til en annen fane: lagre gjeldende fanes stack og
+                                    // gjenopprett målfanens (som før).
+                                    nav.navigate(tab.route) {
+                                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             },
                             icon = {
