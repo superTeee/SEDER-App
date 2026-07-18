@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.Cigar
@@ -94,7 +95,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
             else -> Column(
                 Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
                     .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
                 c.series?.let { Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold) }
 
@@ -129,9 +130,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 }
 
                 c.flavorNotes?.takeIf { it.isNotEmpty() }?.let { notes ->
-                    Section("SMAKSNOTER") {
-                        FlavorNotes(notes)
-                    }
+                    FlavorNotesCard(notes)
                 }
 
                 Section("KONSTRUKSJON") {
@@ -240,34 +239,61 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
 // ellers bare teksten (ingen tom plassholder).
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FlavorNotes(notes: List<String>) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+// Smaksnoter som et kort med header + 4-kolonners ikon-rutenett (som iOS).
+@Composable
+private fun FlavorNotesCard(notes: List<String>) {
+    val icons = notes.mapNotNull { FlavorIcon.forNote(it) }.distinctBy { it.drawable }.take(8)
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-        notes.forEach { note ->
-            val match = FlavorIcon.forNote(note)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+        Text(
+            "SMAKSNOTER",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 0.6.sp,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 18.dp)
+        )
+        if (icons.isEmpty()) {
+            Text(
+                "Ingen smaksnoter registrert ennå.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp)
+            )
+        } else {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                if (match != null) {
-                    Icon(
-                        painter = painterResource(match.drawable),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
+                icons.chunked(4).forEach { row ->
+                    Row(Modifier.fillMaxWidth()) {
+                        row.forEach { m ->
+                            Column(
+                                Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(m.drawable),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Text(
+                                    m.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        // Fyll ut resten av raden så kolonnene forblir like brede
+                        repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
-                Text(
-                    match?.label ?: note,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
             }
         }
     }
