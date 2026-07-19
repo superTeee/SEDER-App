@@ -284,6 +284,48 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Steg 3: Alias-/fritekstmatch mot merke + linje + vitola + aliases.
+    // Fanger bånd som IKKE viser merkenavnet, bare linje-/vitola-egennavn
+    // (f.eks. Casdagli "Forrader"/"Blücher"): merke-oppslaget over gir da
+    // null treff, mens match_cigar treffer via aliases/serie/vitola.
+    // Aksent- og skrivefeil-tolerant (unaccent + trigram) i databasen.
+    const fuzzyQueries = new Set<string>();
+    if (ocr_text && ocr_text.trim()) fuzzyQueries.add(ocr_text.trim());
+    for (const g of guesses) {
+      const bs = [g.brand, g.series].filter(Boolean).join(" ").trim();
+      if (bs) fuzzyQueries.add(bs);
+      if (g.brand) fuzzyQueries.add(g.brand);
+      if (g.series) fuzzyQueries.add(g.series);
+    }
+
+    for (const fq of fuzzyQueries) {
+      const { data: fuzzy, error: fErr } = await supabase.rpc("match_cigar", {
+        p_query: fq,
+        p_limit: 8,
+      });
+      if (fErr || !fuzzy) continue;
+      for (
+        const row of fuzzy as Array<
+          { id: string; brand: string; series: string; vitola: string; score: number }
+        >
+      ) {
+        // Kun sterke treff regnes som kandidater — unngå falske positive,
+        // som skader troverdigheten mer enn en ærlig bom.
+        if (row.score < 0.5) continue;
+        if (seenCigarIds.has(row.id)) continue;
+        seenCigarIds.add(row.id);
+        matches.push({
+          cigar_id: row.id,
+          confidence: Math.min(row.score, 1),
+          reason: `Bånd-tekst matchet ${row.brand}` +
+            `${row.series ? " / " + row.series : ""}` +
+            `${row.vitola ? " (" + row.vitola + ")" : ""}`,
+          // Høy score = entydig treff appen kan velge automatisk.
+          exact_match: row.score >= 0.9,
+        });
+      }
+    }
+
     // Beste treff først, og ikke overvelde brukeren med for mange valg
     matches.sort((a, b) => b.confidence - a.confidence);
     const topMatches = matches.slice(0, 12);
