@@ -1,163 +1,220 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Vitola — Shazam for cigars</title>
-<meta name="description" content="Vitola is your digital humidor and tasting journal. Scan cigar bands with AI, track humidity, log your smokes, and share with friends." />
+<title>Vitola — Shazam for sigarer</title>
+<meta name="description" content="Vitola er din digitale humidor og smaksjournal. Skann sigarbånd med AI, følg med på fuktighet, loggfør røykene dine, og del med venner." />
+<meta name="theme-color" content="#14110D" />
 <link rel="icon" href="assets/vitola-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#F2F0E9; --surface:#FFFFFF; --surface-2:#FBF9F3;
-    --ink:#2A241C; --muted:#7C7264; --line:#E4DFD2;
-    --accent:#B8944D; --accent-dark:#8F7B51; --wood:#122019; --wood-2:#1c2f24;
-    --ok:#3FA34D; --warn:#E0A400; --bad:#D64545;
-    --radius:12px; --maxw:1080px;
+    --bg:#14110D; --surface:#1D1811; --surface-2:#241E15;
+    --ink:#ECE5D6; --muted:#A2957E; --line:rgba(236,229,214,.12); --line-2:rgba(236,229,214,.22);
+    --accent:#C6A15B; --accent-dark:#B8944D; --wood:#0E0B07;
+    --ok:#5FBF6C; --warn:#E0A400; --bad:#E06A5A;
+    --radius:14px; --maxw:1140px;
+    --serif:"Fraunces",Georgia,"Times New Roman",serif;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased}
-  a{color:var(--accent-dark); text-decoration:none}
-  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 20px}
-  h1,h2,h3{line-height:1.15; letter-spacing:-.02em}
-  .btn{display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;
-    border:none; border-radius:10px; padding:12px 20px; font-size:15px; transition:.15s}
-  .btn-primary{background:var(--accent-dark); color:#fff}
-  .btn-primary:hover{background:#7a683f}
-  .btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
-  .btn-ghost:hover{border-color:var(--accent-dark)}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans); background:var(--bg); color:var(--ink); line-height:1.6; -webkit-font-smoothing:antialiased}
+  a{color:var(--accent); text-decoration:none}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 28px}
+  h1,h2,h3{font-family:var(--serif); font-weight:500; line-height:1.08; letter-spacing:-.01em; margin:0}
+  ::selection{background:rgba(198,161,91,.28)}
+
+  .btn{display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; font-family:var(--sans);
+    border:none; border-radius:999px; padding:13px 24px; font-size:15px; transition:.2s}
+  .btn-primary{background:var(--accent); color:#14110D}
+  .btn-primary:hover{background:#d7b877}
+  .btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line-2)}
+  .btn-ghost:hover{border-color:var(--accent)}
   .btn-block{width:100%; justify-content:center}
 
+  /* Scroll progress */
+  .progress{position:fixed; top:0; left:0; right:0; height:2px; z-index:60; background:transparent}
+  .progress span{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--accent-dark),var(--accent))}
+
   /* Nav */
-  header.nav{position:sticky; top:0; z-index:40; background:rgba(242,240,233,.9);
-    backdrop-filter:saturate(180%) blur(10px); border-bottom:1px solid var(--line)}
-  .nav-inner{display:flex; align-items:center; justify-content:space-between; height:64px}
-  .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; letter-spacing:-.03em}
+  header.nav{position:sticky; top:0; z-index:40; background:rgba(20,17,13,.72);
+    backdrop-filter:saturate(160%) blur(14px); border-bottom:1px solid var(--line)}
+  .nav-inner{display:flex; align-items:center; justify-content:space-between; height:72px}
+  .brand{display:flex; align-items:center; gap:11px; font-family:var(--serif); font-weight:600; font-size:22px; letter-spacing:-.01em; color:var(--ink)}
   .brand img{width:34px; height:34px; border-radius:8px; display:block}
-  .nav-links{display:flex; align-items:center; gap:22px}
-  .nav-links a{color:var(--ink); font-weight:500; font-size:15px}
-  .nav-links a:hover{color:var(--accent-dark)}
-  @media(max-width:720px){ .nav-links a.hide-sm{display:none} }
+  .nav-links{display:flex; align-items:center; gap:30px}
+  .nav-links a{color:var(--muted); font-weight:500; font-size:14px; letter-spacing:.01em; transition:.2s}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-links a.cta{color:var(--ink); border:1px solid var(--line-2); padding:9px 18px; border-radius:999px}
+  .nav-links a.cta:hover{border-color:var(--accent); color:var(--accent)}
+  @media(max-width:760px){ .nav-links a.hide-sm{display:none} }
 
   /* Hero */
-  .hero{position:relative; min-height:640px; display:flex; align-items:center; color:#EDE7DA;
+  .hero{position:relative; min-height:92vh; display:flex; align-items:center; overflow:hidden;
     background:
-      linear-gradient(90deg, rgba(12,17,13,.95) 0%, rgba(12,17,13,.80) 30%, rgba(12,17,13,.28) 55%, rgba(12,17,13,0) 78%),
-      #12160f url('assets/hero.jpg') center right / cover no-repeat}
-  .hero .wrap{padding-top:70px; padding-bottom:70px}
-  .hero .hero-content{max-width:540px}
-  .hero img.wordmark{height:62px; width:auto; margin:0 0 24px; display:block}
-  .hero h1{font-size:clamp(32px,5vw,52px); margin:0 0 16px; color:#fff}
-  .hero p.lead{font-size:clamp(17px,2.4vw,21px); color:#D6CDBB; max-width:520px; margin:0 0 30px}
-  .hero .tag{display:inline-block; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-    color:#D9B876; background:rgba(184,148,77,.18); padding:6px 12px; border-radius:999px; margin-bottom:22px}
-  .stores{display:flex; flex-wrap:wrap; gap:12px}
+      linear-gradient(90deg, rgba(14,11,7,.97) 0%, rgba(14,11,7,.86) 34%, rgba(14,11,7,.45) 62%, rgba(14,11,7,.15) 82%, rgba(14,11,7,.5) 100%),
+      #0E0B07 url('assets/hero.jpg') center right / cover no-repeat}
+  .hero .wrap{padding:120px 28px}
+  .hero .hero-content{max-width:660px}
+  .eyebrow-tag{display:inline-flex; align-items:center; gap:9px; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:30px}
+  .eyebrow-tag::before{content:""; width:26px; height:1px; background:var(--accent); display:inline-block}
+  .hero img.wordmark{height:52px; width:auto; margin:0 0 26px; display:block}
+  .hero h1{font-size:clamp(40px,6.4vw,74px); color:var(--ink); margin:0 0 22px; font-weight:400}
+  .hero h1 em{font-style:italic; color:var(--accent)}
+  .hero p.lead{font-size:clamp(17px,2.2vw,21px); color:var(--muted); max-width:520px; margin:0 0 38px; line-height:1.65}
+  .stores{display:flex; flex-wrap:wrap; gap:14px}
+  .store{display:inline-flex; align-items:center; gap:11px; background:rgba(29,24,17,.7); border:1px solid var(--line-2); color:var(--ink);
+    padding:12px 20px; border-radius:12px; font-weight:600; transition:.2s; backdrop-filter:blur(6px)}
+  .store:hover{border-color:var(--accent); transform:translateY(-2px)}
+  .store small{display:block; font-size:11px; color:var(--muted); font-weight:500; letter-spacing:.02em}
+  .store b{font-size:15px}
+  .note{font-size:13px; color:var(--muted); margin-top:20px; letter-spacing:.01em}
+  .scroll-hint{position:absolute; bottom:34px; left:50%; transform:translateX(-50%); color:var(--muted); font-size:11px;
+    letter-spacing:.22em; text-transform:uppercase; display:flex; flex-direction:column; align-items:center; gap:10px}
+  .scroll-hint .line{width:1px; height:44px; background:linear-gradient(var(--accent),transparent); animation:drop 2s ease-in-out infinite}
+  @keyframes drop{0%,100%{opacity:.3; transform:scaleY(.6)}50%{opacity:1; transform:scaleY(1)}}
   @media(max-width:760px){
     .hero{min-height:auto; text-align:center;
-      background:linear-gradient(180deg, rgba(12,17,13,.78) 0%, rgba(12,17,13,.62) 42%, rgba(12,17,13,.9) 100%),
-        #12160f url('assets/hero.jpg') center / cover no-repeat}
+      background:linear-gradient(180deg, rgba(14,11,7,.72) 0%, rgba(14,11,7,.6) 40%, rgba(14,11,7,.96) 100%),
+        #0E0B07 url('assets/hero.jpg') center / cover no-repeat}
+    .hero .wrap{padding:96px 24px 88px}
     .hero .hero-content{max-width:100%}
-    .hero img.wordmark{margin-left:auto; margin-right:auto}
-    .hero p.lead{margin-left:auto; margin-right:auto}
+    .eyebrow-tag,.hero img.wordmark,.hero p.lead{margin-left:auto; margin-right:auto}
     .hero .stores{justify-content:center}
+    .scroll-hint{display:none}
   }
-  .store{display:inline-flex; align-items:center; gap:10px; background:#0d1611; border:1px solid #2a4034; color:#EDE7DA;
-    padding:11px 18px; border-radius:12px; font-weight:600; transition:.15s}
-  .store:hover{border-color:var(--accent); color:#fff}
-  .store small{display:block; font-size:11px; color:#A99C86; font-weight:500}
-  .store b{font-size:15px}
-  .note{font-size:13px; color:#A99C86; margin-top:14px}
+
+  /* Statement / pull quote */
+  .statement{padding:130px 0; border-bottom:1px solid var(--line)}
+  .statement .wrap{max-width:960px}
+  .statement .mark{font-family:var(--serif); font-size:64px; color:var(--accent); line-height:0; display:block; margin-bottom:8px; opacity:.6}
+  .statement p{font-family:var(--serif); font-size:clamp(26px,3.6vw,42px); line-height:1.28; font-weight:400; color:var(--ink); margin:0}
+  .statement p em{font-style:italic; color:var(--accent)}
 
   /* Sections */
-  section{padding:72px 0}
-  .eyebrow{color:var(--accent-dark); font-weight:700; font-size:13px; letter-spacing:.09em; text-transform:uppercase; margin:0 0 10px}
-  h2.section-title{font-size:clamp(26px,4vw,40px); margin:0 0 14px}
-  .section-sub{color:var(--muted); font-size:18px; max-width:620px; margin:0 0 40px}
-  .center{text-align:center} .center .section-sub{margin-left:auto;margin-right:auto}
-  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  section{padding:110px 0}
+  .sec-head{max-width:720px; margin:0 0 64px}
+  .sec-head.center{margin-left:auto; margin-right:auto; text-align:center}
+  .eyebrow{display:inline-flex; align-items:center; gap:10px; color:var(--accent); font-weight:600; font-size:12px; letter-spacing:.18em; text-transform:uppercase; margin:0 0 18px}
+  .eyebrow .idx{font-family:var(--serif); font-style:italic; color:var(--muted); font-size:14px; letter-spacing:0}
+  h2.section-title{font-size:clamp(30px,4.4vw,50px); margin:0 0 18px; font-weight:400}
+  h2.section-title em{font-style:italic; color:var(--accent)}
+  .section-sub{color:var(--muted); font-size:19px; max-width:640px; margin:0; line-height:1.65}
+  .center .section-sub{margin-left:auto; margin-right:auto}
+
+  /* Feature list — editorial numbered */
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line)}
   @media(max-width:860px){ .grid{grid-template-columns:1fr} }
-  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px}
-  .card .ic{width:44px; height:44px; border-radius:11px; background:rgba(184,148,77,.12); display:grid; place-items:center;
-    font-size:22px; margin-bottom:14px}
-  .card h3{margin:0 0 8px; font-size:19px}
-  .card p{margin:0; color:var(--muted); font-size:15px}
+  .card{background:var(--bg); padding:40px 34px; transition:.25s; position:relative}
+  .card:hover{background:var(--surface)}
+  .card .num{font-family:var(--serif); font-style:italic; font-size:15px; color:var(--accent); display:block; margin-bottom:22px; letter-spacing:.02em}
+  .card .ic{font-size:26px; margin-bottom:18px; display:block; filter:saturate(.85)}
+  .card h3{margin:0 0 12px; font-size:23px; font-weight:500; color:var(--ink)}
+  .card p{margin:0; color:var(--muted); font-size:15.5px; line-height:1.65}
 
   /* Screenshots */
-  .shots{display:flex; gap:24px; overflow-x:auto; padding:6px 2px 16px; scroll-snap-type:x mandatory}
-  .shots::-webkit-scrollbar{height:8px} .shots::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px}
-  .phone{flex:0 0 auto; width:250px; aspect-ratio:9/19.5; border-radius:34px; padding:9px; scroll-snap-align:center;
-    background:linear-gradient(160deg,#20140c,#0c0a07); box-shadow:0 24px 48px rgba(0,0,0,.22); position:relative}
-  .phone .screen{position:absolute; inset:9px; border-radius:27px; overflow:hidden; background:var(--wood);
+  .band{background:var(--wood); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+  .shots{display:flex; gap:28px; overflow-x:auto; padding:8px 2px 20px; scroll-snap-type:x mandatory}
+  .shots::-webkit-scrollbar{height:8px} .shots::-webkit-scrollbar-thumb{background:var(--line-2); border-radius:8px}
+  .phone{flex:0 0 auto; width:258px; aspect-ratio:9/19.5; border-radius:38px; padding:9px; scroll-snap-align:center;
+    background:linear-gradient(160deg,#2a1d10,#0a0805); box-shadow:0 30px 60px rgba(0,0,0,.5); position:relative}
+  .phone .screen{position:absolute; inset:9px; border-radius:30px; overflow:hidden; background:#171009;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px}
   .phone .screen img{width:100%; height:100%; object-fit:cover; display:block}
-  .phone .ph{color:#8f7b51; text-align:center; padding:20px}
-  .phone .ph img{width:64px; height:64px; border-radius:14px; margin-bottom:10px}
-  .phone .ph small{display:block; color:#A99C86; font-size:12px}
+  .phone .ph{color:var(--accent-dark); text-align:center; padding:20px}
+  .phone .ph img{width:60px; height:60px; border-radius:14px; margin-bottom:12px; opacity:.9}
+  .phone .ph small{display:block; color:var(--muted); font-size:12px; margin-top:4px}
 
-  /* Download band */
-  .band{background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
-  .split{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center}
+  /* Manifesto trio */
+  .trio{display:grid; grid-template-columns:repeat(3,1fr); gap:0}
+  @media(max-width:860px){ .trio{grid-template-columns:1fr} }
+  .trio .col{padding:0 40px; border-left:1px solid var(--line)}
+  .trio .col:first-child{padding-left:0; border-left:none}
+  @media(max-width:860px){ .trio .col{padding:34px 0; border-left:none; border-top:1px solid var(--line)} .trio .col:first-child{border-top:none; padding-top:0} }
+  .trio .n{font-family:var(--serif); font-style:italic; color:var(--accent); font-size:15px; margin-bottom:16px}
+  .trio h3{font-size:25px; font-weight:500; margin:0 0 12px}
+  .trio p{color:var(--muted); font-size:15.5px; line-height:1.65; margin:0}
+
+  /* Download split */
+  .split{display:grid; grid-template-columns:1.1fr .9fr; gap:56px; align-items:center}
   @media(max-width:860px){ .split{grid-template-columns:1fr} .split .stores{justify-content:flex-start} }
-  .split .stores{justify-content:flex-start}
+  .split .stores{justify-content:flex-start; margin-top:34px}
   .split-mark{display:grid; place-items:center}
-  .split-mark img{width:220px; height:220px; border-radius:28px; box-shadow:0 24px 50px rgba(0,0,0,.18)}
+  .split-mark img{width:240px; height:240px; border-radius:32px; box-shadow:0 30px 70px rgba(0,0,0,.45); border:1px solid var(--line)}
 
   /* Terms */
-  .terms{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:8px 28px}
-  .terms details{border-bottom:1px solid var(--line); padding:16px 0}
-  .terms details:last-child{border-bottom:none}
-  .terms summary{font-weight:600; font-size:17px; cursor:pointer; list-style:none; display:flex; justify-content:space-between}
+  .terms{border-top:1px solid var(--line)}
+  .terms details{border-bottom:1px solid var(--line); padding:22px 0}
+  .terms summary{font-family:var(--serif); font-weight:500; font-size:20px; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:16px; color:var(--ink)}
   .terms summary::-webkit-details-marker{display:none}
-  .terms summary::after{content:"+"; color:var(--accent-dark); font-weight:700; font-size:22px; line-height:1}
+  .terms summary::after{content:"+"; color:var(--accent); font-weight:400; font-size:26px; line-height:1; font-family:var(--sans)}
   .terms details[open] summary::after{content:"–"}
-  .terms p{color:var(--muted); margin:12px 0 2px}
+  .terms p{color:var(--muted); margin:16px 0 2px; max-width:760px; font-size:16px}
 
-  footer{background:var(--wood); color:#A99C86; padding:36px 0; font-size:14px}
-  footer .brand{color:#EDE7DA}
-  footer a{color:#C9BFAC}
+  footer{background:var(--wood); color:var(--muted); padding:56px 0 40px; font-size:14px; border-top:1px solid var(--line)}
+  footer .foot-top{display:flex; justify-content:space-between; flex-wrap:wrap; gap:24px; align-items:flex-start; padding-bottom:36px; border-bottom:1px solid var(--line)}
+  footer .brand{color:var(--ink)}
+  footer .foot-links{display:flex; gap:40px; flex-wrap:wrap}
+  footer .foot-links h4{font-family:var(--sans); font-size:12px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); margin:0 0 14px; font-weight:600}
+  footer .foot-links a{display:block; color:var(--ink); margin-bottom:9px; font-size:14px}
+  footer .foot-links a:hover{color:var(--accent)}
+  footer .foot-bot{display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:26px; color:var(--muted)}
+  footer .foot-bot a{color:var(--muted)}
+
+  /* Reveal on scroll */
+  [data-reveal]{opacity:0; transform:translateY(24px); transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1)}
+  [data-reveal].in{opacity:1; transform:none}
 
   /* Modal */
-  .modal-bg{position:fixed; inset:0; background:rgba(12,20,16,.6); backdrop-filter:blur(4px); z-index:100;
+  .modal-bg{position:fixed; inset:0; background:rgba(8,6,4,.72); backdrop-filter:blur(6px); z-index:100;
     display:none; align-items:center; justify-content:center; padding:20px}
   .modal-bg.open{display:flex}
-  .modal{background:var(--surface); border-radius:16px; width:100%; max-width:400px; padding:28px; box-shadow:0 30px 80px rgba(0,0,0,.3)}
-  .modal h3{margin:0 0 6px; font-size:22px}
-  .modal p.sub{margin:0 0 20px; color:var(--muted); font-size:15px}
-  label{display:block; font-size:13px; font-weight:600; color:var(--muted); margin:14px 0 6px}
-  input,textarea,select{width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:9px; font-size:15px;
+  .modal{background:var(--surface); border:1px solid var(--line-2); border-radius:18px; width:100%; max-width:410px; padding:32px; box-shadow:0 40px 90px rgba(0,0,0,.6)}
+  .modal h3{margin:0 0 6px; font-size:26px; font-weight:500}
+  .modal p.sub{margin:0 0 22px; color:var(--muted); font-size:15px}
+  label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin:16px 0 7px; letter-spacing:.06em; text-transform:uppercase}
+  input,textarea,select{width:100%; padding:12px 14px; border:1px solid var(--line-2); border-radius:10px; font-size:15px;
     background:var(--surface-2); color:var(--ink); font-family:inherit}
-  input:focus,textarea:focus{outline:none; border-color:var(--accent-dark)}
+  input:focus,textarea:focus,select:focus{outline:none; border-color:var(--accent)}
   .msg{font-size:14px; margin-top:12px; min-height:18px}
   .msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
-  .modal .x{float:right; cursor:pointer; color:var(--muted); font-size:22px; line-height:1; border:none; background:none}
+  .modal .x{float:right; cursor:pointer; color:var(--muted); font-size:24px; line-height:1; border:none; background:none}
 
   /* Admin */
   #admin{display:none; min-height:100vh; background:var(--bg)}
   #admin.open{display:block}
-  .admin-top{background:var(--wood); color:#EDE7DA; padding:14px 0}
+  .admin-top{background:var(--wood); color:var(--ink); padding:16px 0; border-bottom:1px solid var(--line)}
   .admin-top .nav-inner{height:auto}
-  .tabs{display:flex; gap:8px; margin:24px 0}
-  .tab{padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:var(--surface); cursor:pointer; font-weight:600; font-size:14px}
-  .tab.active{background:var(--accent-dark); color:#fff; border-color:var(--accent-dark)}
-  .gap-card,.queue-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:12px}
+  .tabs{display:flex; gap:10px; margin:28px 0}
+  .tab{padding:10px 18px; border-radius:999px; border:1px solid var(--line-2); background:var(--surface); color:var(--ink); cursor:pointer; font-weight:600; font-size:14px}
+  .tab.active{background:var(--accent); color:#14110D; border-color:var(--accent)}
+  .gap-card,.queue-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:14px}
   .gap-head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; cursor:pointer}
-  .gap-head h4{margin:0 0 4px; font-size:17px}
+  .gap-head h4{margin:0 0 4px; font-size:18px; font-family:var(--sans); font-weight:600}
   .gap-head .brand-sm{color:var(--muted); font-size:14px}
   .badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
-  .badge{font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:rgba(224,164,0,.15); color:#9a7400}
-  .count-pill{background:var(--bad); color:#fff; font-weight:700; font-size:13px; padding:4px 10px; border-radius:999px; white-space:nowrap}
+  .badge{font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:rgba(224,164,0,.16); color:#e0b752}
+  .count-pill{background:rgba(224,106,90,.18); color:var(--bad); font-weight:700; font-size:13px; padding:4px 10px; border-radius:999px; white-space:nowrap}
   .fill-form{display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line)}
   .fill-form.open{display:block}
   .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
   @media(max-width:640px){ .form-grid{grid-template-columns:1fr} }
-  .verified-chip{font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:rgba(63,163,77,.15); color:var(--ok)}
+  .verified-chip{font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:rgba(95,191,108,.16); color:var(--ok)}
   .empty{text-align:center; color:var(--muted); padding:60px 20px}
-  .spinner{display:inline-block; width:18px; height:18px; border:2px solid var(--line); border-top-color:var(--accent-dark); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle}
+  .spinner{display:inline-block; width:18px; height:18px; border:2px solid var(--line-2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle}
   @keyframes spin{to{transform:rotate(360deg)}}
+  h3.qh{font-family:var(--sans); font-weight:600}
 </style>
 </head>
 <body>
+
+<div class="progress"><span id="bar"></span></div>
 
 <!-- ============ LANDING ============ -->
 <div id="site">
@@ -165,11 +222,11 @@
     <div class="wrap nav-inner">
       <div class="brand"><img src="assets/vitola-mark.png" alt="Vitola" /> Vitola</div>
       <nav class="nav-links">
-        <a href="#features" class="hide-sm">Features</a>
-        <a href="#screenshots" class="hide-sm">Screenshots</a>
-        <a href="#download" class="hide-sm">Download</a>
-        <a href="#terms" class="hide-sm">Terms</a>
-        <a href="#" id="openLogin">Log in</a>
+        <a href="#features" class="hide-sm">Funksjoner</a>
+        <a href="#screenshots" class="hide-sm">Skjermbilder</a>
+        <a href="#why" class="hide-sm">Hvorfor Vitola</a>
+        <a href="#terms" class="hide-sm">Personvern</a>
+        <a href="#" id="openLogin" class="cta">Logg inn</a>
       </nav>
     </div>
   </header>
@@ -177,85 +234,134 @@
   <div class="hero">
     <div class="wrap">
       <div class="hero-content">
-        <span class="tag">Shazam for cigars</span>
+        <span class="eyebrow-tag">Shazam for sigarer</span>
         <img class="wordmark" src="assets/vitola-logo.png" alt="Vitola" />
-        <h1>Your digital humidor and tasting journal.</h1>
-        <p class="lead">Scan the cigar band with AI, track the humidity in your humidor, log your smokes, and share your favorites with friends.</p>
+        <h1>Din humidor og smaksjournal, <em>gjenskapt</em>.</h1>
+        <p class="lead">Skann båndet med AI, følg med på fuktigheten, loggfør hver røyk, og del favorittene dine — ett gjennomtenkt sted for sigaren du nyter nå og samlingen du bygger.</p>
         <div class="stores">
-          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
+          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Last ned på</small><b>App Store</b></span></a>
           <a class="store" href="#" data-store="testflight"><span>✈️</span><span><small>Beta via</small><b>TestFlight</b></span></a>
-          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Get it for</small><b>Android</b></span></a>
+          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Hent den for</small><b>Android</b></span></a>
         </div>
-        <p class="note">Download links go live at launch. Vitola is for ages 18 and over.</p>
+        <p class="note">Nedlastingslenker blir aktive ved lansering. Vitola er kun for personer over 18 år.</p>
       </div>
+    </div>
+    <div class="scroll-hint"><span>Bla ned</span><span class="line"></span></div>
+  </div>
+
+  <!-- Statement -->
+  <div class="statement">
+    <div class="wrap">
+      <span class="mark">“</span>
+      <p data-reveal>En god sigar fortjener mer enn hukommelse. Vitola gir hver røyk et <em>navn, et sted og en historie</em> — så de du elsker aldri går tapt igjen.</p>
     </div>
   </div>
 
   <section id="features">
-    <div class="wrap center">
-      <p class="eyebrow">Features</p>
-      <h2 class="section-title">Everything for the cigar enthusiast</h2>
-      <p class="section-sub">From identifying an unknown cigar to keeping your collection in perfect shape.</p>
-    </div>
     <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow"><span class="idx">(01)</span> Funksjoner</p>
+        <h2 class="section-title">Alt for <em>sigarentusiasten</em></h2>
+        <p class="section-sub">Fra å identifisere en ukjent sigar til å holde samlingen i perfekt stand — gjennomtenkt, rolig og laget for daglig bruk.</p>
+      </div>
       <div class="grid">
-        <div class="card"><div class="ic">📷</div><h3>AI scanning</h3><p>Snap the band and Vitola recognizes the cigar automatically — with on-device text reading and an AI fallback.</p></div>
-        <div class="card"><div class="ic">💧</div><h3>Humidor with RH</h3><p>Log relative humidity per humidor, set a target and range, and see a calm traffic-light status.</p></div>
-        <div class="card"><div class="ic">📖</div><h3>Tasting journal</h3><p>Rate draw, burn and flavor, add a score and notes, and build your own taste profile over time.</p></div>
-        <div class="card"><div class="ic">🔎</div><h3>Explore</h3><p>Search thousands of cigars by brand, series, shape and flavor notes — with users' top 3 and a daily pick.</p></div>
-        <div class="card"><div class="ic">👥</div><h3>Feed &amp; friends</h3><p>Share smokes in a social feed, follow friends, comment and like — and discover new favorites.</p></div>
-        <div class="card"><div class="ic">🗄️</div><h3>Humidor management</h3><p>Multiple humidors, move cigars between them, count down as you smoke, and stay organized.</p></div>
+        <div class="card" data-reveal><span class="num">01</span><span class="ic">📷</span><h3>AI-skanning</h3><p>Ta et bilde av båndet, så gjenkjenner Vitola sigaren automatisk — tekstlesing på enheten med AI som reserveløsning for de vanskelige.</p></div>
+        <div class="card" data-reveal><span class="num">02</span><span class="ic">💧</span><h3>Humidor med RF</h3><p>Loggfør relativ fuktighet per humidor, sett et mål og et område, og les av en rolig trafikklys-status med et blikk.</p></div>
+        <div class="card" data-reveal><span class="num">03</span><span class="ic">📖</span><h3>Smaksjournal</h3><p>Vurder trekk, brann og smak, legg til en poengsum og notater, og se din egen smaksprofil ta form over tid.</p></div>
+        <div class="card" data-reveal><span class="num">04</span><span class="ic">🔎</span><h3>Utforsk</h3><p>Søk blant tusenvis av sigarer på merke, serie, format og smaksnoter — med toppvalg fra fellesskapet og en dagens sigar.</p></div>
+        <div class="card" data-reveal><span class="num">05</span><span class="ic">👥</span><h3>Feed &amp; venner</h3><p>Del røyker i en sosial feed, følg venner, kommenter og lik — og oppdag nye favoritter gjennom folk du stoler på.</p></div>
+        <div class="card" data-reveal><span class="num">06</span><span class="ic">🗄️</span><h3>Samlingshåndtering</h3><p>Ha flere humidorer, flytt sigarer mellom dem, tell ned etter hvert som du røyker, og hold orden uten anstrengelse.</p></div>
       </div>
     </div>
   </section>
 
   <section id="screenshots" class="band">
-    <div class="wrap center">
-      <p class="eyebrow">Screenshots</p>
-      <h2 class="section-title">See it in action</h2>
-      <p class="section-sub">A quick look at Explore, your humidor, and the tasting journal.</p>
+    <div class="wrap">
+      <div class="sec-head center">
+        <p class="eyebrow"><span class="idx">(02)</span> Skjermbilder</p>
+        <h2 class="section-title">Se den i <em>bruk</em></h2>
+        <p class="section-sub">Et lite innblikk i Utforsk, humidoren din og smaksjournalen.</p>
+      </div>
     </div>
     <div class="wrap">
       <div class="shots" id="shots"></div>
     </div>
   </section>
 
-  <section id="download">
+  <section id="why">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow"><span class="idx">(03)</span> Hvorfor Vitola</p>
+        <h2 class="section-title">Tre idéer, <em>ett ritual</em></h2>
+      </div>
+      <div class="trio">
+        <div class="col" data-reveal><div class="n">— Identifiser</div><h3>Aldri lure igjen</h3><p>Den ubåndede gaven, tipset fra butikken, sigaren fra flere år tilbake — rett, skann, og vit nøyaktig hva du røyker.</p></div>
+        <div class="col" data-reveal><div class="n">— Kurater</div><h3>En humidor som tenker</h3><p>Fuktighet, antall og tilstand på ett sted. Vitola holder samlingen i form, så du kan konsentrere deg om å nyte den.</p></div>
+        <div class="col" data-reveal><div class="n">— Husk</div><h3>Ganen din, kartlagt</h3><p>Hver vurdering og hvert notat bygger en personlig smaksprofil — så den neste gode sigaren faktisk er en du finner igjen.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="band">
     <div class="wrap split">
-      <div>
-        <p class="eyebrow">Download</p>
-        <h2 class="section-title">Take your whole collection in your pocket</h2>
-        <p class="section-sub">Vitola is available for iPhone and Android. Download and sign in with Apple, Google or email.</p>
+      <div data-reveal>
+        <p class="eyebrow"><span class="idx">(04)</span> Last ned</p>
+        <h2 class="section-title">Hele samlingen, <em>i lomma</em></h2>
+        <p class="section-sub">Vitola er tilgjengelig for iPhone og Android. Last ned og logg inn med Apple, Google eller e-post.</p>
         <div class="stores">
-          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
-          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Get it for</small><b>Android</b></span></a>
+          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Last ned på</small><b>App Store</b></span></a>
+          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Hent den for</small><b>Android</b></span></a>
         </div>
       </div>
-      <div class="split-mark"><img src="assets/vitola-mark.png" alt="Vitola" /></div>
+      <div class="split-mark" data-reveal><img src="assets/vitola-mark.png" alt="Vitola" /></div>
     </div>
   </section>
 
   <section id="terms">
     <div class="wrap">
-      <p class="eyebrow">Terms</p>
-      <h2 class="section-title">Privacy &amp; terms</h2>
-      <p class="section-sub">In short: we only collect what the app needs, never sell your data, and don't use it for advertising.</p>
+      <div class="sec-head">
+        <p class="eyebrow"><span class="idx">(05)</span> Personvern &amp; vilkår</p>
+        <h2 class="section-title">Ditt, og <em>bare ditt</em></h2>
+        <p class="section-sub">Kort sagt: vi samler bare inn det appen trenger, selger aldri dataene dine, og bruker dem ikke til annonsering.</p>
+      </div>
       <div class="terms">
-        <details open><summary>What we collect</summary><p>Email address (for sign-in), name/nickname (optional), the cigar notes and ratings you enter yourself, and city/location (optional).</p></details>
-        <details><summary>What we don't collect</summary><p>Health data, payment information, location tracking, or third-party data without your consent.</p></details>
-        <details><summary>How we use your data</summary><p>Your data is used solely to run the Vitola app: to store and show your cigar journal, identify your account and let you sign in. We do not sell your data to third parties, and it is not used for advertising.</p></details>
-        <details><summary>Who sees your data</summary><p>Data is stored in Supabase (USA). We do not share data with other parties. Sign-in via Apple or Google is handled by Apple and Google respectively under their own privacy policies.</p></details>
-        <details><summary>Your rights</summary><p>You can view, correct or delete your data at any time. Delete your account directly in the app under Settings → Delete account.</p></details>
-        <details><summary>Age limit &amp; tobacco</summary><p>Vitola is intended only for users aged 18 and over. The app does not sell tobacco and does not run tobacco advertising — it is a tool to organize and log your own collection.</p></details>
-        <details><summary>Contact</summary><p>Questions about privacy? Email theggedal@gmail.com. Last updated: July 2026.</p></details>
+        <details open><summary>Hva vi samler inn</summary><p>E-postadresse (for innlogging), navn/kallenavn (valgfritt), sigarnotatene og vurderingene du selv legger inn, og by/sted (valgfritt).</p></details>
+        <details><summary>Hva vi ikke samler inn</summary><p>Helsedata, betalingsinformasjon, posisjonssporing, eller tredjepartsdata uten ditt samtykke.</p></details>
+        <details><summary>Hvordan vi bruker dataene dine</summary><p>Dataene dine brukes utelukkende til å drive Vitola-appen: å lagre og vise sigarjournalen din, identifisere kontoen din og la deg logge inn. Vi selger ikke dataene dine til tredjeparter, og de brukes ikke til annonsering.</p></details>
+        <details><summary>Hvem som ser dataene dine</summary><p>Data lagres i Supabase (USA). Vi deler ikke data med andre parter. Innlogging via Apple eller Google håndteres av henholdsvis Apple og Google under deres egne personvernregler.</p></details>
+        <details><summary>Dine rettigheter</summary><p>Du kan når som helst se, rette eller slette dataene dine. Slett kontoen din direkte i appen under Innstillinger → Slett konto.</p></details>
+        <details><summary>Aldersgrense &amp; tobakk</summary><p>Vitola er kun ment for brukere over 18 år. Appen selger ikke tobakk og driver ikke tobakksreklame — den er et verktøy for å organisere og loggføre din egen samling.</p></details>
+        <details><summary>Kontakt</summary><p>Spørsmål om personvern? Send e-post til theggedal@gmail.com. Sist oppdatert: juli 2026.</p></details>
       </div>
     </div>
   </section>
 
   <footer>
-    <div class="wrap" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; align-items:center">
-      <div class="brand"><img src="assets/vitola-mark.png" alt="Vitola" style="width:30px;height:30px;border-radius:7px" /> Vitola</div>
-      <div>© 2026 Vitola · <a href="#terms">Privacy</a> · <a href="#" id="openLogin2">Admin</a></div>
+    <div class="wrap">
+      <div class="foot-top">
+        <div>
+          <div class="brand"><img src="assets/vitola-mark.png" alt="Vitola" style="width:32px;height:32px;border-radius:8px" /> Vitola</div>
+          <p style="max-width:280px; margin:16px 0 0; color:var(--muted); font-size:14px">Din digitale humidor og smaksjournal. Shazam for sigarer.</p>
+        </div>
+        <div class="foot-links">
+          <div>
+            <h4>Utforsk</h4>
+            <a href="#features">Funksjoner</a>
+            <a href="#screenshots">Skjermbilder</a>
+            <a href="#why">Hvorfor Vitola</a>
+          </div>
+          <div>
+            <h4>Juridisk</h4>
+            <a href="#terms">Personvern</a>
+            <a href="#terms">Vilkår</a>
+            <a href="#" id="openLogin2">Admin</a>
+          </div>
+        </div>
+      </div>
+      <div class="foot-bot">
+        <span>© 2026 Vitola. For personer over 18 år.</span>
+        <span>Laget for folk som bryr seg om hva de røyker.</span>
+      </div>
     </div>
   </footer>
 </div>
@@ -264,14 +370,14 @@
 <div class="modal-bg" id="loginModal">
   <div class="modal">
     <button class="x" id="closeLogin">×</button>
-    <h3>Log in</h3>
-    <p class="sub">Admin access to data gaps and the review queue. Use email and password.</p>
-    <label>Email</label>
-    <input type="email" id="email" autocomplete="username" placeholder="you@email.com" />
-    <label>Password</label>
+    <h3>Logg inn</h3>
+    <p class="sub">Admintilgang til datahull og gjennomgangskøen. Bruk e-post og passord.</p>
+    <label>E-post</label>
+    <input type="email" id="email" autocomplete="username" placeholder="deg@epost.no" />
+    <label>Passord</label>
     <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" />
     <div class="msg" id="loginMsg"></div>
-    <button class="btn btn-primary btn-block" id="loginBtn" style="margin-top:16px">Log in</button>
+    <button class="btn btn-primary btn-block" id="loginBtn" style="margin-top:18px">Logg inn</button>
   </div>
 </div>
 
@@ -281,15 +387,15 @@
     <div class="wrap nav-inner">
       <div class="brand"><img src="assets/vitola-mark.png" alt="Vitola" /> Vitola · Admin</div>
       <div style="display:flex; gap:14px; align-items:center">
-        <span id="adminEmail" style="color:#C9BFAC; font-size:14px"></span>
-        <button class="btn btn-ghost" id="logoutBtn" style="color:#EDE7DA; border-color:#2a4034">Log out</button>
+        <span id="adminEmail" style="color:var(--muted); font-size:14px"></span>
+        <button class="btn btn-ghost" id="logoutBtn">Logg ut</button>
       </div>
     </div>
   </div>
   <div class="wrap">
     <div class="tabs">
-      <button class="tab active" data-tab="gaps">Data gaps <span id="gapsCount"></span></button>
-      <button class="tab" data-tab="queue">Queue <span id="queueCount"></span></button>
+      <button class="tab active" data-tab="gaps">Datahull <span id="gapsCount"></span></button>
+      <button class="tab" data-tab="queue">Kø <span id="queueCount"></span></button>
     </div>
     <div id="tab-gaps"></div>
     <div id="tab-queue" style="display:none"></div>
@@ -303,11 +409,11 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ---- Screenshots: drop 1.png … 5.png into web/screenshots/. Missing ones show a placeholder. ----
-const shotLabels = ["Explore","Humidor & RH","Tasting journal","Feed","Cigar detail"];
+const shotLabels = ["Utforsk","Humidor & RF","Smaksjournal","Feed","Sigardetalj"];
 document.getElementById('shots').innerHTML = shotLabels.map((label,i)=>{
   const n=i+1;
   return `<div class="phone"><div class="screen">
-    <div class="ph"><img src="assets/vitola-mark.png" alt=""><b style="color:#EDE7DA">${label}</b><small>Add screenshots/${n}.png</small></div>
+    <div class="ph"><img src="assets/vitola-mark.png" alt=""><b style="color:var(--ink)">${label}</b><small>Legg til screenshots/${n}.png</small></div>
     <img src="screenshots/${n}.png" alt="Vitola — ${label}" onload="this.parentElement.querySelector('.ph').style.display='none'" onerror="this.remove()">
   </div></div>`;
 }).join('');
@@ -326,19 +432,19 @@ const loginMsg = document.getElementById('loginMsg');
 document.getElementById('loginBtn').onclick = async () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  loginMsg.className='msg'; loginMsg.textContent='Logging in…';
+  loginMsg.className='msg'; loginMsg.textContent='Logger inn…';
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error){ loginMsg.className='msg err'; loginMsg.textContent='Login failed. Check your email and password.'; return; }
+  if (error){ loginMsg.className='msg err'; loginMsg.textContent='Innlogging mislyktes. Sjekk e-post og passord.'; return; }
   await gateAdmin();
 };
 document.getElementById('logoutBtn').onclick = async () => { await sb.auth.signOut(); showSite(); };
 
 async function gateAdmin(){
-  loginMsg.className='msg'; loginMsg.textContent='Checking access…';
+  loginMsg.className='msg'; loginMsg.textContent='Sjekker tilgang…';
   const { data: isAdmin, error } = await sb.rpc('is_admin');
   if (error || !isAdmin){
     loginMsg.className='msg err';
-    loginMsg.textContent = 'This account does not have admin access.';
+    loginMsg.textContent = 'Denne kontoen har ikke admintilgang.';
     await sb.auth.signOut();
     return;
   }
@@ -368,17 +474,17 @@ const esc = (s)=> (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 // ---- Data gaps ----
 async function loadGaps(){
   const el = document.getElementById('tab-gaps');
-  el.innerHTML = '<div class="empty"><span class="spinner"></span> Loading data gaps…</div>';
+  el.innerHTML = '<div class="empty"><span class="spinner"></span> Laster datahull…</div>';
   const { data, error } = await sb.rpc('admin_data_gaps');
-  if (error){ el.innerHTML = '<div class="empty">Could not load data gaps.</div>'; return; }
+  if (error){ el.innerHTML = '<div class="empty">Kunne ikke laste datahull.</div>'; return; }
   document.getElementById('gapsCount').textContent = data.length ? `(${data.length})` : '';
-  if (!data.length){ el.innerHTML = '<div class="empty">🎉 No data gaps — everything is filled in!</div>'; return; }
+  if (!data.length){ el.innerHTML = '<div class="empty">🎉 Ingen datahull — alt er fylt inn!</div>'; return; }
   el.innerHTML = data.map(renderGap).join('');
 }
 
 function renderGap(g){
   const missing = (g.missing||[]).map(m=>`<span class="badge">${esc(m)}</span>`).join('');
-  const ver = g.verified ? '<span class="verified-chip">Verified</span>' : '';
+  const ver = g.verified ? '<span class="verified-chip">Verifisert</span>' : '';
   return `<div class="gap-card" data-id="${g.id}">
     <div class="gap-head" onclick="this.parentElement.querySelector('.fill-form').classList.toggle('open')">
       <div>
@@ -386,21 +492,21 @@ function renderGap(g){
         <div class="brand-sm">${esc(g.brand||'')}${g.source_tier?' · '+esc(g.source_tier):''}</div>
         <div class="badges">${missing}</div>
       </div>
-      <span class="count-pill">${g.gap_count} gaps</span>
+      <span class="count-pill">${g.gap_count} hull</span>
     </div>
     <div class="fill-form">
       <div class="form-grid">
-        <div><label>Source URL (required)</label><input data-f="p_source_url" placeholder="https://manufacturer.com/…"></div>
-        <div><label>Ring gauge</label><input data-f="p_ring_gauge" inputmode="numeric" value="${g.ring_gauge??''}"></div>
-        <div><label>Length (inches)</label><input data-f="p_length_inches" inputmode="decimal" value="${g.length_inches??''}"></div>
-        <div><label>Country of origin</label><input data-f="p_country_origin" value="${esc(g.country_origin||'')}"></div>
-        <div><label>Wrapper</label><input data-f="p_wrapper_leaf" value="${esc(g.wrapper_leaf||'')}"></div>
-        <div><label>Strength (1–5)</label><input data-f="p_strength" inputmode="decimal" value="${g.strength??''}"></div>
-        <div style="grid-column:1/-1"><label>Flavor notes (comma separated)</label><input data-f="p_flavor_notes" placeholder="cedar, pepper, cream"></div>
-        <div style="grid-column:1/-1"><label>Description</label><textarea data-f="p_description" rows="2"></textarea></div>
+        <div><label>Kilde-URL (påkrevd)</label><input data-f="p_source_url" placeholder="https://produsent.com/…"></div>
+        <div><label>Ringmål</label><input data-f="p_ring_gauge" inputmode="numeric" value="${g.ring_gauge??''}"></div>
+        <div><label>Lengde (tommer)</label><input data-f="p_length_inches" inputmode="decimal" value="${g.length_inches??''}"></div>
+        <div><label>Opprinnelsesland</label><input data-f="p_country_origin" value="${esc(g.country_origin||'')}"></div>
+        <div><label>Dekkblad</label><input data-f="p_wrapper_leaf" value="${esc(g.wrapper_leaf||'')}"></div>
+        <div><label>Styrke (1–5)</label><input data-f="p_strength" inputmode="decimal" value="${g.strength??''}"></div>
+        <div style="grid-column:1/-1"><label>Smaksnoter (kommaseparert)</label><input data-f="p_flavor_notes" placeholder="sedertre, pepper, fløte"></div>
+        <div style="grid-column:1/-1"><label>Beskrivelse</label><textarea data-f="p_description" rows="2"></textarea></div>
       </div>
       <div class="msg" data-msg></div>
-      <button class="btn btn-primary" style="margin-top:12px" onclick="fillCigar('${g.id}', this)">Save &amp; verify</button>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="fillCigar('${g.id}', this)">Lagre &amp; verifiser</button>
     </div>
   </div>`;
 }
@@ -417,27 +523,27 @@ async function fillCigar(id, btn){
     else if (key==='p_flavor_notes') v = v.split(',').map(s=>s.trim()).filter(Boolean);
     params[key] = v;
   });
-  if (!params.p_source_url){ msg.className='msg err'; msg.textContent='Source URL is required.'; return; }
-  msg.className='msg'; msg.textContent='Saving…'; btn.disabled=true;
+  if (!params.p_source_url){ msg.className='msg err'; msg.textContent='Kilde-URL er påkrevd.'; return; }
+  msg.className='msg'; msg.textContent='Lagrer…'; btn.disabled=true;
   const { error } = await sb.rpc('admin_fill_cigar', params);
   btn.disabled=false;
-  if (error){ msg.className='msg err'; msg.textContent='Error: '+error.message; return; }
+  if (error){ msg.className='msg err'; msg.textContent='Feil: '+error.message; return; }
   card.style.transition='.3s'; card.style.opacity='0';
   setTimeout(()=>{ card.remove(); const n=document.querySelectorAll('#tab-gaps .gap-card').length;
     document.getElementById('gapsCount').textContent = n?`(${n})`:'';
-    if(!n) document.getElementById('tab-gaps').innerHTML='<div class="empty">🎉 No data gaps — everything is filled in!</div>'; },300);
+    if(!n) document.getElementById('tab-gaps').innerHTML='<div class="empty">🎉 Ingen datahull — alt er fylt inn!</div>'; },300);
 }
 
 // ---- Queue (reports + submissions) ----
 async function loadQueue(){
   const el = document.getElementById('tab-queue');
-  el.innerHTML = '<div class="empty"><span class="spinner"></span> Loading queue…</div>';
+  el.innerHTML = '<div class="empty"><span class="spinner"></span> Laster kø…</div>';
   const [rep, sub] = await Promise.all([ sb.rpc('admin_pending_reports'), sb.rpc('admin_pending_submissions') ]);
   const reports = rep.data||[]; const subs = sub.data||[];
   document.getElementById('queueCount').textContent = (reports.length+subs.length) ? `(${reports.length+subs.length})` : '';
   let html='';
   if (reports.length){
-    html += '<h3 style="margin:8px 0 12px">Error reports</h3>';
+    html += '<h3 class="qh" style="margin:8px 0 12px">Feilrapporter</h3>';
     html += reports.map(r=>`<div class="queue-card" data-id="${r.id}">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
         <div><h4 style="margin:0 0 4px">${esc(r.cigar_navn)}</h4>
@@ -445,40 +551,54 @@ async function loadQueue(){
           ${r.comment?`<p style="margin:8px 0 0;color:var(--muted)">${esc(r.comment)}</p>`:''}</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn btn-primary" onclick="resolveReport('${r.id}','resolved',this)">Resolve</button>
-        <button class="btn btn-ghost" onclick="resolveReport('${r.id}','dismissed',this)">Dismiss</button>
+        <button class="btn btn-primary" onclick="resolveReport('${r.id}','resolved',this)">Løs</button>
+        <button class="btn btn-ghost" onclick="resolveReport('${r.id}','dismissed',this)">Avvis</button>
       </div></div>`).join('');
   }
   if (subs.length){
-    html += '<h3 style="margin:22px 0 12px">User-submitted cigars</h3>';
+    html += '<h3 class="qh" style="margin:22px 0 12px">Brukerinnsendte sigarer</h3>';
     html += subs.map(s=>`<div class="queue-card" data-id="${s.id}">
       <h4 style="margin:0 0 4px">${esc(s.cigar_navn)}</h4>
-      <div class="brand-sm">Submitted by ${esc(s.foreslatt_av||'')} · ${[s.ring_gauge,s.length_inches].filter(Boolean).join(' × ')} · ${esc(s.country_origin||'')}</div>
+      <div class="brand-sm">Sendt inn av ${esc(s.foreslatt_av||'')} · ${[s.ring_gauge,s.length_inches].filter(Boolean).join(' × ')} · ${esc(s.country_origin||'')}</div>
       ${s.note?`<p style="margin:8px 0 0;color:var(--muted)">${esc(s.note)}</p>`:''}
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn btn-primary" onclick="subAction('${s.id}','admin_approve_submission',this)">Approve</button>
-        <button class="btn btn-ghost" onclick="subAction('${s.id}','admin_reject_submission',this)">Reject</button>
+        <button class="btn btn-primary" onclick="subAction('${s.id}','admin_approve_submission',this)">Godkjenn</button>
+        <button class="btn btn-ghost" onclick="subAction('${s.id}','admin_reject_submission',this)">Avvis</button>
       </div></div>`).join('');
   }
-  el.innerHTML = html || '<div class="empty">✅ The queue is empty.</div>';
+  el.innerHTML = html || '<div class="empty">✅ Køen er tom.</div>';
 }
 
 async function resolveReport(id, status, btn){
   btn.disabled=true;
   const { error } = await sb.rpc('admin_resolve_report', { p_report_id:id, p_status:status });
-  if (error){ btn.disabled=false; alert('Error: '+error.message); return; }
+  if (error){ btn.disabled=false; alert('Feil: '+error.message); return; }
   removeCard(btn);
 }
 async function subAction(id, fn, btn){
   btn.disabled=true;
   const { error } = await sb.rpc(fn, { p_submission_id:id });
-  if (error){ btn.disabled=false; alert('Error: '+error.message); return; }
+  if (error){ btn.disabled=false; alert('Feil: '+error.message); return; }
   removeCard(btn);
 }
 function removeCard(btn){
   const c = btn.closest('.queue-card'); c.style.opacity='0'; c.style.transition='.3s';
   setTimeout(()=>{ c.remove(); loadQueue(); },300);
 }
+
+// ---- Scroll progress + reveal-on-scroll (landing polish) ----
+const bar = document.getElementById('bar');
+const onScroll = () => {
+  const h = document.documentElement;
+  const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+  bar.style.width = (scrolled*100) + '%';
+};
+window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+}, {threshold:.12, rootMargin:'0px 0px -8% 0px'});
+document.querySelectorAll('[data-reveal]').forEach(el=>io.observe(el));
 </script>
 </body>
 </html>
