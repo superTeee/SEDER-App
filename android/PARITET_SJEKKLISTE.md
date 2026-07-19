@@ -1,7 +1,11 @@
 # Vitola Android — paritet-sjekkliste
 
 Status for Android-appen sammenlignet med iOS. Oppdateres etter hvert som vi jobber.
-Sist oppdatert: 2026-07-16
+Sist oppdatert: 2026-07-19
+
+### Splash + humidor-kort (paritet, build 216)
+- ✅ Splash: overlay endret fra sort til #403E3B ved 70 % opasitet, fader inn fra 0 % før logo — begge plattformer
+- ✅ Humidor-kort finpuss: pille-padding +2px, luft rundt tittel/metadata +4px, RH-tekst 1px mindre + « % RH» — begge plattformer
 
 Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 

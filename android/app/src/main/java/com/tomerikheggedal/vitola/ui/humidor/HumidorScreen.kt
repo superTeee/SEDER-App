@@ -502,7 +502,7 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
                 Modifier.align(Alignment.TopEnd).padding(10.dp)
                     .clip(RoundedCornerShape(50))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -516,7 +516,7 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
         Row(
-            Modifier.padding(vertical = 4.dp),
+            Modifier.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
@@ -544,7 +544,7 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(12.dp).clip(CircleShape).background(dot))
                 Spacer(Modifier.width(7.dp))
-                Text(rhText, style = MaterialTheme.typography.titleMedium, fontSize = 15.sp,
+                Text(rhText, style = MaterialTheme.typography.titleMedium, fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
             }
         }

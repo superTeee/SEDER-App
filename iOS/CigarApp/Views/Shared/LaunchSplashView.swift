@@ -5,7 +5,7 @@ import UIKit
 //
 // Tidslinje (totalt ca. 6,5 s):
 //   0,0 → 1,0 s   fotoet alene, uten overlay
-//   1,0 → 2,0 s   det sorte laget fader inn til 10 % dekning
+//   1,0 → 2,0 s   overlay-laget (#403E3B) fader inn til 70 % dekning
 //   2,0 → 3,0 s   hold   ← splash uten logo er nå 3 sekunder
 //   3,0 → 4,0 s   logoen fader inn
 //   4,0 → 6,5 s   hold   ← splash med logo er nå 3,5 sekunder
@@ -24,8 +24,9 @@ struct SplashCanvas: View {
     @State private var dimmed = false
     @State private var logoVisible = false
 
-    /// Dekning på det sorte laget. 0,10 = 90 % gjennomsiktig.
-    private let dimOpacity: Double = 0.10
+    /// Dekning på overlay-laget: #403E3B ved 70 %.
+    private let dimOpacity: Double = 0.70
+    private let dimColor = Color(red: 64.0 / 255, green: 62.0 / 255, blue: 59.0 / 255)
 
     var body: some View {
         ZStack {
@@ -37,7 +38,7 @@ struct SplashCanvas: View {
                 .scaledToFill()
                 .ignoresSafeArea()
 
-            Color.black
+            dimColor
                 .opacity(dimmed ? dimOpacity : 0)
                 .ignoresSafeArea()
 

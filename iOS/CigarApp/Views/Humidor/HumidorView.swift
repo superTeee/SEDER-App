@@ -500,7 +500,7 @@ struct HumidorCard: View {
 
                 rhIndicator
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 12)
         }
         .padding(.vertical, 4)
     }
@@ -545,8 +545,8 @@ struct HumidorCard: View {
                 .font(.footnote.weight(.semibold))
         }
         .foregroundColor(Color("TextPrimary"))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(Capsule().fill(Color("Surface").opacity(0.92)))
     }
 
@@ -557,7 +557,7 @@ struct HumidorCard: View {
                 .fill(latestRH != nil ? rhTrafficColor(humidor.rhStatus(for: latestRH?.rh)) : Color(.tertiaryLabel))
                 .frame(width: 12, height: 12)
             Text(latestRH.map { "\(rhString($0.rh)) % RH" } ?? "0 % RH")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(Color("TextPrimary"))
         }
     }

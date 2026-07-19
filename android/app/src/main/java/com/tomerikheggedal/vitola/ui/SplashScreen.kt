@@ -34,13 +34,13 @@ import kotlinx.coroutines.delay
 fun SplashScreen(onFinish: () -> Unit) {
     val screenWidthPx = with(LocalConfiguration.current) { screenWidthDp.toFloat() }
 
-    val dim = remember { Animatable(0f) }        // sort overlay 0 → 0,10
+    val dim = remember { Animatable(0f) }        // overlay #403E3B 0 → 0,70
     val logoAlpha = remember { Animatable(0f) }  // logo 0 → 1
     val slideX = remember { Animatable(0f) }     // hele splashen glir ut
 
     LaunchedEffect(Unit) {
         delay(1000)                                              // 1. foto alene
-        dim.animateTo(0.10f, tween(1000))                       // 2. sort lag inn
+        dim.animateTo(0.70f, tween(1000))                       // 2. overlay-lag inn
         delay(1000)                                              // 3. hold
         logoAlpha.animateTo(1f, tween(1000))                    // 4. logo inn
         delay(2500)                                              // 5. hold
@@ -63,7 +63,7 @@ fun SplashScreen(onFinish: () -> Unit) {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = dim.value))
+                .background(Color(0xFF403E3B).copy(alpha = dim.value))
         )
         Image(
             painter = painterResource(R.drawable.vitola_logo),
