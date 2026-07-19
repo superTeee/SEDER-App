@@ -47,6 +47,7 @@
   .nav-inner{display:flex; align-items:center; justify-content:space-between; height:72px}
   .brand{display:flex; align-items:center; gap:11px; font-family:var(--serif); font-weight:600; font-size:22px; letter-spacing:-.01em; color:var(--ink)}
   .brand img{width:34px; height:34px; border-radius:8px; display:block}
+  .brand img.brand-logo{width:auto; height:30px; border-radius:0}
   .nav-links{display:flex; align-items:center; gap:30px}
   .nav-links a{color:var(--muted); font-weight:500; font-size:14px; letter-spacing:.01em; transition:.2s}
   .nav-links a:hover{color:var(--ink)}
@@ -220,7 +221,7 @@
 <div id="site">
   <header class="nav">
     <div class="wrap nav-inner">
-      <div class="brand"><img src="assets/vitola-mark.png" alt="SEDER" /> SEDER</div>
+      <div class="brand"><img class="brand-logo" src="assets/vitola-logo.png" alt="SEDER" /></div>
       <nav class="nav-links">
         <a href="#features" class="hide-sm">Funksjoner</a>
         <a href="#screenshots" class="hide-sm">Skjermbilder</a>
