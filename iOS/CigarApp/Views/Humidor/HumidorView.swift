@@ -91,7 +91,7 @@ struct HumidorView: View {
                                             allHumidors: humidors,
                                             onChanged: { Task { await loadHumidor() } }
                                         )) {
-                                            HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor), latestRH: latestReadings[humidor.id])
+                                            HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor), totalValue: totalValue(for: humidor), latestRH: latestReadings[humidor.id])
                                                 .padding(12)
                                                 .frame(maxWidth: .infinity, alignment: .leading)
                                                 .background(Color("Card"))
@@ -269,6 +269,12 @@ struct HumidorView: View {
     private func cigarCount(for humidor: Humidor) -> Int {
         entries.filter { $0.humidorId == humidor.id && $0.quantity > 0 }
                .reduce(0) { $0 + $1.quantity }
+    }
+
+    /// Total verdi (sum av pris per sigar × antall) i en gitt humidor.
+    private func totalValue(for humidor: Humidor) -> Double {
+        entries.filter { $0.humidorId == humidor.id && $0.quantity > 0 }
+               .reduce(0) { $0 + ($1.purchasePrice ?? 0) * Double($1.quantity) }
     }
 
     private func deleteEntries(at offsets: IndexSet) {
@@ -451,7 +457,17 @@ struct HumidorRow: View {
 struct HumidorCard: View {
     let humidor: Humidor
     let cigarCount: Int
+    var totalValue: Double = 0
     var latestRH: HumidorRHReading? = nil
+
+    private var valueLabel: String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = " "
+        f.maximumFractionDigits = 0
+        let n = f.string(from: NSNumber(value: totalValue)) ?? "\(Int(totalValue))"
+        return "\(n) kr"
+    }
 
     private func rhTrafficColor(_ s: RHStatus) -> Color {
         switch s {
@@ -494,6 +510,12 @@ struct HumidorCard: View {
                     .font(.caption)
                     .foregroundColor(Color("TextSecondary"))
                     .lineLimit(1)
+
+                    if totalValue > 0 {
+                        Text(valueLabel)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(Color("Accent"))
+                    }
                 }
 
                 Spacer()

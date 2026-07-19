@@ -3,6 +3,10 @@
 Status for Android-appen sammenlignet med iOS. Oppdateres etter hvert som vi jobber.
 Sist oppdatert: 2026-07-19
 
+### Pris + humidor-verdi (paritet)
+- ✅ Prisfelt (kr per sigar) i legg-i-humidor-arket → purchase_price — begge plattformer
+- ✅ Humidor-liste viser total inventarverdi (sum pris × antall) — begge plattformer
+
 ### Splash + humidor-kort (paritet, build 216)
 - ✅ Splash: overlay endret fra sort til #403E3B ved 70 % opasitet, fader inn fra 0 % før logo — begge plattformer
 - ✅ Humidor-kort finpuss: pille-padding +2px, luft rundt tittel/metadata +4px, RH-tekst 1px mindre + « % RH» — begge plattformer

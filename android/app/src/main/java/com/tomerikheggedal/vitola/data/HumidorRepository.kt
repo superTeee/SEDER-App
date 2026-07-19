@@ -78,7 +78,7 @@ fun rhStatus(rh: Double?, targetRh: Int?, rhMin: Int?, rhMax: Int?): RhStatus {
 }
 
 /** Humidor + antall sigarer + siste RH-måling (alt hentet separat). */
-data class HumidorUi(val row: HumidorRow, val count: Int, val latestRh: RhReading? = null)
+data class HumidorUi(val row: HumidorRow, val count: Int, val latestRh: RhReading? = null, val value: Double = 0.0)
 
 /** Én rad i en humidor: sigaren + antall. */
 @Serializable
@@ -100,13 +100,19 @@ object HumidorRepository {
             .decodeList<HumidorRow>()
 
         val entries = Supa.client.from("humidor")
-            .select(columns = Columns.list("humidor_id", "quantity"))
+            .select(columns = Columns.list("humidor_id", "quantity", "purchase_price"))
             .decodeList<EntryCount>()
 
         val counts = entries
             .filter { it.humidor_id != null }
             .groupBy { it.humidor_id!! }
             .mapValues { (_, list) -> list.sumOf { it.quantity ?: 1 } }
+
+        // Total verdi per humidor: sum av pris per sigar × antall.
+        val values = entries
+            .filter { it.humidor_id != null }
+            .groupBy { it.humidor_id!! }
+            .mapValues { (_, list) -> list.sumOf { (it.purchase_price ?: 0.0) * (it.quantity ?: 1) } }
 
         // Siste RH-måling per humidor (til status i lista). RLS gir kun egne rader.
         val latestByHumidor = runCatching {
@@ -119,7 +125,7 @@ object HumidorRepository {
                 .mapValues { it.value.first() }
         }.getOrDefault(emptyMap())
 
-        return humidors.map { HumidorUi(it, counts[it.id] ?: 0, latestByHumidor[it.id]) }
+        return humidors.map { HumidorUi(it, counts[it.id] ?: 0, latestByHumidor[it.id], values[it.id] ?: 0.0) }
     }
 
     /** Én humidor (metadata). */
@@ -216,7 +222,7 @@ object HumidorRepository {
     }
 
     /** Legg en sigar i en humidor med antall og valgfri butikk. */
-    suspend fun addCigar(cigarId: String, humidorId: String, quantity: Int = 1, store: String? = null) {
+    suspend fun addCigar(cigarId: String, humidorId: String, quantity: Int = 1, store: String? = null, purchasePrice: Double? = null) {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
         Supa.client.from("humidor").insert(
             NewEntry(
@@ -225,7 +231,8 @@ object HumidorRepository {
                 humidor_id = humidorId,
                 quantity = quantity,
                 added_to_humidor_at = Instant.now().toString(),
-                store = store?.ifBlank { null }
+                store = store?.ifBlank { null },
+                purchase_price = purchasePrice
             )
         )
     }
@@ -345,6 +352,7 @@ private data class NewRhReading(
 private data class EntryCount(
     val humidor_id: String? = null,
     val quantity: Int? = null,
+    val purchase_price: Double? = null,
 )
 
 @Serializable
@@ -367,4 +375,5 @@ private data class NewEntry(
     val quantity: Int,
     val added_to_humidor_at: String,
     val store: String? = null,
+    val purchase_price: Double? = null,
 )

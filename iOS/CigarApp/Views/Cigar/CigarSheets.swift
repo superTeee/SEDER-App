@@ -66,12 +66,14 @@ struct AddToHumidorSheet: View {
 
     let cigar: Cigar
     var userId: UUID? = nil
-    let onSave: (Date, Date, Int, UUID?, String) -> Void
+    /// (kjøpsdato, humidordato, antall, humidorId, butikk, pris per sigar)
+    let onSave: (Date, Date, Int, UUID?, String, Double?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var purchasedAt: Date = Date()
     @State private var addedAt: Date = Date()
     @State private var quantity: Int = 1
+    @State private var priceText: String = ""
     @State private var store: String = ""
     @State private var storeSuggestions: [String] = KnownStores.norway
     @State private var showPurchasePicker = false
@@ -126,6 +128,16 @@ struct AddToHumidorSheet: View {
 
                 Section("Antall") {
                     Stepper("\(quantity) stk", value: $quantity, in: 1...100)
+                }
+
+                Section("Pris per sigar") {
+                    HStack {
+                        TextField("0", text: $priceText)
+                            .keyboardType(.decimalPad)
+                        Text("kr").foregroundColor(Color("TextSecondary"))
+                    }
+                } footer: {
+                    Text("Valgfritt. Brukes til å regne ut total verdi i humidoren.")
                 }
 
                 Section("Datoer") {
@@ -197,7 +209,8 @@ struct AddToHumidorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Legg til") {
-                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId, store)
+                        let price = Double(priceText.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces))
+                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId, store, price)
                         dismiss()
                     }
                     .fontWeight(.semibold)

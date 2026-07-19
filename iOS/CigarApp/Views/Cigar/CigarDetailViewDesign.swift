@@ -147,14 +147,14 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(isPresented: $showAddToHumidorSheet) {
-            AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store in
+            AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price in
                 guard let userId = authService.userId else { return }
                 isSaving = true
                 Task {
                     do {
                         let newEntry = try await humidorService.addToHumidor(
                             cigarId: cigar.id, userId: userId, humidorId: humidorId, quantity: qty,
-                            purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store)
+                            purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store, purchasePrice: price)
                         self.entry = newEntry
                         self.quantity = newEntry.quantity
                         humidorHasNew = true

@@ -525,6 +525,11 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
                 if (meta.isNotBlank()) {
                     Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                if (h.value > 0) {
+                    val kr = "%,d".format(h.value.toLong()).replace(',', ' ')
+                    Text("$kr kr", style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                }
             }
             // RH-indikator til høyre: farget boble + verdi (grå + 0 % når ingenting er målt).
             val rh = h.latestRh

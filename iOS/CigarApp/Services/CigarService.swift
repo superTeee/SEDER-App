@@ -631,7 +631,8 @@ class HumidorService: ObservableObject {
         quantity: Int = 1,
         purchasedAt: Date? = nil,
         addedToHumidorAt: Date? = nil,
-        store: String? = nil
+        store: String? = nil,
+        purchasePrice: Double? = nil
     ) async throws -> HumidorEntry {
         let entry = NewHumidorEntry(
             userId: userId,
@@ -640,7 +641,7 @@ class HumidorService: ObservableObject {
             quantity: quantity,
             purchaseDate: purchasedAt,
             addedToHumidorAt: addedToHumidorAt,
-            purchasePrice: nil,
+            purchasePrice: purchasePrice,
             storageNotes: nil,
             store: store?.isEmpty == false ? store : nil
         )

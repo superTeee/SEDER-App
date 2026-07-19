@@ -30,6 +30,7 @@ fun AddToHumidorSheet(
     var humidors by remember { mutableStateOf<List<HumidorRow>>(emptyList()) }
     var selected by remember { mutableStateOf<HumidorRow?>(null) }
     var quantity by remember { mutableStateOf(1) }
+    var priceText by remember { mutableStateOf("") }
     var store by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -82,6 +83,18 @@ fun AddToHumidorSheet(
                 }
             }
 
+            // Pris per sigar (valgfritt) — brukes til total verdi i humidoren
+            FieldLabel("Pris per sigar")
+            OutlinedTextField(
+                value = priceText,
+                onValueChange = { priceText = it },
+                placeholder = { Text("0") },
+                trailingIcon = { Text("kr", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth()
+            )
+
             // Kjøpt hos
             FieldLabel("Kjøpt hos")
             OutlinedTextField(
@@ -102,7 +115,8 @@ fun AddToHumidorSheet(
                     saving = true; error = null
                     scope.launch {
                         try {
-                            HumidorRepository.addCigar(cigar.id, h.id, quantity, store)
+                            val price = priceText.trim().replace(',', '.').toDoubleOrNull()
+                            HumidorRepository.addCigar(cigar.id, h.id, quantity, store, price)
                             onAdded(h.name)
                         } catch (e: Exception) {
                             error = e.message ?: "Kunne ikke legge til"
