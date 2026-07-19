@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.HumidorRepository
@@ -124,11 +125,12 @@ fun HumidorScreen(
         Column(Modifier.padding(padding).fillMaxSize()) {
             // Segment-velger (Humidor / Ønskeliste) — kun innlogget.
             if (isAuthed) {
-                // Valgt segment bruker accent-fargen.
+                // Valgt segment bruker accent-fargen, og hele omrisset (stroke) er accent.
                 val segColors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,
                     activeContentColor = MaterialTheme.colorScheme.onPrimary,
                     activeBorderColor = MaterialTheme.colorScheme.primary,
+                    inactiveBorderColor = MaterialTheme.colorScheme.primary,
                 )
                 SingleChoiceSegmentedButtonRow(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
@@ -500,7 +502,7 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
                 Modifier.align(Alignment.TopEnd).padding(10.dp)
                     .clip(RoundedCornerShape(50))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -513,7 +515,10 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
             }
         }
         Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(Modifier.weight(1f)) {
                 Text(h.row.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 val meta = listOfNotNull(h.row.type, h.row.location).joinToString(" · ")
@@ -534,12 +539,12 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
             }
             val rhText = rh?.let {
                 val v = if (it.rh % 1.0 == 0.0) it.rh.toInt().toString() else String.format("%.1f", it.rh)
-                "$v %"
-            } ?: "0 %"
+                "$v % RH"
+            } ?: "0 % RH"
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(12.dp).clip(CircleShape).background(dot))
                 Spacer(Modifier.width(7.dp))
-                Text(rhText, style = MaterialTheme.typography.titleMedium,
+                Text(rhText, style = MaterialTheme.typography.titleMedium, fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
             }
         }
