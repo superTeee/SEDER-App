@@ -72,7 +72,7 @@ fun SplashScreen(onFinish: () -> Unit) {
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(y = (-32).dp)
-                .size(width = 180.dp, height = 124.dp)
+                .size(width = 180.dp, height = 166.dp)
         )
     }
 }
