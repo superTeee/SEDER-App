@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.res.painterResource
+import com.tomerikheggedal.vitola.R
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -122,19 +124,25 @@ fun HumidorScreen(
         Column(Modifier.padding(padding).fillMaxSize()) {
             // Segment-velger (Humidor / Ønskeliste) — kun innlogget.
             if (isAuthed) {
+                // Valgt segment bruker accent-fargen.
+                val segColors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                    activeBorderColor = MaterialTheme.colorScheme.primary,
+                )
                 SingleChoiceSegmentedButtonRow(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     SegmentedButton(
-                        selected = tab == 0, onClick = { tab = 0 },
+                        selected = tab == 0, onClick = { tab = 0 }, colors = segColors,
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
                     ) { Text("Humidor") }
                     SegmentedButton(
-                        selected = tab == 1, onClick = { tab = 1 },
+                        selected = tab == 1, onClick = { tab = 1 }, colors = segColors,
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
                     ) { Text("Favoritter") }
                     SegmentedButton(
-                        selected = tab == 2, onClick = { tab = 2 },
+                        selected = tab == 2, onClick = { tab = 2 }, colors = segColors,
                         shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
                     ) { Text("Ønskeliste") }
                 }
@@ -465,66 +473,75 @@ private fun HumidorCard(h: HumidorUi, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(12.dp)
     ) {
-        val img = h.row.imageUrl
-        if (img != null) {
-            AsyncImage(
-                model = img,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(154.dp)
-                    .clip(RoundedCornerShape(6.dp))
-            )
-        } else {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(154.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
+        // Bilde med antall-chip øverst til høyre (10px marg).
+        Box(
+            Modifier.fillMaxWidth().height(154.dp).clip(RoundedCornerShape(6.dp))
+        ) {
+            val img = h.row.imageUrl
+            if (img != null) {
+                AsyncImage(
+                    model = img, contentDescription = null,
+                    contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Inventory2, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp)
+                    )
+                }
+            }
+            // Antall-chip: sigar-ikon + tall (som iOS).
+            val countLabel = h.row.capacity?.let { "${h.count}/$it" } ?: "${h.count}"
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(10.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Filled.Inventory2, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(34.dp)
+                    painterResource(R.drawable.ic_cigar), contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp)
                 )
+                Spacer(Modifier.width(5.dp))
+                Text(countLabel, style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
             }
         }
         Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.Top) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(h.row.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 val meta = listOfNotNull(h.row.type, h.row.location).joinToString(" · ")
                 if (meta.isNotBlank()) {
                     Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                // Trafikklys-status for RH (grønn = stabil, gul = litt av, rød = for tørr/fuktig).
-                val rh = h.latestRh
-                if (rh != null || h.row.rhTargetLabel != null) {
-                    val status = rhStatus(rh?.rh, h.row.targetRh, h.row.rhMin, h.row.rhMax)
-                    val dot = when (status) {
-                        RhStatus.STABLE -> Color(0xFF3FA34D)
-                        RhStatus.SLIGHTLY_LOW, RhStatus.SLIGHTLY_HIGH -> Color(0xFFE0A400)
-                        RhStatus.TOO_DRY, RhStatus.TOO_WET -> Color(0xFFD64545)
-                        RhStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    }
-                    val rhText = rh?.let {
-                        val v = if (it.rh % 1.0 == 0.0) it.rh.toInt().toString() else String.format("%.1f", it.rh)
-                        "$v % RH · ${status.label}"
-                    } ?: "Mål ${h.row.rhTargetLabel} · ${status.label}"
-                    Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(9.dp).clip(CircleShape).background(dot))
-                        Spacer(Modifier.width(6.dp))
-                        Text(rhText, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
             }
-            val countLabel = h.row.capacity?.let { "${h.count}/$it" } ?: "${h.count}"
-            Text(countLabel, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // RH-indikator til høyre: farget boble + verdi (grå + 0 % når ingenting er målt).
+            val rh = h.latestRh
+            val status = rhStatus(rh?.rh, h.row.targetRh, h.row.rhMin, h.row.rhMax)
+            val dot = if (rh == null) {
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            } else when (status) {
+                RhStatus.STABLE -> Color(0xFF3FA34D)
+                RhStatus.SLIGHTLY_LOW, RhStatus.SLIGHTLY_HIGH -> Color(0xFFE0A400)
+                RhStatus.TOO_DRY, RhStatus.TOO_WET -> Color(0xFFD64545)
+                RhStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            }
+            val rhText = rh?.let {
+                val v = if (it.rh % 1.0 == 0.0) it.rh.toInt().toString() else String.format("%.1f", it.rh)
+                "$v %"
+            } ?: "0 %"
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(12.dp).clip(CircleShape).background(dot))
+                Spacer(Modifier.width(7.dp))
+                Text(rhText, style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            }
         }
     }
 }

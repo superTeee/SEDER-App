@@ -464,47 +464,20 @@ struct HumidorCard: View {
     private func rhString(_ v: Double) -> String {
         v.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(v)) : String(format: "%.1f", v)
     }
-    private func rhLine(_ s: RHStatus) -> String {
-        if let r = latestRH { return "\(rhString(r.rh)) % RH · \(s.label)" }
-        return "Mål \(humidor.rhTargetLabel ?? "") · \(s.label)"
-    }
 
     var body: some View {
-        // Vertikalt kort, samme utforming som journal-kortene: bilde på topp i
-        // full bredde, deretter info under.
         VStack(alignment: .leading, spacing: 0) {
 
-            // ── Bilde (full bredde) ───────────────────────────
-            Group {
-                if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
-                    // Beholder setter størrelsen; bildet som overlay påvirker ikke
-                    // bredden (samme scaledToFill-fiks som ellers i appen).
-                    Color("Surface")
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 154)
-                        .overlay(
-                            KFImage(url)
-                                .resizable()
-                                .fade(duration: 0.15)
-                                .scaledToFill()
-                        )
-                        .clipped()
-                } else {
-                    ZStack {
-                        Color("Accent").opacity(0.12)
-                        Image(systemName: humidor.typeEnum?.icon ?? "archivebox")
-                            .font(.system(size: 34))
-                            .foregroundColor(Color("Accent"))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 154)
+            // ── Bilde (full bredde) med antall-chip øverst til høyre ──
+            imageContent
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(alignment: .topTrailing) {
+                    countChip.padding([.top, .trailing], 10)
                 }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .padding(.bottom, 8)
+                .padding(.bottom, 8)
 
-            // ── Rad: navn + meta til venstre, antall til høyre ──
-            HStack(alignment: .top) {
+            // ── Rad: navn + meta til venstre, RH-indikator til høyre ──
+            HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(humidor.name)
                         .font(.headline)
@@ -521,38 +494,72 @@ struct HumidorCard: View {
                     .font(.caption)
                     .foregroundColor(Color("TextSecondary"))
                     .lineLimit(1)
-
-                    // Trafikklys-status for RH (grønn = stabil, gul = litt av, rød = for tørr/fuktig)
-                    if latestRH != nil || humidor.rhTargetLabel != nil {
-                        let status = humidor.rhStatus(for: latestRH?.rh)
-                        HStack(spacing: 6) {
-                            Circle().fill(rhTrafficColor(status)).frame(width: 9, height: 9)
-                            Text(rhLine(status))
-                                .font(.caption)
-                                .foregroundColor(Color("TextSecondary"))
-                                .lineLimit(1)
-                        }
-                        .padding(.top, 3)
-                    }
                 }
 
                 Spacer()
 
-                // Antall — sigar-ikon + tall (evt. antall/kapasitet)
-                HStack(spacing: 5) {
-                    Image("CigarCount")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 17)
-                    Text(countLabel)
-                        .font(.callout.weight(.medium))
-                }
-                .foregroundColor(Color("TextSecondary"))
+                rhIndicator
             }
             .padding(.top, 4)
         }
         .padding(.vertical, 4)
+    }
+
+    // Bildet (opplastet forsidebilde eller nøytralt type-ikon).
+    @ViewBuilder
+    private var imageContent: some View {
+        Group {
+            if let urlStr = humidor.imageURL, let url = URL(string: urlStr) {
+                Color("Surface")
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 154)
+                    .overlay(
+                        KFImage(url)
+                            .resizable()
+                            .fade(duration: 0.15)
+                            .scaledToFill()
+                    )
+                    .clipped()
+            } else {
+                ZStack {
+                    Color("Accent").opacity(0.12)
+                    Image(systemName: humidor.typeEnum?.icon ?? "archivebox")
+                        .font(.system(size: 34))
+                        .foregroundColor(Color("Accent"))
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 154)
+            }
+        }
+    }
+
+    // Antall-chip: sigar-ikon + tall, flytende oppå bildet.
+    private var countChip: some View {
+        HStack(spacing: 5) {
+            Image("CigarCount")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 15)
+            Text(countLabel)
+                .font(.footnote.weight(.semibold))
+        }
+        .foregroundColor(Color("TextPrimary"))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color("Surface").opacity(0.92)))
+    }
+
+    // RH-indikator: farget boble + verdi (grå + 0 % når ingenting er målt).
+    private var rhIndicator: some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(latestRH != nil ? rhTrafficColor(humidor.rhStatus(for: latestRH?.rh)) : Color(.tertiaryLabel))
+                .frame(width: 12, height: 12)
+            Text(latestRH.map { "\(rhString($0.rh)) %" } ?? "0 %")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(Color("TextPrimary"))
+        }
     }
 
     private var countLabel: String {
