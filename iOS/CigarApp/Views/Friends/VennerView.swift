@@ -262,7 +262,7 @@ struct VennerView: View {
                 }
                 Spacer()
                 if let code = myProfile?.friendCode {
-                    ShareLink(item: "Legg meg til som venn i Vitola! Min kode: \(code)") {
+                    ShareLink(item: "Legg meg til som venn i SEDER! Min kode: \(code)") {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(Color("Accent"))

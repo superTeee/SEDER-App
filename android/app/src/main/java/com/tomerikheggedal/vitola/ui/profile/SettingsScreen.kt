@@ -141,7 +141,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
                             data = Uri.parse("mailto:theggedal@gmail.com")
-                            putExtra(Intent.EXTRA_SUBJECT, "Vitola-tilbakemelding")
+                            putExtra(Intent.EXTRA_SUBJECT, "SEDER-tilbakemelding")
                         }
                         runCatching {
                             context.startActivity(Intent.createChooser(intent, "Send tilbakemelding"))

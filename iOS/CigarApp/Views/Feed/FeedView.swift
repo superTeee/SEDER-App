@@ -4,7 +4,7 @@ import Kingfisher
 
 // MARK: - FeedView
 // Sosial feed — poster fra deg selv og venner.
-// Inneholder: FeedView, FeedPostCard, CreatePostView, PostDetailView, VitolaSharingCard
+// Inneholder: FeedView, FeedPostCard, CreatePostView, PostDetailView, SEDERSharingCard
 
 /// Oppdater denne til App Store-lenken når appen er publisert
 private let vitolaShareURL = "https://vitola.app"
@@ -459,7 +459,7 @@ struct FeedPostCard: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .sheet(isPresented: $showShareSheet) {
-                    VitolaSharingSheet(post: post)
+                    SEDERSharingSheet(post: post)
                 }
             }
             .padding(.horizontal, 6)
@@ -892,12 +892,12 @@ struct CommentRow: View {
 }
 
 // ═══════════════════════════════════════════════════════════
-// MARK: VitolaSharingSheet — del innlegg
+// MARK: SEDERSharingSheet — del innlegg
 // ═══════════════════════════════════════════════════════════
-// Viser en branded Vitola-kort som bilde, og lar brukeren dele
+// Viser en branded SEDER-kort som bilde, og lar brukeren dele
 // via iOS share sheet (Facebook, Instagram, Messages osv.)
 
-struct VitolaSharingSheet: View {
+struct SEDERSharingSheet: View {
 
     let post: FeedPost
     @Environment(\.dismiss) private var dismiss
@@ -915,7 +915,7 @@ struct VitolaSharingSheet: View {
                     .padding(.top, 8)
 
                 // Branded kort-forhåndsvisning
-                VitolaBrandedCard(post: post, loadedImage: loadedPostImage)
+                SEDERBrandedCard(post: post, loadedImage: loadedPostImage)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
                     .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
                     .padding(.horizontal, 24)
@@ -983,7 +983,7 @@ struct VitolaSharingSheet: View {
     /// Rendrer det branded kortet til en UIImage via ImageRenderer (iOS 16+)
     @MainActor
     private func renderCardAsImage() -> UIImage {
-        let card = VitolaBrandedCard(post: post, loadedImage: loadedPostImage)
+        let card = SEDERBrandedCard(post: post, loadedImage: loadedPostImage)
             .frame(width: 375, height: 260)
 
         let renderer = ImageRenderer(content: card)
@@ -992,10 +992,10 @@ struct VitolaSharingSheet: View {
     }
 }
 
-// MARK: - VitolaBrandedCard
-// Det branded kortet som deles. Viser sigar, score, tekst og Vitola-logo.
+// MARK: - SEDERBrandedCard
+// Det branded kortet som deles. Viser sigar, score, tekst og SEDER-logo.
 
-struct VitolaBrandedCard: View {
+struct SEDERBrandedCard: View {
 
     let post: FeedPost
     var loadedImage: UIImage? = nil
@@ -1029,7 +1029,7 @@ struct VitolaBrandedCard: View {
 
             VStack(alignment: .leading, spacing: 0) {
 
-                // ── Vitola-logo + forfatter ────────────────────
+                // ── SEDER-logo + forfatter ────────────────────
                 HStack {
                     HStack(spacing: 6) {
                         Image("Logo")
@@ -1037,7 +1037,7 @@ struct VitolaBrandedCard: View {
                             .scaledToFit()
                             .frame(width: 22, height: 22)
                             .clipShape(RoundedRectangle(cornerRadius: 5))
-                        Text("Vitola")
+                        Text("SEDER")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -1087,7 +1087,7 @@ struct VitolaBrandedCard: View {
 
                 // ── CTA-banner ────────────────────────────────
                 HStack {
-                    Text("Sjekk ut Vitola — sigar-appen")
+                    Text("Sjekk ut SEDER — sigar-appen")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                     Spacer()

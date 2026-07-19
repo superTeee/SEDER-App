@@ -51,7 +51,7 @@ enum AppFeedback {
 
     static let recipient = "theggedal@gmail.com"
 
-    static var subject: String { "Tilbakemelding på Vitola" }
+    static var subject: String { "Tilbakemelding på SEDER" }
 
     static var bodyTemplate: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"

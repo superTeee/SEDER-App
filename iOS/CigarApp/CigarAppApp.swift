@@ -103,7 +103,7 @@ struct SplashView: View {
                     .scaledToFit()
                     .frame(width: 88, height: 88)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
-                Text("Vitola")
+                Text("SEDER")
                     .font(.largeTitle.bold())
                     .foregroundColor(Color("TextPrimary"))
             }

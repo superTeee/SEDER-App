@@ -31,7 +31,7 @@ struct OnboardingProfileView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .padding(.bottom, 4)
 
-                    Text("Velkommen til Vitola")
+                    Text("Velkommen til SEDER")
                         .font(.title2.bold())
                         .foregroundColor(Color("TextPrimary"))
 

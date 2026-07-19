@@ -172,7 +172,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            profile?.displayName ?: ProfileRepository.authName() ?: "Vitola-bruker",
+                            profile?.displayName ?: ProfileRepository.authName() ?: "SEDER-bruker",
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
                         )
                         val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")

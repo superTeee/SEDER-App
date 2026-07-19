@@ -1351,7 +1351,7 @@ struct VitolaGuideSheet: View {
                 .padding(.bottom, 20)
             }
             .background(Color("Background"))
-            .navigationTitle("Vitola-guide")
+            .navigationTitle("SEDER-guide")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

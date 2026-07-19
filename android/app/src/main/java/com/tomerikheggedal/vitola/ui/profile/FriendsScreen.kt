@@ -161,7 +161,7 @@ private fun SearchRow(r: UserSearchResult, alreadyFriend: Boolean, onAdd: () -> 
         Avatar(r.avatarUrl)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(r.displayName ?: "Vitola-bruker", fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyLarge)
+            Text(r.displayName ?: "SEDER-bruker", fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyLarge)
             r.friendCode?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         if (alreadyFriend) Text("Lagt til", style = MaterialTheme.typography.labelMedium,
@@ -176,7 +176,7 @@ private fun FriendRow(f: FriendEntry, onOpen: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically) {
         Avatar(f.otherAvatarUrl)
         Spacer(Modifier.width(12.dp))
-        Text(f.otherDisplayName ?: "Vitola-bruker", fontWeight = FontWeight.Medium,
+        Text(f.otherDisplayName ?: "SEDER-bruker", fontWeight = FontWeight.Medium,
             style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
     }
 }
@@ -187,7 +187,7 @@ private fun RequestRow(e: FriendEntry, incoming: Boolean, onAccept: () -> Unit, 
         verticalAlignment = Alignment.CenterVertically) {
         Avatar(e.otherAvatarUrl)
         Spacer(Modifier.width(12.dp))
-        Text(e.otherDisplayName ?: "Vitola-bruker", fontWeight = FontWeight.Medium,
+        Text(e.otherDisplayName ?: "SEDER-bruker", fontWeight = FontWeight.Medium,
             style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         if (incoming) {
             TextButton(onClick = onAccept) { Text("Godkjenn") }

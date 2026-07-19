@@ -24,7 +24,7 @@ struct AgeGateView: View {
                         .scaledToFit()
                         .frame(width: 96, height: 96)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
-                    Text("Vitola")
+                    Text("SEDER")
                         .font(.largeTitle.bold())
                         .foregroundColor(Color("TextPrimary"))
                     Text("Din digitale humidor")
@@ -74,7 +74,7 @@ struct AgeVerificationView: View {
         VStack(spacing: 16) {
             Text("Bekreft alder")
                 .font(.title3.bold())
-            Text("Du må være 18 år eller eldre for å bruke Vitola")
+            Text("Du må være 18 år eller eldre for å bruke SEDER")
                 .font(.subheadline)
                 .foregroundColor(Color("TextSecondary"))
                 .multilineTextAlignment(.center)

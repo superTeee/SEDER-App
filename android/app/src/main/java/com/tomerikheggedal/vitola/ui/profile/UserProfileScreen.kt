@@ -78,7 +78,7 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     Avatar(p.avatarUrl)
                     Spacer(Modifier.height(14.dp))
-                    Text(p.displayName ?: "Vitola-bruker", style = MaterialTheme.typography.titleLarge,
+                    Text(p.displayName ?: "SEDER-bruker", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold)
                     val place = listOfNotNull(p.city, p.country).joinToString(", ")
                     if (place.isNotBlank()) {

@@ -67,7 +67,7 @@ fun SplashScreen(onFinish: () -> Unit) {
         )
         Image(
             painter = painterResource(R.drawable.vitola_logo),
-            contentDescription = "Vitola",
+            contentDescription = "SEDER",
             alpha = logoAlpha.value,
             modifier = Modifier
                 .align(Alignment.Center)

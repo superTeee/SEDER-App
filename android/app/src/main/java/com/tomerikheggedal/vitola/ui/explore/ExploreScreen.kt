@@ -509,7 +509,7 @@ fun ExploreScreen(
 // Deler en sigar via Androids delingsark.
 private fun shareCigar(context: android.content.Context, cigar: Cigar) {
     val name = listOfNotNull(cigar.brand, cigar.series, cigar.vitola).joinToString(" ")
-    val body = "$name — sjekk ut denne sigaren i Vitola\n\nhttps://vitola.app"
+    val body = "$name — sjekk ut denne sigaren i SEDER\n\nhttps://vitola.app"
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, body)

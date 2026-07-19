@@ -74,7 +74,7 @@ fun AuthWelcomeScreen(onSkip: () -> Unit) {
             Spacer(Modifier.height(48.dp))
             Image(
                 painter = painterResource(R.drawable.vitola_logo),
-                contentDescription = "Vitola",
+                contentDescription = "SEDER",
                 modifier = Modifier.size(width = 180.dp, height = 124.dp)
             )
             Spacer(Modifier.height(12.dp))

@@ -173,7 +173,7 @@ fun FeedScreen(onUser: (String) -> Unit = {}) {
 // Del et innlegg via Androids delingsark.
 private fun sharePost(context: android.content.Context, post: FeedPost) {
     val body = buildString {
-        append(post.authorName).append(" på Vitola")
+        append(post.authorName).append(" på SEDER")
         post.content?.takeIf { it.isNotBlank() }?.let { append(":\n").append(it) }
         post.cigarDisplayName?.let { append("\n🚬 ").append(it) }
         append("\n\nhttps://vitola.app")

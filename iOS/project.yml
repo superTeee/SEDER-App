@@ -50,6 +50,7 @@ targets:
       properties:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleDisplayName: "SEDER"
         CFBundleURLTypes:
           - CFBundleTypeRole: Editor
             CFBundleURLSchemes:
@@ -58,7 +59,7 @@ targets:
             CFBundleURLName: com.tomerikheggedal.vitola
             CFBundleURLSchemes:
               - vitola
-        NSCameraUsageDescription: "Vitola bruker kameraet til å scanne sigarbandet"
+        NSCameraUsageDescription: "SEDER bruker kameraet til å scanne sigarbandet"
         NSPhotoLibraryUsageDescription: "Velg et bilde av et sigarband fra biblioteket ditt"
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

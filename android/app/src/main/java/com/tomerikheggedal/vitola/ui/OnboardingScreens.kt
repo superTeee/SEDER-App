@@ -38,14 +38,14 @@ fun AgeGateScreen(onVerified: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(48.dp))
-        Text("Vitola", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+        Text("SEDER", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Text("Din digitale humidor", style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Spacer(Modifier.height(48.dp))
         Text("Bekreft alder", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text("Du må være 18 år eller eldre for å bruke Vitola",
+        Text("Du må være 18 år eller eldre for å bruke SEDER",
             style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
@@ -84,7 +84,7 @@ fun PrivacyConsentScreen(onAccepted: () -> Unit) {
         Spacer(Modifier.height(56.dp))
         Text("Før du fortsetter", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text("Les personvernerklæringen vår og godta vilkårene for å bruke Vitola.",
+        Text("Les personvernerklæringen vår og godta vilkårene for å bruke SEDER.",
             style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
@@ -114,7 +114,7 @@ fun PrivacyConsentScreen(onAccepted: () -> Unit) {
                 tint = if (accepted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.width(12.dp))
-            Text("Jeg har lest og godtar personvernerklæringen til Vitola",
+            Text("Jeg har lest og godtar personvernerklæringen til SEDER",
                 style = MaterialTheme.typography.bodyMedium)
         }
 
@@ -137,10 +137,10 @@ private fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
     val sections = listOf(
         "Hva vi samler inn" to "E-postadresse (for innlogging), navn/kallenavn (valgfritt), sigarnotater og vurderinger du selv legger inn, og by/sted (valgfritt).",
         "Hva vi ikke samler inn" to "Helseopplysninger, betalingsinformasjon, lokasjonsdata eller data fra tredjepart uten din godkjenning.",
-        "Hvordan vi bruker dataene" to "Dataene brukes utelukkende for å drive Vitola-appen: lagre og vise sigarjournalen din, identifisere kontoen din og la deg logge inn. Vi selger ikke dataene dine til tredjepart, og de brukes ikke til reklame.",
+        "Hvordan vi bruker dataene" to "Dataene brukes utelukkende for å drive SEDER-appen: lagre og vise sigarjournalen din, identifisere kontoen din og la deg logge inn. Vi selger ikke dataene dine til tredjepart, og de brukes ikke til reklame.",
         "Hvem ser dataene dine" to "Dataene lagres i Supabase (USA). Vi deler ikke data med andre aktører. Innlogging via Apple eller Google håndteres av henholdsvis Apple og Google etter deres egne personvernregler.",
         "Dine rettigheter" to "Du kan se, korrigere eller slette dataene dine når som helst. Slett kontoen direkte i appen under Innstillinger → Slett konto.",
-        "Aldersgrense" to "Vitola er kun beregnet for brukere over 18 år.",
+        "Aldersgrense" to "SEDER er kun beregnet for brukere over 18 år.",
         "Kontakt" to "Spørsmål om personvern? Send e-post til theggedal@gmail.com",
     )
     AlertDialog(
@@ -178,7 +178,7 @@ fun OnboardingNameScreen(onComplete: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(72.dp))
-        Text("Velkommen til Vitola", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("Velkommen til SEDER", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text("Sett opp profilen din for å komme i gang",
             style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,

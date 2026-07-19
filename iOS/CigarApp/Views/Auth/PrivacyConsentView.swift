@@ -32,7 +32,7 @@ struct PrivacyConsentView: View {
                         .foregroundColor(Color("TextPrimary"))
                         .padding(.top, 12)
 
-                    Text("Les personvernerklæringen vår og godta vilkårene for å bruke Vitola.")
+                    Text("Les personvernerklæringen vår og godta vilkårene for å bruke SEDER.")
                         .font(.subheadline)
                         .foregroundColor(Color("TextSecondary"))
                         .multilineTextAlignment(.center)
@@ -81,7 +81,7 @@ struct PrivacyConsentView: View {
                             .font(.system(size: 22))
                             .foregroundColor(accepted ? Color("Accent") : Color("TextSecondary"))
 
-                        Text("Jeg har lest og godtar personvernerklæringen til Vitola")
+                        Text("Jeg har lest og godtar personvernerklæringen til SEDER")
                             .font(.subheadline)
                             .foregroundColor(Color("TextPrimary"))
                             .multilineTextAlignment(.leading)
@@ -147,7 +147,7 @@ struct PrivacyPolicySheet: View {
 
                     policySection(
                         title: "Hvordan vi bruker dataene",
-                        body: "Dataene brukes utelukkende for å drive Vitola-appen: lagre og vise sigarjournalen din, identifisere kontoen din og la deg logge inn. Vi selger ikke dataene dine til tredjepart, og de brukes ikke til reklame."
+                        body: "Dataene brukes utelukkende for å drive SEDER-appen: lagre og vise sigarjournalen din, identifisere kontoen din og la deg logge inn. Vi selger ikke dataene dine til tredjepart, og de brukes ikke til reklame."
                     )
 
                     policySection(
@@ -162,7 +162,7 @@ struct PrivacyPolicySheet: View {
 
                     policySection(
                         title: "Aldersgrense",
-                        body: "Vitola er kun beregnet for brukere over 18 år."
+                        body: "SEDER er kun beregnet for brukere over 18 år."
                     )
 
                     policySection(

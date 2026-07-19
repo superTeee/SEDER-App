@@ -104,7 +104,7 @@ struct ScanView: View {
                     ScanningOverlay()
                 }
             }
-            .navigationTitle("Vitola")
+            .navigationTitle("SEDER")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showCameraPicker) {
                 MacroCameraView(image: $capturedImage) {
