@@ -5,7 +5,7 @@ import UIKit
 //
 // Tidslinje (totalt ca. 6,5 s):
 //   0,0 → 1,0 s   fotoet alene, uten overlay
-//   1,0 → 2,0 s   overlay-laget (#403E3B) fader inn til 70 % dekning
+//   1,0 → 2,8 s   overlay-laget (#403E3B) fader rolig inn til 30 % dekning
 //   2,0 → 3,0 s   hold   ← splash uten logo er nå 3 sekunder
 //   3,0 → 4,0 s   logoen fader inn
 //   4,0 → 6,5 s   hold   ← splash med logo er nå 3,5 sekunder
@@ -24,8 +24,8 @@ struct SplashCanvas: View {
     @State private var dimmed = false
     @State private var logoVisible = false
 
-    /// Dekning på overlay-laget: #403E3B ved 70 %.
-    private let dimOpacity: Double = 0.70
+    /// Dekning på overlay-laget: #403E3B ved 30 %.
+    private let dimOpacity: Double = 0.30
     private let dimColor = Color(red: 64.0 / 255, green: 62.0 / 255, blue: 59.0 / 255)
 
     var body: some View {
@@ -53,9 +53,9 @@ struct SplashCanvas: View {
             // 1. Fotoet står alene i 1 sekund.
             try? await Task.sleep(for: .seconds(1.0))
 
-            // 2. Sort lag fader inn over 1 sekund.
-            withAnimation(.easeInOut(duration: 1.0)) { dimmed = true }
-            try? await Task.sleep(for: .seconds(1.0))
+            // 2. Overlay-laget fader rolig inn over 1,8 sekund.
+            withAnimation(.easeInOut(duration: 1.8)) { dimmed = true }
+            try? await Task.sleep(for: .seconds(1.8))
 
             // 3. Hold i 1 sekund — splash uten logo er nå 3 sekunder totalt.
             try? await Task.sleep(for: .seconds(1.0))
