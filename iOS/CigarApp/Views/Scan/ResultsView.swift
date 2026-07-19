@@ -118,10 +118,14 @@ struct ResultsView: View {
     // Løser skanningen: laster opp bånd-bildet + registrerer koblingen bånd→sigar.
     // Best effort i bakgrunnen — navigasjonen skjer uansett med en gang.
     private func recordResolution(for cigar: Cigar) {
+        // Kopier til lokale konstanter FØR Task-en — å fange @StateObject-en
+        // direkte i en escaping closure gir «requires wrapper ObservedObject».
+        let service = cigarService
         let ocr = ocrText
         let data = bandImage?.jpegData(compressionQuality: 0.8)
         let uid = authService.userId
-        Task { await cigarService.resolveScan(ocrText: ocr, cigarId: cigar.id, userId: uid, bandImage: data) }
+        let cid = cigar.id
+        Task { await service.resolveScan(ocrText: ocr, cigarId: cid, userId: uid, bandImage: data) }
     }
 
     private func runSearch() async {
