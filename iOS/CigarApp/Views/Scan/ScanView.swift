@@ -121,7 +121,7 @@ struct ScanView: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToResults) {
-                ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText)
+                ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText, bandImage: capturedImage)
             }
             // Alltid til ResultsView — aldri direkte til detaljskjermen.
             // Venter med navigasjon til eventuelle form-/wrapper-avklaringer er ferdige.

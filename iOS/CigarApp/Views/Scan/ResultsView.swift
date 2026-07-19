@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - ResultsView
 // Viser scan-treff + manuelt søk-fallback
@@ -7,6 +8,9 @@ struct ResultsView: View {
 
     let results: [ScanResult]
     let ocrText: String
+    // Bånd-bildet fra skanningen — lastes opp til bildebiblioteket når brukeren
+    // løser (velger riktig sigar), og driver bildegjenkjenningen over tid.
+    var bandImage: UIImage? = nil
     // Valgfri "scan neste"-handling fra scan-flyten (pop til rot + åpne kamera).
     var onScanNext: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
@@ -32,6 +36,7 @@ struct ResultsView: View {
                         NavigationLink(destination: CigarDetailViewDesign(cigar: result.cigar, onScanNext: onScanNext)) {
                             ResultRow(result: result)
                         }
+                        .simultaneousGesture(TapGesture().onEnded { recordResolution(for: result.cigar) })
                     }
                 }
             } else {
@@ -73,6 +78,7 @@ struct ResultsView: View {
                     NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext)) {
                         CigarRow(cigar: cigar)
                     }
+                    .simultaneousGesture(TapGesture().onEnded { recordResolution(for: cigar) })
                 }
             }
 
@@ -99,6 +105,7 @@ struct ResultsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAddCigar) {
             AddCigarSheet(prefillBrand: searchQuery) { cigar in
+                recordResolution(for: cigar)
                 createdCigar = cigar
             }
             .environmentObject(authService)
@@ -106,6 +113,15 @@ struct ResultsView: View {
         .navigationDestination(item: $createdCigar) { cigar in
             CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext)
         }
+    }
+
+    // Løser skanningen: laster opp bånd-bildet + registrerer koblingen bånd→sigar.
+    // Best effort i bakgrunnen — navigasjonen skjer uansett med en gang.
+    private func recordResolution(for cigar: Cigar) {
+        let ocr = ocrText
+        let data = bandImage?.jpegData(compressionQuality: 0.8)
+        let uid = authService.userId
+        Task { await cigarService.resolveScan(ocrText: ocr, cigarId: cigar.id, userId: uid, bandImage: data) }
     }
 
     private func runSearch() async {

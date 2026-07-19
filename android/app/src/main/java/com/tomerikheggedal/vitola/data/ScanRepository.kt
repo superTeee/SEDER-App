@@ -6,11 +6,18 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.storage.storage
 import io.ktor.client.call.body
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.coroutines.resume
 
 // Skanning av sigarbånd. Speiler iOS ScanService:
@@ -78,6 +85,33 @@ object ScanRepository {
 
     /** Bakoverkompatibel enkel skann (kun AI) — brukes der full flyt ikke trengs. */
     suspend fun scan(imageJpeg: ByteArray): List<ScanHit> = scanBand(imageJpeg).hits
+
+    // MARK: - Datahjul for bildegjenkjenning
+    // Når brukeren løser en skanning (velger riktig sigar), lagrer vi bånd-bildet
+    // i bildebiblioteket og bånd-teksten som lært alias (aktiveres når nok
+    // brukere bekrefter samme kobling). Alt er «best effort» — skal aldri velte
+    // skanne-flyten.
+    private suspend fun uploadBandSample(imageJpeg: ByteArray): String? {
+        val userId = Supa.client.auth.currentUserOrNull()?.id ?: return null
+        val path = "${userId.lowercase()}/${java.util.UUID.randomUUID().toString().lowercase()}.jpg"
+        return runCatching {
+            Supa.client.storage.from("band-samples").upload(path, imageJpeg, upsert = true)
+            path
+        }.getOrNull()
+    }
+
+    /** Registrer at brukeren løste en skanning: kobling bånd→sigar + bilde. */
+    suspend fun resolveScan(ocrText: String, cigarId: String, imageJpeg: ByteArray?) {
+        if (ocrText.isBlank()) return
+        runCatching {
+            val path = imageJpeg?.let { uploadBandSample(it) }
+            Supa.client.postgrest.rpc("record_scan_resolution", buildJsonObject {
+                put("p_ocr_text", ocrText)
+                put("p_cigar_id", cigarId)
+                if (path != null) put("p_image_path", path) else put("p_image_path", JsonNull)
+            })
+        }
+    }
 
     /** Avklar form med et bilde av hele sigaren. Returnerer entydig treff, ellers null. */
     suspend fun resolveShape(candidates: List<Cigar>, imageJpeg: ByteArray): Cigar? {

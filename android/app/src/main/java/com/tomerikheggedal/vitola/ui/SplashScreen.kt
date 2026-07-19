@@ -34,13 +34,13 @@ import kotlinx.coroutines.delay
 fun SplashScreen(onFinish: () -> Unit) {
     val screenWidthPx = with(LocalConfiguration.current) { screenWidthDp.toFloat() }
 
-    val dim = remember { Animatable(0f) }        // overlay #403E3B 0 → 0,30
+    val dim = remember { Animatable(0f) }        // overlay #403E3B 0 → 0,40
     val logoAlpha = remember { Animatable(0f) }  // logo 0 → 1
     val slideX = remember { Animatable(0f) }     // hele splashen glir ut
 
     LaunchedEffect(Unit) {
         delay(1000)                                              // 1. foto alene
-        dim.animateTo(0.30f, tween(1800))                       // 2. overlay-lag fader rolig inn
+        dim.animateTo(0.40f, tween(1500))                       // 2. overlay-lag fader rolig inn
         delay(800)                                               // 3. hold
         logoAlpha.animateTo(1f, tween(1000))                    // 4. logo inn
         delay(2500)                                              // 5. hold

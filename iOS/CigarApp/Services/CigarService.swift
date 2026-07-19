@@ -985,6 +985,49 @@ class TastingService: ObservableObject {
         return finalURLString
     }
 
+    // MARK: - Datahjul for bildegjenkjenning
+    // Når brukeren løser en skanning (velger riktig sigar), lagrer vi bånd-bildet
+    // og bånd-teksten koblet til sigaren. Bildet mater bildebiblioteket, og
+    // teksten blir en lært alias når nok brukere har bekreftet samme kobling.
+    // Alt er «best effort» — skal aldri velte selve skanne-flyten.
+    func uploadBandSample(userId: UUID, imageData: Data) async throws -> String {
+        let path = "\(userId.uuidString.lowercased())/\(UUID().uuidString.lowercased()).jpg"
+        try await supabase.storage
+            .from("band-samples")
+            .upload(path, data: downscaledJPEG(imageData, maxDim: 1200, quality: 0.7), options: FileOptions(contentType: "image/jpeg", upsert: true))
+        return path
+    }
+
+    func recordScanResolution(ocrText: String, cigarId: UUID, imagePath: String?) async {
+        struct Params: Encodable {
+            let p_ocr_text: String
+            let p_cigar_id: String
+            let p_image_path: String?
+        }
+        do {
+            try await supabase
+                .rpc("record_scan_resolution", params: Params(
+                    p_ocr_text: ocrText,
+                    p_cigar_id: cigarId.uuidString,
+                    p_image_path: imagePath
+                ))
+                .execute()
+        } catch {
+            print("record_scan_resolution feilet (ignorert): \(error)")
+        }
+    }
+
+    /// Én samlet «løs skanning»-handling: last opp bånd-bildet (om vi har det)
+    /// og registrer koblingen. Kalles når brukeren velger riktig sigar.
+    func resolveScan(ocrText: String, cigarId: UUID, userId: UUID?, bandImage: Data?) async {
+        guard !ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        var path: String? = nil
+        if let bandImage, let userId {
+            path = try? await uploadBandSample(userId: userId, imageData: bandImage)
+        }
+        await recordScanResolution(ocrText: ocrText, cigarId: cigarId, imagePath: path)
+    }
+
     // URL til delbart log-kort (Edge Function)
     func shareURL(for logId: UUID) -> String {
         "https://wpcricosogcmzebkplwp.supabase.co/functions/v1/log-card?id=\(logId.uuidString)"

@@ -149,6 +149,9 @@ fun ExploreScreen(
     var recent by remember { mutableStateOf(SearchHistory.load(context)) }
     var scanning by remember { mutableStateOf(false) }
     var scanResults by remember { mutableStateOf<List<ScanHit>?>(null) }
+    // Siste skann (bånd-tekst + bilde) — brukes til å registrere løsningen når
+    // brukeren velger riktig sigar (datahjul for bildegjenkjenning).
+    var scanCtx by remember { mutableStateOf<Pair<String, ByteArray>?>(null) }
     var pendingShape by remember { mutableStateOf<ScanOutcome?>(null) }
     var pendingWrapper by remember { mutableStateOf<ScanOutcome?>(null) }
     var showManualAdd by remember { mutableStateOf(false) }
@@ -157,15 +160,28 @@ fun ExploreScreen(
     var qaAddHumidor by remember { mutableStateOf<Cigar?>(null) }
     var qaLog by remember { mutableStateOf<Cigar?>(null) }
 
+    // Registrer at brukeren løste en skanning: last opp bånd-bildet + koble
+    // bånd-tekst → sigar (datahjul for bildegjenkjenning). Best effort, og
+    // gjør ingenting hvis det ikke fantes en fersk skann-kontekst.
+    fun resolveTo(cigarId: String) {
+        scanCtx?.let { (ocr, jpg) -> scope.launch { ScanRepository.resolveScan(ocr, cigarId, jpg) } }
+        scanCtx = null
+        onCigar(cigarId)
+    }
+
     // Håndter resultatet av en full skann (OCR → DB → AI + avklaring).
     fun finishOutcome(outcome: ScanOutcome) {
         when {
-            outcome.autoSelected != null -> onCigar(outcome.autoSelected!!.id)
+            outcome.autoSelected != null -> resolveTo(outcome.autoSelected!!.id)
             outcome.needsShape -> pendingShape = outcome
             outcome.needsWrapper -> pendingWrapper = outcome
-            outcome.hits.isEmpty() ->
-                scope.launch { snackbar.showSnackbar("Fant ingen sigar. Prøv et tydeligere bilde av båndet.") }
-            outcome.hits.size == 1 -> onCigar(outcome.hits.first().cigar.id)
+            outcome.hits.isEmpty() -> {
+                // Aldri blindvei: la brukeren legge sigaren til selv (bånd-bildet
+                // huskes, så den lærte koblingen registreres når de oppretter den).
+                scope.launch { snackbar.showSnackbar("Fant ingen match — legg sigaren til selv.") }
+                showManualAdd = true
+            }
+            outcome.hits.size == 1 -> resolveTo(outcome.hits.first().cigar.id)
             else -> scanResults = outcome.hits
         }
     }
@@ -177,6 +193,7 @@ fun ExploreScreen(
             val outcome = runCatching { ScanRepository.scanBand(jpeg) }.getOrNull()
             scanning = false
             if (outcome == null) { snackbar.showSnackbar("Skanningen feilet. Prøv igjen."); return@launch }
+            scanCtx = outcome.ocrText to jpeg
             finishOutcome(outcome)
         }
     }
@@ -197,7 +214,7 @@ fun ExploreScreen(
         scope.launch {
             val resolved = runCatching { ScanRepository.resolveShape(pending.candidates, bitmapToJpeg(bmp)) }.getOrNull()
             scanning = false
-            if (resolved != null) onCigar(resolved.id) else scanResults = pending.hits
+            if (resolved != null) resolveTo(resolved.id) else scanResults = pending.hits
         }
     }
     val wrapperCam = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bmp ->
@@ -208,7 +225,7 @@ fun ExploreScreen(
         scope.launch {
             val resolved = runCatching { ScanRepository.resolveWrapper(pending.candidates, bitmapToJpeg(bmp)) }.getOrNull()
             scanning = false
-            if (resolved != null) onCigar(resolved.id) else scanResults = pending.hits
+            if (resolved != null) resolveTo(resolved.id) else scanResults = pending.hits
         }
     }
 
@@ -438,7 +455,7 @@ fun ExploreScreen(
         ScanResultsSheet(
             hits = hits,
             onDismiss = { scanResults = null },
-            onPick = { scanResults = null; onCigar(it) }
+            onPick = { scanResults = null; resolveTo(it) }
         )
     }
 
@@ -447,7 +464,7 @@ fun ExploreScreen(
         AddCigarSheet(
             initialBrand = vm.query,
             onDismiss = { showManualAdd = false },
-            onCreated = { newId -> showManualAdd = false; onCigar(newId) }
+            onCreated = { newId -> showManualAdd = false; resolveTo(newId) }
         )
     }
 
