@@ -335,6 +335,21 @@ Deno.serve(async (req) => {
         `Eksakte treff: ${topMatches.filter((m) => m.exact_match).length}.`,
     );
 
+    // Logg en ekte bom: verken lokalt søk (appen) eller AI-fallbacken fant noe.
+    // Driver alias-kampanjen fra reelle feil. Lagrer kun bånd-tekst + gjetninger,
+    // og skal aldri velte selve skanne-svaret hvis loggingen feiler.
+    if (topMatches.length === 0) {
+      try {
+        await supabase.from("scan_misses").insert({
+          ocr_text: ocr_text ?? null,
+          guesses: guesses,
+          match_count: 0,
+        });
+      } catch (logErr) {
+        console.warn("scan-cigar: kunne ikke logge scan_miss:", logErr);
+      }
+    }
+
     return new Response(JSON.stringify(topMatches), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

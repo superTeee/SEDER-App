@@ -396,9 +396,11 @@
     <div class="tabs">
       <button class="tab active" data-tab="gaps">Datahull <span id="gapsCount"></span></button>
       <button class="tab" data-tab="queue">Kø <span id="queueCount"></span></button>
+      <button class="tab" data-tab="misses">Skanne-bommer <span id="missesCount"></span></button>
     </div>
     <div id="tab-gaps"></div>
     <div id="tab-queue" style="display:none"></div>
+    <div id="tab-misses" style="display:none"></div>
   </div>
 </div>
 
@@ -451,7 +453,7 @@ async function gateAdmin(){
   const { data:{ user } } = await sb.auth.getUser();
   document.getElementById('adminEmail').textContent = user?.email || '';
   closeM(); showAdmin();
-  loadGaps(); loadQueue();
+  loadGaps(); loadQueue(); loadMisses();
 }
 
 function showSite(){ document.getElementById('admin').classList.remove('open'); document.getElementById('site').style.display=''; }
@@ -467,6 +469,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   const tab=t.dataset.tab;
   document.getElementById('tab-gaps').style.display = tab==='gaps'?'':'none';
   document.getElementById('tab-queue').style.display = tab==='queue'?'':'none';
+  document.getElementById('tab-misses').style.display = tab==='misses'?'':'none';
 });
 
 const esc = (s)=> (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -584,6 +587,30 @@ async function subAction(id, fn, btn){
 function removeCard(btn){
   const c = btn.closest('.queue-card'); c.style.opacity='0'; c.style.transition='.3s';
   setTimeout(()=>{ c.remove(); loadQueue(); },300);
+}
+
+// ---- Skanne-bommer (driver alias-kampanjen fra reelle feil) ----
+async function loadMisses(){
+  const el = document.getElementById('tab-misses');
+  el.innerHTML = '<div class="empty"><span class="spinner"></span> Laster skanne-bommer…</div>';
+  const { data, error } = await sb.rpc('admin_scan_misses');
+  if (error){ el.innerHTML = '<div class="empty">Kunne ikke laste skanne-bommer.</div>'; return; }
+  document.getElementById('missesCount').textContent = data.length ? `(${data.length})` : '';
+  if (!data.length){ el.innerHTML = '<div class="empty">✅ Ingen skanne-bommer registrert ennå.</div>'; return; }
+  el.innerHTML =
+    '<p style="color:var(--muted);font-size:14px;margin:0 0 14px">Bånd-tekst fra skanninger som ikke ga treff — flest først. Legg til alias på riktig sigar, så løser de seg umiddelbart.</p>' +
+    data.map(m=>{
+      const dt = m.sist ? new Date(m.sist).toLocaleDateString('no-NO', {day:'numeric',month:'short',year:'numeric'}) : '';
+      return `<div class="queue-card">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div>
+            <h4 style="margin:0 0 4px;font-family:var(--sans)">${esc(m.ocr_text)}</h4>
+            <div class="brand-sm">Sist sett ${esc(dt)}</div>
+          </div>
+          <span class="count-pill">${m.antall}×</span>
+        </div>
+      </div>`;
+    }).join('');
 }
 
 // ---- Scroll progress + reveal-on-scroll (landing polish) ----
