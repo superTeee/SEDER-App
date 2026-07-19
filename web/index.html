@@ -60,8 +60,8 @@
     background:
       linear-gradient(90deg, rgba(14,11,7,0) 0%, rgba(14,11,7,.15) 30%, rgba(14,11,7,.6) 52%, rgba(14,11,7,.9) 70%, rgba(14,11,7,.97) 100%),
       #0E0B07 url('assets/hero.jpg') center left / cover no-repeat}
-  .hero .wrap{max-width:none; width:100%; margin:0; padding:120px 5vw; display:flex; justify-content:flex-end}
-  .hero .hero-content{max-width:500px; text-align:left}
+  .hero .wrap{max-width:none; width:100%; margin:0; padding:120px 5vw; display:grid; grid-template-columns:1fr 1fr; align-items:center}
+  .hero .hero-content{grid-column:2; max-width:520px; text-align:left}
   .eyebrow-tag{display:inline-flex; align-items:center; gap:9px; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase;
     color:var(--accent); margin-bottom:30px}
   .eyebrow-tag::before{content:""; width:26px; height:1px; background:var(--accent); display:inline-block}
@@ -84,8 +84,8 @@
     .hero{min-height:auto; text-align:center;
       background:linear-gradient(180deg, rgba(14,11,7,.72) 0%, rgba(14,11,7,.6) 40%, rgba(14,11,7,.96) 100%),
         #0E0B07 url('assets/hero.jpg') center / cover no-repeat}
-    .hero .wrap{padding:96px 24px 88px; justify-content:center}
-    .hero .hero-content{max-width:100%; text-align:center}
+    .hero .wrap{padding:96px 24px 88px; grid-template-columns:1fr}
+    .hero .hero-content{grid-column:1; max-width:100%; text-align:center}
     .eyebrow-tag,.hero img.wordmark,.hero p.lead{margin-left:auto; margin-right:auto}
     .hero .stores{justify-content:center}
     .scroll-hint{display:none}
