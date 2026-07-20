@@ -39,9 +39,9 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            FeedView()
+            ActivityView()
                 .environmentObject(authService)
-                .tabItem { Label("Feed", image: "tab_feed") }
+                .tabItem { Label("Aktivitet", image: "tab_feed") }
                 .tag(3)
 
             ExploreView()

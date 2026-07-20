@@ -1115,3 +1115,279 @@ struct IOSShareSheet: UIViewControllerRepresentable {
     }
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+
+// ═══════════════════════════════════════════════════════════
+// MARK: ActivityView — hoved-tab (erstatter Feed)
+// Scrollbar strøm av delte journal-hendelser. Ikke innlegg, ingen kommentarer.
+// Hele raden → sigarens detaljside. «＋ ønskeliste» legger rett i ønskelisten.
+// ═══════════════════════════════════════════════════════════
+
+struct ActivityView: View {
+
+    @EnvironmentObject var authService: AuthService
+    @Environment(\.colorScheme) private var colorScheme
+
+    @StateObject private var activityService = ActivityService()
+    private let wishlistService = WishlistService()
+
+    @State private var items: [ActivityItem] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var wishlisted: Set<UUID> = []
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if authService.userId == nil {
+                    ActivityLoggedOutView()
+                } else if isLoading && items.isEmpty {
+                    ProgressView("Laster aktivitet…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color("Background"))
+                } else if items.isEmpty {
+                    ActivityEmptyView()
+                } else {
+                    list
+                }
+            }
+            .background(Color("Background"))
+            .navigationTitle("Aktivitet")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color("Background"), for: .navigationBar)
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
+            .task { if items.isEmpty { await load() } }
+            .refreshable { await load() }
+        }
+    }
+
+    private var list: some View {
+        List {
+            ForEach(items) { item in
+                NavigationLink(destination: CigarDetailLoader(cigarId: item.cigarId)) {
+                    ActivityRow(
+                        item: item,
+                        isWishlisted: wishlisted.contains(item.cigarId),
+                        onWishlist: { addToWishlist(item) }
+                    )
+                }
+                .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                .listRowBackground(Color("Background"))
+                .listRowSeparator(.hidden)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color("Background"))
+    }
+
+    private func load() async {
+        guard authService.userId != nil else { isLoading = false; return }
+        isLoading = true
+        do {
+            items = try await activityService.fetchActivity(limit: 40)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func addToWishlist(_ item: ActivityItem) {
+        guard let userId = authService.userId, !wishlisted.contains(item.cigarId) else { return }
+        wishlisted.insert(item.cigarId)   // optimistisk
+        Task {
+            do { try await wishlistService.addToWishlist(userId: userId, cigarId: item.cigarId) }
+            catch { await MainActor.run { wishlisted.remove(item.cigarId) } }
+        }
+    }
+}
+
+// MARK: - ActivityRow
+struct ActivityRow: View {
+
+    let item: ActivityItem
+    var isWishlisted: Bool
+    var onWishlist: () -> Void
+
+    private var verbText: String {
+        item.verb == "wishlist" ? "vil prøve" : "loggførte en sigar"
+    }
+    private var stars: Double { Double(item.cigarRating ?? 0) / 20.0 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // hvem + verb
+            HStack(spacing: 10) {
+                AvatarBubble(name: item.authorName, url: item.authorAvatarUrl)
+                (Text(item.authorName).font(.subheadline).bold().foregroundColor(Color("TextPrimary"))
+                 + Text(" \(verbText)").font(.subheadline).foregroundColor(Color("Accent")))
+                Spacer()
+            }
+
+            // rating — prominent (kun logg-hendelser med score)
+            if item.verb != "wishlist", let r = item.cigarRating, r > 0 {
+                HStack(spacing: 8) {
+                    StarRow(value: stars)
+                    Text("\(r)/100").font(.caption).foregroundColor(Color("TextSecondary"))
+                }
+                .padding(.top, 8)
+            }
+
+            // brukerens bilde
+            if let photo = item.tastingPhotoUrl, let url = URL(string: photo) {
+                KFImage(url)
+                    .resizable().scaledToFill()
+                    .frame(maxWidth: .infinity).frame(height: 190)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                    .padding(.top, 9)
+            }
+
+            // brukerens notat
+            if let note = item.personalNotes, !note.isEmpty {
+                Text("«\(note)»")
+                    .font(.subheadline).italic()
+                    .foregroundColor(Color("TextPrimary"))
+                    .padding(.top, 9)
+            }
+
+            // sigar-kort med ønskeliste-knapp
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.cigarBrand)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Color("TextPrimary"))
+                    if !item.cigarMetaLine.isEmpty {
+                        Text(item.cigarMetaLine)
+                            .font(.caption).foregroundColor(Color("TextSecondary"))
+                    }
+                }
+                Spacer()
+                Button(action: onWishlist) {
+                    HStack(spacing: 4) {
+                        Image(systemName: isWishlisted ? "checkmark" : "plus")
+                        Text(isWishlisted ? "På lista" : "ønskeliste")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(Color("Accent"))
+                    .padding(.horizontal, 11).padding(.vertical, 6)
+                    .overlay(Capsule().stroke(Color("Accent").opacity(0.4), lineWidth: 1))
+                }
+                .buttonStyle(.borderless)
+                .disabled(isWishlisted)
+            }
+            .padding(10)
+            .background(Color("Surface"))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .padding(.top, 9)
+
+            // relativ tid
+            if let d = item.sharedAt {
+                Text(activityRelativeTime(d))
+                    .font(.caption2).foregroundColor(Color("TextSecondary").opacity(0.7))
+                    .padding(.top, 7)
+            }
+        }
+        .padding(12)
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Små hjelpe-views for Aktivitet
+private struct AvatarBubble: View {
+    let name: String
+    let url: String?
+    var body: some View {
+        Group {
+            if let url, let u = URL(string: url) {
+                KFImage(u).resizable().scaledToFill()
+            } else {
+                ZStack {
+                    Color("Surface")
+                    Text(initials).font(.caption.bold()).foregroundColor(Color("Accent"))
+                }
+            }
+        }
+        .frame(width: 36, height: 36).clipShape(Circle())
+    }
+    private var initials: String {
+        let s = name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()
+        return s.isEmpty ? "?" : s.uppercased()
+    }
+}
+
+private struct StarRow: View {
+    let value: Double   // 0...5
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(0..<5, id: \.self) { i in
+                let d = value - Double(i)
+                Image(systemName: d >= 1 ? "star.fill" : (d >= 0.5 ? "star.leadinghalf.filled" : "star"))
+                    .font(.system(size: 15))
+                    .foregroundColor(Color("Accent"))
+            }
+        }
+    }
+}
+
+private func activityRelativeTime(_ date: Date) -> String {
+    let f = RelativeDateTimeFormatter()
+    f.locale = Locale(identifier: "nb_NO")
+    f.unitsStyle = .short
+    return f.localizedString(for: date, relativeTo: Date())
+}
+
+// Laster en sigar via id og viser detaljsiden (Aktivitet har bare cigar_id).
+struct CigarDetailLoader: View {
+    let cigarId: UUID
+    private let cigarService = CigarService()
+    @State private var cigar: Cigar?
+    @State private var failed = false
+    var body: some View {
+        Group {
+            if let cigar {
+                CigarDetailViewDesign(cigar: cigar)
+            } else if failed {
+                Text("Kunne ikke laste sigaren.")
+                    .foregroundColor(Color("TextSecondary"))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color("Background"))
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color("Background"))
+            }
+        }
+        .task {
+            do { cigar = try await cigarService.fetchCigar(id: cigarId) }
+            catch { failed = true }
+        }
+    }
+}
+
+private struct ActivityEmptyView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 54)).foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Ingen aktivitet ennå").font(.title3.bold())
+            Text("Del et journalinnlegg, eller finn nye sigarer i Utforsk.")
+                .font(.subheadline).foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32).background(Color("Background"))
+    }
+}
+
+private struct ActivityLoggedOutView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "person.2")
+                .font(.system(size: 48)).foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Logg inn for å se aktivitet")
+                .font(.title3.bold()).multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32).background(Color("Background"))
+    }
+}
