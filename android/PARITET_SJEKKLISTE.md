@@ -1,7 +1,13 @@
 # Vitola Android — paritet-sjekkliste
 
 Status for Android-appen sammenlignet med iOS. Oppdateres etter hvert som vi jobber.
-Sist oppdatert: 2026-07-19
+Sist oppdatert: 2026-07-20
+
+### Kvittering → humidor (paritet)
+- ✅ parse-receipt edge function (GPT-vision leser varelinjer + match_cigar-matching) — delt backend
+- ✅ «Legg til sigarer fra kvittering» i +-menyen på Humidor-fanen (ny meny: Ny humidor / Kvittering) — begge plattformer
+- ✅ Bekreft-skjerm: standard-humidor for alle + overstyring per rad, antall/pris redigerbart, ukjente varer → «Legg til manuelt» — begge plattformer
+- 🟡 Android kamera bruker thumbnail (TakePicturePreview); galleri gir full oppløsning. iOS bruker full kamera-oppløsning. Vurder full-res kamera (FileProvider) senere.
 
 ### Pris + humidor-verdi (paritet)
 - ✅ Prisfelt (kr per sigar) i legg-i-humidor-arket → purchase_price — begge plattformer

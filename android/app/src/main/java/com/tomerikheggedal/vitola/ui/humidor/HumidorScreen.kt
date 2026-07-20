@@ -1,5 +1,8 @@
 package com.tomerikheggedal.vitola.ui.humidor
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,17 +28,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.HumidorRow
 import com.tomerikheggedal.vitola.data.HumidorUi
+import com.tomerikheggedal.vitola.data.ReceiptParseResult
+import com.tomerikheggedal.vitola.data.ReceiptRepository
 import com.tomerikheggedal.vitola.data.RhStatus
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.FavoriteRepository
@@ -54,6 +62,7 @@ fun HumidorScreen(
     onCigar: (String) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
 
@@ -62,6 +71,35 @@ fun HumidorScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var showAdd by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
+
+    // Kvittering → bulk-add
+    var showAddMenu by remember { mutableStateOf(false) }
+    var showReceiptSource by remember { mutableStateOf(false) }
+    var parsingReceipt by remember { mutableStateOf(false) }
+    var receiptResult by remember { mutableStateOf<ReceiptParseResult?>(null) }
+    var receiptError by remember { mutableStateOf<String?>(null) }
+
+    fun runParse(jpeg: ByteArray?) {
+        if (jpeg == null) return
+        parsingReceipt = true
+        scope.launch {
+            val res = runCatching { ReceiptRepository.parseReceipt(jpeg) }.getOrNull()
+            parsingReceipt = false
+            when {
+                res == null -> receiptError = "Klarte ikke å lese kvitteringen. Sjekk nettet og prøv igjen."
+                res.matched.isEmpty() && res.unmatched.isEmpty() ->
+                    receiptError = "Fant ingen sigarer på kvitteringen. Prøv et tydeligere bilde."
+                else -> receiptResult = res
+            }
+        }
+    }
+
+    val receiptCamera = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bmp -> if (bmp != null) runParse(bitmapToJpegR(bmp)) }
+    val receiptGallery = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) scope.launch { runParse(uriToJpegR(context, uri)) } }
 
     // Segmentert fane: 0 = Humidor, 1 = Favoritter, 2 = Ønskeliste (som iOS).
     var tab by remember { mutableStateOf(0) }
@@ -111,8 +149,22 @@ fun HumidorScreen(
                 ),
                 actions = {
                     if (isAuthed) {
-                        IconButton(onClick = { showAdd = true }) {
-                            Icon(Icons.Filled.Add, contentDescription = "Ny humidor")
+                        Box {
+                            IconButton(onClick = { showAddMenu = true }) {
+                                Icon(Icons.Filled.Add, contentDescription = "Legg til")
+                            }
+                            DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Ny humidor") },
+                                    leadingIcon = { Icon(Icons.Filled.Inventory2, null) },
+                                    onClick = { showAddMenu = false; showAdd = true }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Legg til sigarer fra kvittering") },
+                                    leadingIcon = { Icon(Icons.Filled.ReceiptLong, null) },
+                                    onClick = { showAddMenu = false; showReceiptSource = true }
+                                )
+                            }
                         }
                         IconButton(onClick = { scope.launch { Supa.client.auth.signOut() } }) {
                             Icon(Icons.Filled.Logout, contentDescription = "Logg ut")
@@ -240,6 +292,76 @@ fun HumidorScreen(
             onCreated = { showAdd = false; reloadKey++ }
         )
     }
+
+    // Kilde-valg for kvittering: kamera eller galleri.
+    if (showReceiptSource) {
+        AlertDialog(
+            onDismissRequest = { showReceiptSource = false },
+            title = { Text("Legg til sigarer fra kvittering") },
+            text = { Text("Ta bilde av kvitteringen, eller velg et bilde fra galleriet.") },
+            confirmButton = {
+                TextButton(onClick = { showReceiptSource = false; receiptCamera.launch(null) }) { Text("Ta bilde") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showReceiptSource = false
+                    receiptGallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }) { Text("Velg fra galleri") }
+            }
+        )
+    }
+
+    // Laster mens kvitteringen leses (kan ta noen sekunder).
+    if (parsingReceipt) {
+        Dialog(onDismissRequest = {}) {
+            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface) {
+                Row(Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(14.dp))
+                    Text("Leser kvitteringen…", fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+
+    receiptError?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { receiptError = null },
+            confirmButton = { TextButton(onClick = { receiptError = null }) { Text("OK") } },
+            title = { Text("Kunne ikke lese kvitteringen") },
+            text = { Text(msg) }
+        )
+    }
+
+    receiptResult?.let { res ->
+        ReceiptConfirmSheet(
+            result = res,
+            humidors = humidors.map { it.row },
+            onDismiss = { receiptResult = null },
+            onFinished = { receiptResult = null; reloadKey++ }
+        )
+    }
+}
+
+// Kamera-thumbnail → JPEG. (Galleri gir høyere oppløsning for lange kvitteringer.)
+private fun bitmapToJpegR(bitmap: android.graphics.Bitmap): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+    return out.toByteArray()
+}
+
+// Galleri-URI → nedskalert JPEG. Kvitteringer har mye liten tekst — behold 2000px.
+private fun uriToJpegR(context: android.content.Context, uri: android.net.Uri, maxDim: Int = 2000): ByteArray? {
+    val input = context.contentResolver.openInputStream(uri) ?: return null
+    val bmp = android.graphics.BitmapFactory.decodeStream(input) ?: return null
+    input.close()
+    val scale = maxDim.toFloat() / maxOf(bmp.width, bmp.height)
+    val scaled = if (scale < 1f)
+        android.graphics.Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true)
+    else bmp
+    val out = java.io.ByteArrayOutputStream()
+    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+    return out.toByteArray()
 }
 
 // Rad i ønskelista: sigarnavn + format, tappbar til detalj.
