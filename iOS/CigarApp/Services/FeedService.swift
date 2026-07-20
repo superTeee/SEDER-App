@@ -165,6 +165,118 @@ class FeedService {
     }
 }
 
+// MARK: - Aktivitet & deling (Feed → Aktivitet)
+// Aktivitet avledes fra journalen (tasting_logs) via get_activity, ikke fra posts.
+// Deling styres av set_entry_sharing. Ny kode bor her (eksisterende prosjektfil).
+
+/// Én hendelse i Aktivitet-strømmen (delt journal-oppføring).
+struct ActivityItem: Decodable, Identifiable {
+    let entryId: UUID
+    let userId: UUID
+    let authorName: String
+    let authorAvatarUrl: String?
+    let verb: String
+    let personalNotes: String?
+    let tastingPhotoUrl: String?
+    let cigarId: UUID
+    let cigarBrand: String
+    let cigarSeries: String?
+    let cigarVitola: String?
+    let cigarRating: Int?
+    let sharedAt: Date?
+    let publicSlug: String?
+
+    var id: UUID { entryId }
+
+    /// «Torpedo · Maduro» — undertittel til sigar-kortet.
+    var cigarMetaLine: String {
+        [cigarSeries, cigarVitola].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case entryId = "entry_id"
+        case userId = "user_id"
+        case authorName = "author_name"
+        case authorAvatarUrl = "author_avatar_url"
+        case verb
+        case personalNotes = "personal_notes"
+        case tastingPhotoUrl = "tasting_photo_url"
+        case cigarId = "cigar_id"
+        case cigarBrand = "cigar_brand"
+        case cigarSeries = "cigar_series"
+        case cigarVitola = "cigar_vitola"
+        case cigarRating = "cigar_rating"
+        case sharedAt = "shared_at"
+        case publicSlug = "public_slug"
+    }
+}
+
+/// Delings-status returnert fra set_entry_sharing.
+struct EntrySharing: Decodable {
+    let entryId: UUID
+    let sharedToCommunity: Bool
+    let sharedExternally: Bool
+    let publicSlug: String?
+    let sharedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case entryId = "entry_id"
+        case sharedToCommunity = "shared_to_community"
+        case sharedExternally = "shared_externally"
+        case publicSlug = "public_slug"
+        case sharedAt = "shared_at"
+    }
+}
+
+// MARK: - ActivityService
+class ActivityService: ObservableObject {
+
+    private struct Params: Encodable {
+        let p_limit: Int
+        let p_before: Date?
+    }
+    private static var decoder: JSONDecoder { SupabaseDecoder.shared }
+
+    /// Aktivitets-strømmen — delte journal-hendelser, nyeste først.
+    /// Bruker-ID sendes ikke; get_activity leser auth.uid() selv.
+    func fetchActivity(limit: Int = 30, before: Date? = nil) async throws -> [ActivityItem] {
+        let response = try await supabase
+            .rpc("get_activity", params: Params(p_limit: limit, p_before: before))
+            .execute()
+        return try Self.decoder.decode([ActivityItem].self, from: response.data)
+    }
+}
+
+// MARK: - ShareService
+class ShareService: ObservableObject {
+
+    private struct Params: Encodable {
+        let p_entry_id: String
+        let p_community: Bool
+        let p_external: Bool
+    }
+    private static var decoder: JSONDecoder { SupabaseDecoder.shared }
+
+    /// Setter/endrer deling på en journal-oppføring. Eier-sjekk skjer i RPC-en.
+    @discardableResult
+    func setSharing(entryId: UUID, community: Bool, external: Bool) async throws -> EntrySharing {
+        let response = try await supabase
+            .rpc("set_entry_sharing", params: Params(
+                p_entry_id: entryId.uuidString,
+                p_community: community,
+                p_external: external
+            ))
+            .single()
+            .execute()
+        return try Self.decoder.decode(EntrySharing.self, from: response.data)
+    }
+
+    /// Offentlig URL til en delt oppføring (universal link — beholder vitola.app-domenet).
+    func publicURL(slug: String) -> URL? {
+        URL(string: "https://vitola.app/j/\(slug)")
+    }
+}
+
 // MARK: - FeedError
 
 enum FeedError: LocalizedError {
