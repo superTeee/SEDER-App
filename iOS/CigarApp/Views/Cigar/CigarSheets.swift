@@ -130,12 +130,14 @@ struct AddToHumidorSheet: View {
                     Stepper("\(quantity) stk", value: $quantity, in: 1...100)
                 }
 
-                Section("Pris per sigar") {
+                Section {
                     HStack {
                         TextField("0", text: $priceText)
                             .keyboardType(.decimalPad)
                         Text("kr").foregroundColor(Color("TextSecondary"))
                     }
+                } header: {
+                    Text("Pris per sigar")
                 } footer: {
                     Text("Valgfritt. Brukes til å regne ut total verdi i humidoren.")
                 }
