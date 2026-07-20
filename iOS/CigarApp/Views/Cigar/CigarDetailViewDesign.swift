@@ -33,6 +33,9 @@ struct CigarDetailViewDesign: View {
     @State private var showLoginSheet = false
     @State private var showLoggedToast = false
     @State private var showReportSheet = false
+    // Del-etter-lagring
+    @State private var sharePrompt: SharePrompt?
+    @State private var externalShareURL: ShareURLItem?
     @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
 
     private let humidorService = HumidorService()
@@ -139,7 +142,7 @@ struct CigarDetailViewDesign: View {
                                         flavorRating: flavor, personalNotes: notes, photoUrl: url)
                                 }
                             }
-                            await MainActor.run { confirmLogged() }
+                            await MainActor.run { confirmLogged(); sharePrompt = SharePrompt(entryId: logId) }
                         } catch { print("Røyke-logg feil: \(error)") }
                         quantity = max(0, quantity - 1)
                     }
@@ -182,10 +185,18 @@ struct CigarDetailViewDesign: View {
                                     flavorRating: flavor, personalNotes: notes, photoUrl: url)
                             }
                         }
-                        await MainActor.run { confirmLogged() }
+                        await MainActor.run { confirmLogged(); sharePrompt = SharePrompt(entryId: logId) }
                     } catch { print("Treff-logg feil: \(error)") }
                 }
             }
+        }
+        .sheet(item: $sharePrompt) { prompt in
+            ShareAfterSaveSheet(entryId: prompt.entryId) { url in
+                externalShareURL = ShareURLItem(url: url)
+            }
+        }
+        .sheet(item: $externalShareURL) { item in
+            IOSShareSheet(items: [item.url])
         }
         .sheet(isPresented: $showLoginSheet) {
             AuthView(onSuccess: { showAddToHumidorSheet = true })

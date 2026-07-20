@@ -683,6 +683,123 @@ struct SmokingLogSheet: View {
     }
 }
 
+// MARK: - Del etter lagring (Aktivitet/deling)
+// Vises etter at et journalinnlegg er lagret. To brytere, aldri påtvunget.
+// «Del i appen» → Aktivitet + offentlig side. «Del eksternt» → native delings-ark.
+
+/// Identifiable-wrapper så vi kan presentere del-arket via .sheet(item:).
+struct SharePrompt: Identifiable {
+    let id = UUID()
+    let entryId: UUID
+}
+
+/// Identifiable-wrapper for URL til native delings-ark.
+struct ShareURLItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+struct ShareAfterSaveSheet: View {
+
+    let entryId: UUID
+    /// Kalles med den offentlige lenken hvis brukeren valgte «Del eksternt».
+    /// Foreldre-viewet presenterer da det native delings-arket (unngår nøstede ark).
+    var onExternalShare: (URL) -> Void = { _ in }
+
+    @Environment(\.dismiss) private var dismiss
+    private let shareService = ShareService()
+
+    @State private var community = false
+    @State private var external = false
+    @State private var isSaving = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Dele opplevelsen din?")
+                .font(.title3.bold())
+                .padding(.top, 22)
+            Text("Journalen din er privat. Velg selv hva du deler.")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .padding(.top, 3)
+
+            toggleRow(
+                title: "Del i appen",
+                subtitle: "Vises i Aktivitet for andre",
+                isOn: $community
+            )
+            .padding(.top, 18)
+            Divider().overlay(Color("TextSecondary").opacity(0.15))
+            toggleRow(
+                title: "Del eksternt",
+                subtitle: "Del lenken via delings-arket",
+                isOn: $external
+            )
+
+            Button {
+                Task { await share() }
+            } label: {
+                HStack {
+                    if isSaving { ProgressView().tint(.white) }
+                    Text("Del").fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(community || external ? Color("Accent") : Color("TextSecondary").opacity(0.4))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .disabled(isSaving || !(community || external))
+            .padding(.top, 20)
+
+            Button("Behold privat") { dismiss() }
+                .fontWeight(.medium)
+                .foregroundColor(Color("TextSecondary"))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color("TextSecondary").opacity(0.3), lineWidth: 1))
+                .padding(.top, 8)
+
+            Button("Avbryt") { dismiss() }
+                .font(.subheadline)
+                .foregroundColor(Color("Accent"))
+                .frame(maxWidth: .infinity)
+                .padding(.top, 10)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .presentationDetents([.height(400)])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func toggleRow(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.subheadline.weight(.semibold)).foregroundColor(Color("TextPrimary"))
+                Text(subtitle).font(.caption).foregroundColor(Color("TextSecondary"))
+            }
+            Spacer()
+            Toggle("", isOn: isOn).labelsHidden().tint(Color("Accent"))
+        }
+        .padding(.vertical, 11)
+    }
+
+    private func share() async {
+        isSaving = true
+        do {
+            let res = try await shareService.setSharing(entryId: entryId, community: community, external: external)
+            if external, let slug = res.publicSlug, let url = shareService.publicURL(slug: slug) {
+                onExternalShare(url)
+            }
+        } catch {
+            print("set_entry_sharing feilet: \(error)")
+        }
+        isSaving = false
+        dismiss()
+    }
+}
+
 // MARK: - Kvittering: bekreft-skjerm
 // Viser varelinjene appen leste fra kvitteringen, ferdig matchet mot databasen.
 // Én standard-humidor øverst gjelder alle rader; hver rad kan overstyres. Ukjente
