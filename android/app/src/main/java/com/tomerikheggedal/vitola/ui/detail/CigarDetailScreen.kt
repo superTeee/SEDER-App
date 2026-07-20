@@ -56,6 +56,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
     var addMsg by remember { mutableStateOf<String?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
     var showLogSheet by remember { mutableStateOf(false) }
+    var sharePromptEntryId by remember { mutableStateOf<String?>(null) }
     var showReportSheet by remember { mutableStateOf(false) }
     var humidorEntryId by remember { mutableStateOf<String?>(null) }
     var entryPhotoUrl by remember { mutableStateOf<String?>(null) }
@@ -262,11 +263,15 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
             cigar = c,
             humidorEntryId = humidorEntryId,
             onDismiss = { showLogSheet = false },
-            onLogged = {
+            onLogged = { logId ->
                 showLogSheet = false
                 addMsg = "Lagt i journalen ✓"
+                if (logId.isNotBlank()) sharePromptEntryId = logId
             }
         )
+    }
+    sharePromptEntryId?.let { eid ->
+        ShareAfterSaveSheet(entryId = eid, onDismiss = { sharePromptEntryId = null })
     }
     if (showReportSheet && c != null) {
         CigarReportSheet(

@@ -29,7 +29,7 @@ fun SmokingLogSheet(
     cigar: Cigar,
     humidorEntryId: String?,
     onDismiss: () -> Unit,
-    onLogged: () -> Unit,
+    onLogged: (String) -> Unit,   // ny log-id (til del-etter-lagring)
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -111,7 +111,7 @@ fun SmokingLogSheet(
                     saving = true; error = null
                     scope.launch {
                         try {
-                            JournalRepository.addLog(
+                            val logId = JournalRepository.addLog(
                                 cigarId = cigar.id,
                                 rating = if (hasScore) score.roundToInt() else null,
                                 smokeAgain = smokeAgain,
@@ -119,7 +119,7 @@ fun SmokingLogSheet(
                                 store = store,
                                 humidorEntryId = humidorEntryId,
                             )
-                            onLogged()
+                            onLogged(logId)
                         } catch (e: Exception) {
                             error = e.message ?: "Kunne ikke lagre"
                             saving = false

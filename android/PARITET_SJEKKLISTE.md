@@ -3,6 +3,13 @@
 Status for Android-appen sammenlignet med iOS. Oppdateres etter hvert som vi jobber.
 Sist oppdatert: 2026-07-20
 
+### Feed → Aktivitet + deling (paritet)
+- ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt
+- ✅ Fane «Feed» → «Aktivitet» (scrollbar liste av delte journal-hendelser: rating/bilde/notat + «＋ ønskeliste», trykk → sigar). Journal beholdt som egen fane — begge plattformer
+- ✅ Del-etter-lagring-ark (Del i appen / Del eksternt) koblet på journal-logging; ekstern deling → native delings-ark med offentlig lenke — begge plattformer
+- 🟡 Del-prompt kun på hoved-logg (CigarDetail). Hurtighandling-logg + journal-redigering mangler prompten. iOS-QuickActions/JournalView + Android tilsvarende: TODO
+- 🟡 Offentlig lenke peker på edge-funksjonen midlertidig; pen vitola.app/j-URL + universal links (AASA/assetlinks + entitlements) gjenstår
+
 ### Kvittering → humidor (paritet)
 - ✅ parse-receipt edge function (GPT-vision leser varelinjer + match_cigar-matching) — delt backend
 - ✅ «Legg til sigarer fra kvittering» i +-menyen på Humidor-fanen (ny meny: Ny humidor / Kvittering) — begge plattformer

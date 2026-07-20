@@ -29,10 +29,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.tomerikheggedal.vitola.ui.activity.ActivityScreen
 import com.tomerikheggedal.vitola.ui.detail.CigarDetailScreen
 import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
 import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
-import com.tomerikheggedal.vitola.ui.feed.FeedScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 import com.tomerikheggedal.vitola.ui.journal.JournalScreen
@@ -48,7 +48,7 @@ private data class Tab(val route: String, val label: String)
 fun VitolaApp() {
     val nav = rememberNavController()
     val tabs = listOf(
-        Tab("feed", "Feed"), Tab("explore", "Utforsk"), Tab("humidor", "Humidor"),
+        Tab("activity", "Aktivitet"), Tab("explore", "Utforsk"), Tab("humidor", "Humidor"),
         Tab("journal", "Journal"), Tab("profile", "Profil")
     )
 
@@ -65,7 +65,7 @@ fun VitolaApp() {
     // Oppdateres kun når man lander på en topp-fane, ellers holdes forrige.
     var selectedTab by remember { mutableStateOf("explore") }
     LaunchedEffect(currentBase) {
-        if (currentBase in listOf("feed", "explore", "humidor", "journal", "profile")) {
+        if (currentBase in listOf("activity", "explore", "humidor", "journal", "profile")) {
             selectedTab = currentBase!!
         }
     }
@@ -119,7 +119,7 @@ fun VitolaApp() {
                             icon = {
                                 Icon(
                                     when (tab.route) {
-                                        "feed" -> Icons.Outlined.DynamicFeed
+                                        "activity" -> Icons.Outlined.DynamicFeed
                                         "explore" -> Icons.Outlined.Explore
                                         "journal" -> Icons.AutoMirrored.Outlined.MenuBook
                                         "profile" -> Icons.Outlined.Person
@@ -139,8 +139,8 @@ fun VitolaApp() {
             startDestination = "explore",
             modifier = Modifier.padding(padding)
         ) {
-            composable("feed") {
-                FeedScreen(onUser = { nav.navigate("user/${it}") })
+            composable("activity") {
+                ActivityScreen(onCigar = { nav.navigate("cigar/${it}") })
             }
             composable("user/{id}") { entry ->
                 UserProfileScreen(

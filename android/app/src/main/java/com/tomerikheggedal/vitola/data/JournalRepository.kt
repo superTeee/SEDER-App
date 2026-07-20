@@ -98,7 +98,7 @@ object JournalRepository {
         Supa.client.from("tasting_logs").delete { filter { eq("id", logId) } }
     }
 
-    /** Logg en røkt sigar. rating = 0–100 (null = ingen poengsum). */
+    /** Logg en røkt sigar. rating = 0–100 (null = ingen poengsum). Returnerer ny log-id. */
     suspend fun addLog(
         cigarId: String,
         rating: Int?,
@@ -106,9 +106,9 @@ object JournalRepository {
         notes: String?,
         store: String?,
         humidorEntryId: String? = null,
-    ) {
+    ): String {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
-        Supa.client.from("tasting_logs").insert(
+        val inserted = Supa.client.from("tasting_logs").insert(
             NewLog(
                 user_id = uid,
                 cigar_id = cigarId,
@@ -119,13 +119,19 @@ object JournalRepository {
                 personal_notes = notes?.ifBlank { null },
                 store = store?.ifBlank { null },
             )
-        )
+        ) {
+            select(Columns.list("id"))
+        }.decodeList<LogIdRow>().firstOrNull()
         // Røyker man en sigar fra en humidor, teller vi ned antallet (minst 0) — som iOS.
         if (humidorEntryId != null) {
             runCatching { HumidorRepository.decrementEntry(humidorEntryId) }
         }
+        return inserted?.id ?: ""
     }
 }
+
+@Serializable
+private data class LogIdRow(val id: String)
 
 @Serializable
 private data class NewLog(
