@@ -682,3 +682,338 @@ struct SmokingLogSheet: View {
         }
     }
 }
+
+// MARK: - Kvittering: bekreft-skjerm
+// Viser varelinjene appen leste fra kvitteringen, ferdig matchet mot databasen.
+// Én standard-humidor øverst gjelder alle rader; hver rad kan overstyres. Ukjente
+// varer ligger nederst med «Legg til manuelt». Ett trykk legger alt i humidoren.
+
+/// Én redigerbar rad (matchet ELLER manuelt løst fra en ukjent linje).
+private struct EditableReceiptLine: Identifiable {
+    let id = UUID()
+    let cigarId: UUID
+    let title: String
+    let receiptName: String
+    var quantity: Int
+    var priceText: String
+    var humidorId: UUID?
+    var included: Bool = true
+}
+
+/// «250» for hele tall, «249,5» ellers — norsk visning av enhetspris.
+private func formatReceiptPrice(_ value: Double) -> String {
+    if value.truncatingRemainder(dividingBy: 1) == 0 { return String(Int(value)) }
+    return String(format: "%.1f", value).replacingOccurrences(of: ".", with: ",")
+}
+
+struct ReceiptConfirmView: View {
+
+    let humidors: [Humidor]
+    let userId: UUID
+    var onFinished: () -> Void   // foreldre laster humidor-lista på nytt
+
+    @EnvironmentObject var authService: AuthService
+    @Environment(\.dismiss) private var dismiss
+    private let humidorService = HumidorService()
+
+    @State private var lines: [EditableReceiptLine]
+    @State private var unmatched: [ReceiptUnmatchedLine]
+    @State private var defaultHumidorId: UUID?
+    @State private var store: String
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @State private var manualResolving: ReceiptUnmatchedLine?
+
+    init(result: ReceiptParseResult, humidors: [Humidor], userId: UUID, onFinished: @escaping () -> Void) {
+        self.humidors = humidors
+        self.userId = userId
+        self.onFinished = onFinished
+        let defId = humidors.first?.id
+        _defaultHumidorId = State(initialValue: defId)
+        _store = State(initialValue: result.store ?? "")
+        _lines = State(initialValue: result.matched.map { m in
+            EditableReceiptLine(
+                cigarId: m.cigarId,
+                title: [m.brand, m.series, m.vitola].compactMap { $0 }.joined(separator: " · "),
+                receiptName: m.receiptName,
+                quantity: m.quantity,
+                priceText: m.unitPrice.map(formatReceiptPrice) ?? "",
+                humidorId: defId
+            )
+        })
+        _unmatched = State(initialValue: result.unmatched)
+    }
+
+    private var totalCigars: Int {
+        lines.filter { $0.included }.reduce(0) { $0 + $1.quantity }
+    }
+
+    private func humidorName(_ id: UUID?) -> String {
+        humidors.first { $0.id == id }?.name ?? "Velg humidor"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if humidors.isEmpty {
+                    noHumidorState
+                } else {
+                    List {
+                        defaultSection
+                        matchedSection
+                        if !unmatched.isEmpty { unmatchedSection }
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .background(Color("Background"))
+                    .safeAreaInset(edge: .bottom) { addBar }
+                }
+            }
+            .navigationTitle("Fra kvittering")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Avbryt") { dismiss() }
+                }
+            }
+            .sheet(item: $manualResolving) { pending in
+                AddCigarSheet(prefillBrand: pending.name) { cigar in
+                    resolveManually(pending: pending, cigar: cigar)
+                }
+                .environmentObject(authService)
+            }
+        }
+    }
+
+    // MARK: Seksjoner
+
+    private var defaultSection: some View {
+        Section {
+            HStack {
+                Text("Legg alle i")
+                Spacer()
+                Menu {
+                    ForEach(humidors) { h in
+                        Button(h.name) { setDefaultHumidor(h.id) }
+                    }
+                } label: {
+                    humidorChip(humidorName(defaultHumidorId))
+                }
+            }
+            HStack {
+                Text("Kjøpt hos")
+                Spacer()
+                TextField("Butikk (valgfritt)", text: $store)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(Color("TextSecondary"))
+            }
+        } footer: {
+            Text("Velger du humidor her, flyttes alle sigarene dit. Du kan overstyre hver enkelt under.")
+        }
+    }
+
+    private var matchedSection: some View {
+        Section(header: Text("Funnet i basen (\(lines.count))")) {
+            ForEach($lines) { $line in
+                lineRow($line)
+            }
+        }
+    }
+
+    private var unmatchedSection: some View {
+        Section {
+            ForEach(unmatched) { item in
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                            .font(.subheadline)
+                            .foregroundColor(Color("TextPrimary"))
+                        Text("\(item.quantity) stk\(item.unitPrice.map { " · \(formatReceiptPrice($0)) kr" } ?? "")")
+                            .font(.caption)
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                    Spacer()
+                    Button("Legg til manuelt") { manualResolving = item }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.borderless)
+                        .foregroundColor(Color("Accent"))
+                }
+                .padding(.vertical, 2)
+            }
+        } header: {
+            Text("Fant ikke i basen (\(unmatched.count))")
+        } footer: {
+            Text("Disse kjente vi ikke igjen fra kvitteringen. Legg dem til manuelt, eller la dem stå.")
+        }
+    }
+
+    // Én matchet rad: tittel, antall-stepper, pris, humidor-overstyring.
+    private func lineRow(_ line: Binding<EditableReceiptLine>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                Image(systemName: line.wrappedValue.included ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(line.wrappedValue.included ? Color("Accent") : Color("TextSecondary"))
+                    .onTapGesture { line.wrappedValue.included.toggle() }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(line.wrappedValue.title.isEmpty ? line.wrappedValue.receiptName : line.wrappedValue.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Color("TextPrimary"))
+                    if line.wrappedValue.title != line.wrappedValue.receiptName {
+                        Text("På kvittering: \(line.wrappedValue.receiptName)")
+                            .font(.caption2)
+                            .foregroundColor(Color("TextSecondary").opacity(0.8))
+                    }
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 14) {
+                // Antall-stepper
+                HStack(spacing: 10) {
+                    Button {
+                        if line.wrappedValue.quantity > 1 { line.wrappedValue.quantity -= 1 }
+                    } label: { Image(systemName: "minus.circle") }
+                        .buttonStyle(.borderless)
+                    Text("\(line.wrappedValue.quantity) stk")
+                        .font(.footnote.weight(.semibold))
+                        .frame(minWidth: 44)
+                    Button {
+                        if line.wrappedValue.quantity < 100 { line.wrappedValue.quantity += 1 }
+                    } label: { Image(systemName: "plus.circle") }
+                        .buttonStyle(.borderless)
+                }
+                .foregroundColor(Color("Accent"))
+
+                // Pris
+                HStack(spacing: 2) {
+                    TextField("0", text: line.priceText)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 52)
+                    Text("kr").font(.caption).foregroundColor(Color("TextSecondary"))
+                }
+
+                Spacer()
+            }
+            .opacity(line.wrappedValue.included ? 1 : 0.4)
+
+            // Humidor-overstyring per rad
+            HStack {
+                Image(systemName: "archivebox").font(.caption).foregroundColor(Color("TextSecondary"))
+                Menu {
+                    ForEach(humidors) { h in
+                        Button(h.name) { line.wrappedValue.humidorId = h.id }
+                    }
+                } label: {
+                    humidorChip(humidorName(line.wrappedValue.humidorId))
+                }
+                Spacer()
+            }
+            .opacity(line.wrappedValue.included ? 1 : 0.4)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func humidorChip(_ text: String) -> some View {
+        HStack(spacing: 4) {
+            Text(text).font(.footnote.weight(.medium))
+            Image(systemName: "chevron.up.chevron.down").font(.system(size: 10))
+        }
+        .foregroundColor(Color("Accent"))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(Color("Accent").opacity(0.12)))
+    }
+
+    private var addBar: some View {
+        VStack(spacing: 6) {
+            if let errorMessage {
+                Text(errorMessage).font(.caption).foregroundColor(.red)
+            }
+            Button {
+                Task { await save() }
+            } label: {
+                HStack {
+                    if isSaving { ProgressView().tint(.white) }
+                    Text(totalCigars > 0 ? "Legg til \(totalCigars) sigarer" : "Ingen valgt")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(totalCigars > 0 ? Color("Accent") : Color("TextSecondary").opacity(0.4))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .disabled(isSaving || totalCigars == 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+        .background(.ultraThinMaterial)
+    }
+
+    private var noHumidorState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "archivebox")
+                .font(.system(size: 52))
+                .foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Opprett en humidor først")
+                .font(.title3.bold())
+            Text("Du trenger minst én humidor å legge\nsigarene fra kvitteringen i.")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(32)
+        .background(Color("Background"))
+    }
+
+    // MARK: Handlinger
+
+    private func setDefaultHumidor(_ id: UUID) {
+        defaultHumidorId = id
+        for i in lines.indices { lines[i].humidorId = id }
+    }
+
+    // Ukjent linje ble løst via manuell innlegging — flytt den opp til de matchede.
+    private func resolveManually(pending: ReceiptUnmatchedLine, cigar: Cigar) {
+        unmatched.removeAll { $0.id == pending.id }
+        lines.append(EditableReceiptLine(
+            cigarId: cigar.id,
+            title: [cigar.brand, cigar.series, cigar.vitola].compactMap { $0 }.joined(separator: " · "),
+            receiptName: pending.name,
+            quantity: pending.quantity,
+            priceText: pending.unitPrice.map(formatReceiptPrice) ?? "",
+            humidorId: defaultHumidorId
+        ))
+    }
+
+    private func save() async {
+        isSaving = true
+        errorMessage = nil
+        let trimmedStore = store.trimmingCharacters(in: .whitespaces)
+        do {
+            for line in lines where line.included {
+                let price = Double(line.priceText
+                    .replacingOccurrences(of: ",", with: ".")
+                    .trimmingCharacters(in: .whitespaces))
+                try await humidorService.addToHumidor(
+                    cigarId: line.cigarId,
+                    userId: userId,
+                    humidorId: line.humidorId ?? defaultHumidorId,
+                    quantity: line.quantity,
+                    purchasedAt: nil,
+                    addedToHumidorAt: Date(),
+                    store: trimmedStore.isEmpty ? nil : trimmedStore,
+                    purchasePrice: price
+                )
+            }
+            onFinished()
+            dismiss()
+        } catch {
+            errorMessage = "Kunne ikke legge til alt. Prøv igjen."
+            isSaving = false
+        }
+    }
+}

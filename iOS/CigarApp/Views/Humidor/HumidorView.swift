@@ -45,6 +45,16 @@ struct HumidorView: View {
     @State private var showManualAdd = false
     @State private var navigateToResults = false
 
+    // MARK: Kvittering → bulk-add
+    @StateObject private var receiptService = ReceiptService()
+    @State private var showReceiptSourceDialog = false
+    @State private var showReceiptCamera = false
+    @State private var showReceiptLibrary = false
+    @State private var receiptImage: UIImage?
+    @State private var isParsingReceipt = false
+    @State private var receiptResult: ReceiptParseResult?
+    @State private var receiptError: String?
+
     // Styl den native segmented-controlleren så den matcher paletten (varme kort-toner
     // i stedet for Apples kalde system-grå).
     init(initialTab: HumidorTab = .humidor) {
@@ -188,8 +198,17 @@ struct HumidorView: View {
             .toolbar {
                 if authService.userId != nil && selectedTab == .humidor {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showCreateHumidor = true
+                        Menu {
+                            Button {
+                                showCreateHumidor = true
+                            } label: {
+                                Label("Ny humidor", systemImage: "archivebox")
+                            }
+                            Button {
+                                showReceiptSourceDialog = true
+                            } label: {
+                                Label("Legg til sigarer fra kvittering", systemImage: "doc.text.viewfinder")
+                            }
                         } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 17, weight: .semibold))
@@ -244,7 +263,71 @@ struct HumidorView: View {
             } message: {
                 Text(scanService.errorMessage ?? "")
             }
+            // MARK: Kvittering-flyt
+            .confirmationDialog("Legg til sigarer fra kvittering", isPresented: $showReceiptSourceDialog, titleVisibility: .visible) {
+                Button("Ta bilde av kvittering") { showReceiptCamera = true }
+                Button("Velg bilde fra bibliotek") { showReceiptLibrary = true }
+                Button("Avbryt", role: .cancel) {}
+            }
+            .sheet(isPresented: $showReceiptCamera) {
+                ImagePicker(image: $receiptImage, sourceType: .camera) {
+                    if let img = receiptImage { Task { await parseReceipt(img) } }
+                }
+            }
+            .sheet(isPresented: $showReceiptLibrary) {
+                ImagePicker(image: $receiptImage, sourceType: .photoLibrary) {
+                    if let img = receiptImage { Task { await parseReceipt(img) } }
+                }
+            }
+            .sheet(item: $receiptResult) { result in
+                ReceiptConfirmView(
+                    result: result,
+                    humidors: humidors,
+                    userId: authService.userId ?? UUID(),
+                    onFinished: { Task { await loadHumidor() } }
+                )
+                .environmentObject(authService)
+            }
+            .overlay {
+                if isParsingReceipt {
+                    ZStack {
+                        Color.black.opacity(0.35).ignoresSafeArea()
+                        VStack(spacing: 14) {
+                            ProgressView().tint(.white).scaleEffect(1.3)
+                            Text("Leser kvitteringen…")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.white)
+                        }
+                        .padding(28)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color("Card")))
+                    }
+                }
+            }
+            .alert("Kunne ikke lese kvitteringen", isPresented: .constant(receiptError != nil)) {
+                Button("OK") { receiptError = nil }
+            } message: {
+                Text(receiptError ?? "")
+            }
         }
+    }
+
+    // Send kvittering-bildet til edge function og åpne bekreft-skjermen.
+    private func parseReceipt(_ image: UIImage) async {
+        isParsingReceipt = true
+        receiptError = nil
+        do {
+            let result = try await receiptService.parseReceipt(image: image)
+            isParsingReceipt = false
+            if result.matched.isEmpty && result.unmatched.isEmpty {
+                receiptError = "Fant ingen sigarer på kvitteringen. Prøv et tydeligere bilde."
+            } else {
+                receiptResult = result
+            }
+        } catch {
+            isParsingReceipt = false
+            receiptError = "Klarte ikke å lese kvitteringen. Sjekk nettforbindelsen og prøv igjen."
+        }
+        receiptImage = nil
     }
 
     private func loadHumidor() async {

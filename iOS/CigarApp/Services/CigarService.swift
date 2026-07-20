@@ -1,5 +1,6 @@
 import Foundation
 import Supabase
+import UIKit
 
 // MARK: - CigarService
 // Håndterer alle database-kall mot "cigars"-tabellen
@@ -1104,5 +1105,80 @@ class TastingService: ObservableObject {
         try await supabase
             .rpc("update_own_tasting_log", params: params)
             .execute()
+    }
+}
+
+// MARK: - Kvittering-modeller (parse-receipt edge function)
+
+/// Én varelinje fra kvitteringen som ble matchet mot en sigar i databasen.
+struct ReceiptMatchedLine: Decodable, Identifiable {
+    let cigarId: UUID
+    let brand: String
+    let series: String?
+    let vitola: String?
+    let receiptName: String
+    let quantity: Int
+    let unitPrice: Double?
+    let score: Double
+
+    // Stabil id for ForEach — kvittering-navnet er unikt nok per liste.
+    var id: String { receiptName + "\(cigarId)" }
+
+    enum CodingKeys: String, CodingKey {
+        case cigarId = "cigar_id"
+        case brand, series, vitola
+        case receiptName = "receipt_name"
+        case quantity
+        case unitPrice = "unit_price"
+        case score
+    }
+}
+
+/// En varelinje som IKKE ble funnet i databasen — brukeren håndterer manuelt.
+struct ReceiptUnmatchedLine: Decodable, Identifiable {
+    let name: String
+    let quantity: Int
+    let unitPrice: Double?
+
+    var id: String { name }
+
+    enum CodingKeys: String, CodingKey {
+        case name, quantity
+        case unitPrice = "unit_price"
+    }
+}
+
+/// Hele svaret fra parse-receipt.
+struct ReceiptParseResult: Decodable, Identifiable {
+    let id = UUID()   // lokal id for .sheet(item:) — ikke en del av JSON-en
+    let store: String?
+    let matched: [ReceiptMatchedLine]
+    let unmatched: [ReceiptUnmatchedLine]
+
+    enum CodingKeys: String, CodingKey { case store, matched, unmatched }
+}
+
+// MARK: - ReceiptService
+// Leser en kvittering via parse-receipt edge function. Selve OpenAI-kallet og
+// matchingen skjer server-side; her sender vi bare bildet og dekoder svaret.
+
+@MainActor
+class ReceiptService: ObservableObject {
+
+    /// Send kvittering-bildet til edge function og få tilbake matchede +
+    /// ikke-funnede varelinjer. Bildet nedskaleres før opplasting for fart.
+    func parseReceipt(image: UIImage) async throws -> ReceiptParseResult {
+        guard let data = image.jpegData(compressionQuality: 0.7) else {
+            throw URLError(.badURL)
+        }
+        // Kvitteringer har mye liten tekst — behold litt mer oppløsning enn bånd.
+        let base64 = downscaledJPEG(data, maxDim: 2000, quality: 0.7).base64EncodedString()
+
+        let result: ReceiptParseResult = try await supabase.functions
+            .invoke(
+                "parse-receipt",
+                options: .init(body: ["image": base64])
+            )
+        return result
     }
 }
