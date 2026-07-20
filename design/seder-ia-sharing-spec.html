@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEDER — IA & Delings-oppdatering</title>
+<style>
+  :root{
+    --bg:#201d19; --panel:#2a2620; --panel2:#332e27; --raise:#3c362d;
+    --line:rgba(233,222,200,.12); --line2:rgba(233,222,200,.22);
+    --text:#efe7d7; --muted:#a89a82; --dim:#7c715f;
+    --gold:#cba85f; --gold-soft:rgba(203,168,95,.14);
+    --ember:#c06a33; --sage:#7f9673; --priv:#8a94b8;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;}
+  a{color:var(--gold); text-decoration:none}
+  .wrap{max-width:1060px; margin:0 auto; padding:0 22px}
+
+  /* Top bar */
+  header.top{position:sticky; top:0; z-index:20; background:rgba(32,29,25,.86);
+    backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+  .top .wrap{display:flex; align-items:center; gap:16px; height:58px; overflow-x:auto}
+  .brand{font-weight:700; letter-spacing:.18em; font-size:14px; color:var(--text); white-space:nowrap}
+  .brand b{color:var(--gold)}
+  nav.pills{display:flex; gap:6px; white-space:nowrap}
+  nav.pills a{font-size:12.5px; color:var(--muted); padding:6px 11px; border-radius:20px; border:1px solid transparent}
+  nav.pills a:hover{color:var(--text); border-color:var(--line2); background:var(--panel)}
+
+  /* Hero */
+  .hero{padding:52px 0 26px}
+  .kicker{color:var(--gold); font-size:12px; letter-spacing:.22em; text-transform:uppercase; margin:0 0 14px}
+  h1{font-size:clamp(30px,4.4vw,50px); line-height:1.04; margin:0 0 16px; font-weight:600}
+  h1 em{font-style:italic; color:var(--gold)}
+  .lead{font-size:18px; color:var(--muted); max-width:64ch; margin:0}
+
+  section{padding:40px 0; border-top:1px solid var(--line)}
+  h2{font-size:26px; margin:0 0 6px; font-weight:600}
+  h2 .num{color:var(--gold); font-size:15px; vertical-align:middle; margin-right:10px; letter-spacing:.1em}
+  .sub{color:var(--muted); margin:0 0 26px; max-width:70ch}
+  h3{font-size:16px; letter-spacing:.02em; margin:26px 0 12px; color:var(--text)}
+  p{margin:0 0 12px}
+  .muted{color:var(--muted)}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px}
+  .grid{display:grid; gap:14px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:760px){.g3,.g2{grid-template-columns:1fr}}
+
+  .tag{display:inline-block; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    padding:3px 9px; border-radius:20px; border:1px solid var(--line2); color:var(--muted)}
+  .tag.priv{color:var(--priv); border-color:rgba(138,148,184,.4); background:rgba(138,148,184,.1)}
+  .tag.pub{color:var(--gold); border-color:rgba(203,168,95,.4); background:var(--gold-soft)}
+  .tag.new{color:var(--sage); border-color:rgba(127,150,115,.4); background:rgba(127,150,115,.1)}
+  .tag.rm{color:var(--ember); border-color:rgba(192,106,51,.4); background:rgba(192,106,51,.1)}
+
+  /* pillar cards */
+  .pillar{position:relative; overflow:hidden}
+  .pillar .ico{font-size:22px; margin-bottom:8px}
+  .pillar h4{margin:2px 0 6px; font-size:18px}
+  .pillar p{font-size:13.5px; color:var(--muted); margin:0}
+
+  /* flow schematic */
+  .flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap}
+  .step{flex:1 1 0; min-width:150px; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:14px 14px; position:relative}
+  .step .n{font-size:11px; color:var(--gold); letter-spacing:.1em; font-weight:700}
+  .step h5{margin:4px 0 5px; font-size:14.5px}
+  .step p{font-size:12.5px; color:var(--muted); margin:0}
+  .arrow{align-self:center; color:var(--dim); padding:0 6px; font-size:20px; flex:0 0 auto}
+  @media(max-width:760px){
+    .flow{flex-direction:column}
+    .arrow{transform:rotate(90deg); padding:4px 0}
+  }
+
+  .split{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
+  .branch{flex:1 1 260px; border:1px dashed var(--line2); border-radius:12px; padding:14px; background:var(--panel2)}
+  .branch h5{margin:0 0 6px; font-size:14px; display:flex; align-items:center; gap:8px}
+
+  /* phone mock */
+  .phones{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start}
+  .phone{width:260px; flex:0 0 auto; background:#17150f; border:8px solid #0e0c08; border-radius:34px;
+    padding:0; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.4)}
+  .phone .screen{height:520px; background:linear-gradient(180deg,#242019,#1b1813); position:relative; display:flex; flex-direction:column}
+  .p-status{height:26px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--dim); letter-spacing:.1em}
+  .p-title{padding:6px 16px 2px; font-size:13px; color:var(--muted); text-align:center; letter-spacing:.06em}
+  .p-body{flex:1; overflow:hidden; padding:8px 12px}
+  .p-cap{font-size:12px; color:var(--muted); text-align:center; margin-top:10px; width:260px}
+
+  /* bottom sheet mock */
+  .sheet{margin-top:auto; background:var(--panel2); border-top:1px solid var(--line2);
+    border-radius:18px 18px 0 0; padding:16px 16px 20px}
+  .sheet .grab{width:38px; height:4px; border-radius:3px; background:var(--line2); margin:0 auto 14px}
+  .sheet h4{margin:0 0 3px; font-size:15px}
+  .sheet .s-sub{font-size:11.5px; color:var(--muted); margin:0 0 14px}
+  .toggle-row{display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid var(--line)}
+  .toggle-row .ti{font-size:16px; width:22px; text-align:center}
+  .toggle-row .tt{flex:1}
+  .toggle-row .tt b{font-size:13px; font-weight:600; display:block}
+  .toggle-row .tt span{font-size:11px; color:var(--muted)}
+  .sw{width:38px; height:22px; border-radius:20px; flex:0 0 auto; position:relative; transition:.2s}
+  .sw.on{background:var(--gold)} .sw.off{background:var(--raise)}
+  .sw::after{content:""; position:absolute; top:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:.2s}
+  .sw.on::after{left:18px} .sw.off::after{left:2px}
+  .btn{margin-top:14px; text-align:center; background:var(--gold); color:#241d0d; font-weight:700;
+    padding:11px; border-radius:10px; font-size:13.5px}
+  .btn.ghost{background:transparent; color:var(--muted); border:1px solid var(--line2); font-weight:500; margin-top:8px}
+  .btn.link{background:transparent; color:var(--gold); border:none; font-weight:500; margin-top:6px; padding:8px}
+
+  /* activity item anatomy */
+  .act{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:13px; display:flex; gap:11px}
+  .av{width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#4a4133,#332c22); flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--gold)}
+  .act .c{flex:1}
+  .act .line1{font-size:13px}
+  .act .line1 b{font-weight:600}
+  .act .verb{color:var(--gold)}
+  .act .cig{margin-top:8px; background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:9px 11px;
+    display:flex; align-items:center; gap:9px}
+  .act .cig .thumb{width:30px; height:30px; border-radius:6px; background:#3a3226; flex:0 0 auto}
+  .act .cig .cn{flex:1; font-size:12.5px}
+  .act .cig .cn span{display:block; color:var(--muted); font-size:11px}
+  .act .cig .cn{min-width:0}
+  .act .cig .try{font-size:11px; color:var(--gold); border:1px solid rgba(203,168,95,.4); padding:5px 10px; border-radius:20px; white-space:nowrap; flex:0 0 auto}
+  .act .photo{margin-top:9px; height:130px; border-radius:9px; border:1px solid var(--line);
+    background:linear-gradient(135deg,#41382a,#231f18); position:relative}
+  .act .photo::after{content:"📷"; position:absolute; right:9px; bottom:7px; font-size:12px; opacity:.35}
+  .act .note{margin-top:9px; font-size:13px; color:var(--text); font-style:italic; line-height:1.5}
+  .act .rating{margin-top:9px; display:flex; align-items:center; gap:9px}
+  .act .rating .stars{color:var(--gold); font-size:20px; letter-spacing:2px; line-height:1}
+  .act .rating .num{font-size:12.5px; color:var(--muted); font-weight:600; letter-spacing:.03em}
+  .act .meta{margin-top:8px; font-size:11px; color:var(--dim)}
+  /* kompakt aktivitets-rad i telefon-lista */
+  .p-list .act{padding:11px}
+  .p-list .act .line1{font-size:12px}
+  .p-list .act .rating{margin-top:7px} .p-list .act .rating .stars{font-size:16px}
+  .p-list .act .photo{height:96px; margin-top:7px}
+  .p-list .act .note{font-size:11.5px; margin-top:7px}
+  .p-list .act .cig{margin-top:7px; padding:7px 9px}
+  .p-list .act .cig .cn{font-size:11.5px}
+  .p-list .act .try{font-size:10px; padding:4px 8px}
+  .p-list .act .meta{margin-top:6px}
+  .annot{font-size:12px; color:var(--muted); margin-top:8px; padding-left:14px; border-left:2px solid var(--gold-soft)}
+
+  /* comp grid */
+  .comp{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:15px}
+  .comp h4{margin:0 0 4px; font-size:15px; display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .comp p{font-size:12.5px; color:var(--muted); margin:0}
+  .comp .plat{font-size:10.5px; color:var(--dim); margin-top:8px; letter-spacing:.04em}
+
+  /* data model */
+  table{width:100%; border-collapse:collapse; font-size:13px; margin-top:6px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:var(--gold);
+    background:var(--gold-soft); padding:1px 6px; border-radius:5px}
+  pre{background:#161310; border:1px solid var(--line); border-radius:12px; padding:16px; overflow:auto;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; color:#d6cbb3; line-height:1.5}
+  pre .k{color:var(--gold)} pre .c{color:var(--dim)} pre .s{color:var(--sage)}
+
+  /* migration timeline */
+  .tl{position:relative; margin-left:8px; padding-left:26px}
+  .tl::before{content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--line2)}
+  .phase{position:relative; margin-bottom:20px}
+  .phase::before{content:""; position:absolute; left:-26px; top:4px; width:12px; height:12px; border-radius:50%;
+    background:var(--bg); border:2px solid var(--gold)}
+  .phase h4{margin:0 0 4px; font-size:15px}
+  .phase .pn{font-size:11px; color:var(--gold); letter-spacing:.1em; text-transform:uppercase}
+  .phase ul{margin:8px 0 0; padding-left:18px; color:var(--muted); font-size:13px}
+  .phase li{margin-bottom:4px}
+
+  .arrowcopy{color:var(--gold); padding:0 8px}
+  .old{color:var(--dim); text-decoration:line-through}
+
+  .rec{background:var(--gold-soft); border:1px solid rgba(203,168,95,.3); border-radius:12px; padding:14px 16px; margin-top:14px}
+  .rec b{color:var(--gold)}
+  footer{padding:40px 0 70px; color:var(--dim); font-size:12.5px; border-top:1px solid var(--line)}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin:16px 0 0; font-size:12px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .dot{width:10px; height:10px; border-radius:50%}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">S E <b>D</b> E R</div>
+    <nav class="pills">
+      <a href="#tldr">Kjernen</a>
+      <a href="#ia">Struktur</a>
+      <a href="#model">Modell</a>
+      <a href="#share">Deling</a>
+      <a href="#public">Offentlig side</a>
+      <a href="#components">Komponenter</a>
+      <a href="#data">Datamodell</a>
+      <a href="#migration">Migrasjon</a>
+      <a href="#copy">Copy</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <p class="kicker">Informasjonsarkitektur & delings-UX · forslag</p>
+    <h1 class="serif">Fra <em>feed</em> til en rolig,<br>strukturert <em>aktivitet</em>.</h1>
+    <p class="lead">Journal blir helprivat. Aktivitet blir en ren strøm av journal-hendelser — ikke innlegg, ingen kommentarer. Alt peker mot sigaren og oppdagelse. Deling blir et bevisst valg brukeren tar, med native delings-ark og en offentlig side som funker uten innlogging.</p>
+  </div>
+
+  <!-- ============ TL;DR ============ -->
+  <section id="tldr">
+    <h2><span class="num">01</span>Kjernemodellen</h2>
+    <p class="sub">Tre tydelige rom. Hver har én jobb. Ingenting overlapper — det er det som gjør modellen lett å forstå.</p>
+
+    <div class="grid g3">
+      <div class="card pillar">
+        <div class="ico">📓</div>
+        <h4 class="serif">Journal <span class="tag priv">Privat</span></h4>
+        <p>Din personlige logg: hva du røkte, rating, notater, bilder. Ingen andre ser dette. Kilden alt annet springer ut fra.</p>
+      </div>
+      <div class="card pillar">
+        <div class="ico">✷</div>
+        <h4 class="serif">Aktivitet <span class="tag new">Erstatter Feed</span></h4>
+        <p>Strukturert strøm av journal-<em>hendelser</em> fra folk du følger og fellesskapet — «loggførte», «vil prøve». Ikke innlegg. Ingen kommentarer. Bygget for oppdagelse.</p>
+      </div>
+      <div class="card pillar">
+        <div class="ico">🔍</div>
+        <h4 class="serif">Utforsk <span class="tag">Uendret fokus</span></h4>
+        <p>Søk-orientert som i dag: finn sigarer, merker, smaksnoter. Skann-inngangen bor her. Aktivitet gir passiv oppdagelse — Utforsk gir aktiv.</p>
+      </div>
+    </div>
+
+    <div class="rec">
+      <b>Anbefaling:</b> Behold <b>Humidor</b> og <b>Profil</b> som i dag. Bunnfanene blir: <b>Utforsk · Aktivitet · Humidor · Profil</b>. Journal flyttes inn som egen seksjon på Profil (din private historie hører til «deg»), slik at bunnlinja ikke blir overfylt og skillet privat/offentlig blir romlig tydelig.
+    </div>
+
+    <div class="legend">
+      <span><i class="dot" style="background:var(--priv)"></i> Privat</span>
+      <span><i class="dot" style="background:var(--gold)"></i> Offentlig / delt</span>
+      <span><i class="dot" style="background:var(--sage)"></i> Ny</span>
+      <span><i class="dot" style="background:var(--ember)"></i> Fjernes</span>
+    </div>
+  </section>
+
+  <!-- ============ IA ============ -->
+  <section id="ia">
+    <h2><span class="num">02</span>Ny struktur</h2>
+    <p class="sub">Slik henger rommene sammen. Journal er motoren; deling er en ventil brukeren åpner bevisst; Aktivitet og den offentlige siden er det som slipper ut.</p>
+
+    <div class="card">
+      <svg viewBox="0 0 980 300" width="100%" role="img" aria-label="IA-diagram">
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#cba85f"/>
+          </marker>
+          <marker id="arm" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#7c715f"/>
+          </marker>
+        </defs>
+        <!-- Journal -->
+        <rect x="30" y="110" width="180" height="80" rx="12" fill="#2a2620" stroke="rgba(138,148,184,.5)"/>
+        <text x="120" y="145" text-anchor="middle" fill="#efe7d7" font-size="17" font-family="Georgia,serif">📓 Journal</text>
+        <text x="120" y="167" text-anchor="middle" fill="#8a94b8" font-size="12">privat logg</text>
+
+        <!-- Share valve -->
+        <rect x="330" y="118" width="150" height="64" rx="12" fill="#332e27" stroke="rgba(203,168,95,.5)"/>
+        <text x="405" y="145" text-anchor="middle" fill="#efe7d7" font-size="14">⇪ Del-ark</text>
+        <text x="405" y="164" text-anchor="middle" fill="#a89a82" font-size="11">bevisst valg</text>
+
+        <!-- Outputs -->
+        <rect x="600" y="30" width="180" height="66" rx="12" fill="#2a2620" stroke="rgba(203,168,95,.5)"/>
+        <text x="690" y="60" text-anchor="middle" fill="#efe7d7" font-size="15" font-family="Georgia,serif">✷ Aktivitet</text>
+        <text x="690" y="80" text-anchor="middle" fill="#cba85f" font-size="11">i fellesskapet</text>
+
+        <rect x="600" y="120" width="180" height="66" rx="12" fill="#2a2620" stroke="rgba(203,168,95,.5)"/>
+        <text x="690" y="150" text-anchor="middle" fill="#efe7d7" font-size="14">🔗 Offentlig side</text>
+        <text x="690" y="170" text-anchor="middle" fill="#cba85f" font-size="11">uten innlogging</text>
+
+        <rect x="600" y="210" width="180" height="66" rx="12" fill="#2a2620" stroke="rgba(203,168,95,.5)"/>
+        <text x="690" y="240" text-anchor="middle" fill="#efe7d7" font-size="14">🖼 Share-kort</text>
+        <text x="690" y="260" text-anchor="middle" fill="#cba85f" font-size="11">native delings-ark</text>
+
+        <!-- Explore (independent) -->
+        <rect x="820" y="120" width="140" height="66" rx="12" fill="#242019" stroke="rgba(233,222,200,.18)"/>
+        <text x="890" y="150" text-anchor="middle" fill="#efe7d7" font-size="14">🔍 Utforsk</text>
+        <text x="890" y="170" text-anchor="middle" fill="#7c715f" font-size="11">søk</text>
+
+        <!-- arrows -->
+        <line x1="210" y1="150" x2="326" y2="150" stroke="#cba85f" stroke-width="2" marker-end="url(#ar)"/>
+        <line x1="480" y1="140" x2="596" y2="63" stroke="#cba85f" stroke-width="2" marker-end="url(#ar)"/>
+        <line x1="480" y1="150" x2="596" y2="150" stroke="#cba85f" stroke-width="2" marker-end="url(#ar)"/>
+        <line x1="480" y1="160" x2="596" y2="240" stroke="#cba85f" stroke-width="2" marker-end="url(#ar)"/>
+        <!-- discovery back to cigar/explore -->
+        <line x1="780" y1="63" x2="890" y2="116" stroke="#7c715f" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arm)"/>
+        <text x="250" y="140" fill="#7c715f" font-size="10.5">deler du?</text>
+        <text x="812" y="95" fill="#7c715f" font-size="10.5">trykk → sigar / «vil prøve»</text>
+      </svg>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h3 style="margin-top:0">Hva som forsvinner</h3>
+        <p class="muted" style="font-size:13.5px">
+          <span class="tag rm">Fjern</span> Fritekst-innlegg (post composer)<br>
+          <span class="tag rm">Fjern</span> Kommentarer på innlegg<br>
+          <span class="tag rm">Fjern</span> «Feed» som konsept og fane<br>
+          <span class="muted">Likes vurderes — se anbefaling under Aktivitet.</span>
+        </p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Hva som kommer</h3>
+        <p class="muted" style="font-size:13.5px">
+          <span class="tag new">Ny</span> Aktivitet-strøm avledet fra journal-hendelser<br>
+          <span class="tag new">Ny</span> Del-bunnark etter lagring<br>
+          <span class="tag new">Ny</span> Offentlig journal-side (uten login)<br>
+          <span class="tag new">Ny</span> Universal links → åpner appen
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MODEL ============ -->
+  <section id="model">
+    <h2><span class="num">03</span>Aktivitet: liste & anatomi</h2>
+    <p class="sub">Aktivitet er én vertikal, scrollbar strøm — akkurat som feeden i dag. Forskjellen er innholdet: strukturerte journal-<em>hendelser</em>, ikke frie innlegg. Ingen kommentarfelt.</p>
+
+    <div class="phones" style="margin-bottom:26px">
+      <div class="phone">
+        <div class="screen">
+          <div class="p-status">9:41</div>
+          <div class="p-title">Aktivitet</div>
+          <div class="p-body p-list" style="position:relative">
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div class="act">
+                <div class="av">TE</div>
+                <div class="c">
+                  <div class="line1"><b>Tom Erik</b> <span class="verb">loggførte</span> en sigar</div>
+                  <div class="rating"><span class="stars">★★★★½</span><span class="num">4,5</span></div>
+                  <div class="photo"></div>
+                  <div class="note">«Kremete, kaffe og mørk sjokolade.»</div>
+                  <div class="cig">
+                    <div class="cn">Padrón 1964 Anniversary<span>Torpedo · Maduro</span></div>
+                    <div class="try">＋ ønskeliste</div>
+                  </div>
+                  <div class="meta">2 t siden</div>
+                </div>
+              </div>
+              <div class="act">
+                <div class="av">AK</div>
+                <div class="c">
+                  <div class="line1"><b>Anna K.</b> <span class="verb">vil prøve</span></div>
+                  <div class="cig">
+                    <div class="cn">Oliva Serie V Melanio<span>Torpedo · Sun Grown</span></div>
+                    <div class="try">＋ ønskeliste</div>
+                  </div>
+                  <div class="meta">4 t siden</div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute; left:0; right:0; bottom:0; height:64px; background:linear-gradient(transparent,#1b1813); pointer-events:none"></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1; min-width:250px">
+        <h3 style="margin-top:0">Én sammenhengende liste</h3>
+        <p class="muted" style="font-size:13.5px">
+          Nyeste hendelser øverst · uendelig scroll / paginering nedover · pull-to-refresh — samme listemekanikk som feeden har i dag.<br><br>
+          Strømmen blander <b>hendelsestyper</b>: en fyldig «loggførte»-rad med rating, bilde og notat, og en enkel «vil prøve»-rad med bare sigar-kortet. Ingen fritekst-innlegg, ingen kommentarer.<br><br>
+          Kortet under viser anatomien til én rad i detalj.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid g2">
+      <div>
+        <div class="act">
+          <div class="av">TE</div>
+          <div class="c">
+            <div class="line1"><b>Tom Erik</b> <span class="verb">loggførte</span> en sigar</div>
+            <div class="rating"><span class="stars">★★★★½</span><span class="num">4,5 av 5</span></div>
+            <div class="photo"></div>
+            <div class="note">«Kremete, kaffe og mørk sjokolade. Jevn brann hele veien — en av mine favoritter.»</div>
+            <div class="cig">
+              <div class="cn">Padrón 1964 Anniversary<span>Torpedo · Maduro</span></div>
+              <div class="try">＋ ønskeliste</div>
+            </div>
+            <div class="meta">2 t siden · trykk for detaljer</div>
+          </div>
+        </div>
+        <div class="annot">Kortet løfter fram brukerens <b>rating</b> (gullstjerner rett under navnet), samt eget <b>bilde</b> og <b>notat</b> fra journal-oppføringen. Trykk på raden → sigarens detaljside. Trykk «＋ ønskeliste» → legges rett i ønskelisten (ingen ekstra skjerm).</div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Hendelsestyper (verb)</h3>
+        <table>
+          <tr><th>Verb</th><th>Utløses av</th></tr>
+          <tr><td><b>loggførte</b> en sigar</td><td>Delt journal-oppføring (bilde + notat)</td></tr>
+          <tr><td><b>vil prøve</b></td><td>La til i ønskeliste (om delt)</td></tr>
+          <tr><td><b>favoritt­merket</b></td><td>Stjernet en sigar (om delt)</td></tr>
+          <tr><td><b>la til i humidor</b></td><td>Valgfritt — kan holdes privat</td></tr>
+        </table>
+        <div class="rec" style="margin-top:16px">
+          <b>Anbefaling om «likes»:</b> Dropp kommentarer helt (som bedt om). Behold én lettvekts, stille reaksjon — en <b>«tips hatten»</b> (👍/salut) uten teller-drama — <i>eller</i> kutt alt sosialt i v1 og la oppdagelse være hele poenget. Jeg heller mot <b>å kutte i v1</b>: renere, mindre moderering, tydeligere «ikke et sosialt medium».
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SHARE ============ -->
+  <section id="share">
+    <h2><span class="num">04</span>Delings-flyten</h2>
+    <p class="sub">Deling skjer ikke automatisk. Etter at brukeren lagrer en journal-oppføring, får de ett rolig valg: vil du dele — og i så fall hvordan? To brytere, aldri påtvunget.</p>
+
+    <div class="flow">
+      <div class="step"><div class="n">STEG 1</div><h5>Loggfør røyk</h5><p>Bruker fyller ut journal-oppføring (rating, notater, bilde) og trykker <b>Lagre</b>.</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">STEG 2</div><h5>Del-bunnark</h5><p>Glir opp etter lagring. To brytere: <b>del i appen</b>, <b>del eksternt</b>. Standard: begge av.</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">STEG 3a</div><h5>Del i appen på</h5><p>Oppføringen blir en hendelse i <b>Aktivitet</b> + en <b>offentlig side</b> opprettes.</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">STEG 3b</div><h5>Eksternt på</h5><p>Genererer <b>share-kort</b> + lenke, åpner <b>native delings-ark</b> — bruker velger selv mottaker.</p></div>
+    </div>
+
+    <div class="split">
+      <div class="branch">
+        <h5>🌿 Del i appen <span class="tag pub">offentlig i appen</span></h5>
+        <p class="muted" style="font-size:12.5px; margin:0">Setter <code>shared_to_community = true</code>. Oppføringen dukker opp i Aktivitet for følgere/fellesskap, og en offentlig side blir tilgjengelig. Kan slås av igjen når som helst → forsvinner fra strømmen.</p>
+      </div>
+      <div class="branch">
+        <h5>🔗 Del eksternt <span class="tag">native ark</span></h5>
+        <p class="muted" style="font-size:12.5px; margin:0">Bygger share-kort + universal link og åpner <b>systemets delings-ark</b> (iOS <code>UIActivityViewController</code> / Android <code>ACTION_SEND</code>). Ingen kanal er hardkodet — Facebook, Messages, Notater, e-post: brukerens valg.</p>
+      </div>
+    </div>
+
+    <div class="rec">
+      <b>Viktig kobling:</b> «Del eksternt» krever en offentlig lenke å peke på. Hvis brukeren skrur på ekstern deling men <i>ikke</i> community, oppretter vi likevel en <b>unlisted</b> offentlig side (kun tilgjengelig via lenken, ikke i Aktivitet). Slår de av ekstern deling igjen, kan lenken tilbaketrekkes. Slik respekterer vi «privat som standard» uten å blokkere ekstern deling.
+    </div>
+
+    <h3>Bunnark — skjematikk</h3>
+    <div class="phones">
+      <div class="phone">
+        <div class="screen">
+          <div class="p-status">9:41</div>
+          <div class="p-body" style="opacity:.5">
+            <div class="act" style="margin-bottom:8px"><div class="av">✓</div><div class="c"><div class="line1"><b>Lagret i journalen</b></div><div class="meta">Padrón 1964 · nettopp</div></div></div>
+          </div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <h4 class="serif">Dele opplevelsen din?</h4>
+            <p class="s-sub">Journalen din er privat. Velg selv hva du deler.</p>
+            <div class="toggle-row">
+              <div class="tt"><b>Del i appen</b><span>Vises i Aktivitet for følgere</span></div>
+              <div class="sw off"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="tt"><b>Del eksternt</b><span>Share-kort via delings-arket</span></div>
+              <div class="sw on"></div>
+            </div>
+            <div class="btn">Del</div>
+            <div class="btn ghost">Behold privat</div>
+            <div class="btn link">Avbryt</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1; min-width:240px">
+        <h3 style="margin-top:0">Interaksjonsregler</h3>
+        <p class="muted" style="font-size:13.5px">
+          • Arket er <b>ikke-modalt press</b> — «Behold privat» er alltid ett trykk unna, likestilt visuelt.<br><br>
+          • Bryter-tilstand <b>huskes per bruker</b> (siste valg forhåndsvelges neste gang) — men aldri «på» før første bevisste valg.<br><br>
+          • Trykk <b>Del</b> med «eksternt» på → native delings-ark åpnes umiddelbart oppå.<br><br>
+          • Kan nås igjen senere fra oppføringen i journalen (⋯ → «Delingsvalg»), så deling ikke er en engangsdør.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PUBLIC PAGE ============ -->
+  <section id="public">
+    <h2><span class="num">05</span>Offentlig journal-side</h2>
+    <p class="sub">Lenken noen får tilsendt. Åpnes i nettleser <em>uten innlogging</em>, viser oppføringen pent, og inviterer mykt til å installere appen. Har appen installert? Universal link åpner den rett i oppføringen.</p>
+
+    <div class="phones">
+      <div class="phone">
+        <div class="screen">
+          <div class="p-status">seder.app/j/a1b2</div>
+          <div class="p-body">
+            <div style="height:120px; border-radius:10px; background:linear-gradient(135deg,#3a3226,#241f18); margin-bottom:10px; display:flex; align-items:flex-end; padding:10px">
+              <span style="font-size:11px; color:var(--gold); letter-spacing:.14em">S E D E R</span>
+            </div>
+            <div class="serif" style="font-size:17px">Padrón 1964 Anniversary</div>
+            <div style="font-size:12px; color:var(--muted); margin:2px 0 10px">Torpedo · Maduro · ★★★★½</div>
+            <p style="font-size:12px; color:var(--muted); margin:0 0 8px">«Kremete, kaffe og mørk sjokolade. Jevn brann hele veien.»</p>
+            <div style="font-size:11px; color:var(--dim)">Loggført av Tom Erik · 20. juli</div>
+          </div>
+          <div class="sheet" style="background:var(--panel); border-radius:16px 16px 0 0">
+            <div class="serif" style="font-size:13px; text-align:center">Vil du føre din egen sigarjournal?</div>
+            <div class="btn" style="margin-top:10px">Last ned appen</div>
+            <div style="font-size:12.5px; color:var(--gold); font-weight:600; text-align:center; margin-top:11px">Fortsett til nettsiden →</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1; min-width:260px">
+        <h3 style="margin-top:0">Oppførsel</h3>
+        <table>
+          <tr><th>Situasjon</th><th>Hva skjer</th></tr>
+          <tr><td>Appen installert</td><td>Universal link fanges → appen åpner rett på oppføringen (dyplenke <code>vitola://j/&lt;slug&gt;</code>)</td></tr>
+          <tr><td>Ikke installert</td><td>Offentlig HTML-side vises · «Last ned appen» → App Store · «Fortsett til nettsiden»</td></tr>
+          <tr><td>Ikke delt / trukket</td><td>Nøytral side: «Denne oppføringen er privat» — ingen data lekker</td></tr>
+        </table>
+        <h3>Prinsipper for install-prompt</h3>
+        <p class="muted" style="font-size:13px">Mykt, ikke en vegg. Innholdet vises <b>først og fullt</b>; prompten sitter nederst som et rolig kort. Ingen tvungen nedlasting, ingen popup som dekker sigaren. «Fortsett til nettsiden» er alltid tilgjengelig.</p>
+      </div>
+    </div>
+
+    <h3>Teknisk skjematikk — universal links</h3>
+    <div class="card">
+      <svg viewBox="0 0 980 150" width="100%" role="img" aria-label="Universal link-flyt">
+        <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#cba85f"/></marker></defs>
+        <rect x="20" y="50" width="160" height="52" rx="10" fill="#2a2620" stroke="var(--line2)"/>
+        <text x="100" y="75" text-anchor="middle" fill="#efe7d7" font-size="12">Bruker trykker</text>
+        <text x="100" y="92" text-anchor="middle" fill="#a89a82" font-size="11">seder.app/j/&lt;slug&gt;</text>
+
+        <rect x="250" y="50" width="180" height="52" rx="10" fill="#2a2620" stroke="var(--line2)"/>
+        <text x="340" y="72" text-anchor="middle" fill="#efe7d7" font-size="12">OS sjekker AASA-fil</text>
+        <text x="340" y="90" text-anchor="middle" fill="#a89a82" font-size="10.5">apple-app-site-association</text>
+
+        <rect x="500" y="18" width="200" height="46" rx="10" fill="#2a2620" stroke="rgba(203,168,95,.5)"/>
+        <text x="600" y="45" text-anchor="middle" fill="#cba85f" font-size="12">App installert → åpne app</text>
+
+        <rect x="500" y="88" width="200" height="46" rx="10" fill="#2a2620" stroke="var(--line2)"/>
+        <text x="600" y="115" text-anchor="middle" fill="#efe7d7" font-size="12">Ellers → offentlig side</text>
+
+        <rect x="760" y="18" width="200" height="46" rx="10" fill="#242019" stroke="var(--line)"/>
+        <text x="860" y="39" text-anchor="middle" fill="#a89a82" font-size="11">dyplenke vitola://j/&lt;slug&gt;</text>
+        <text x="860" y="55" text-anchor="middle" fill="#7c715f" font-size="10.5">→ oppføringens detaljvisning</text>
+
+        <line x1="180" y1="76" x2="246" y2="76" stroke="#cba85f" stroke-width="2" marker-end="url(#ar2)"/>
+        <line x1="430" y1="70" x2="496" y2="45" stroke="#cba85f" stroke-width="2" marker-end="url(#ar2)"/>
+        <line x1="430" y1="82" x2="496" y2="108" stroke="#cba85f" stroke-width="2" marker-end="url(#ar2)"/>
+        <line x1="700" y1="41" x2="756" y2="41" stroke="#cba85f" stroke-width="2" marker-end="url(#ar2)"/>
+      </svg>
+      <p class="muted" style="font-size:12.5px; margin:6px 0 0">Bruker eksisterende <code>vitola://</code>-skjema og <code>vitola.app</code>-domenet. Krever: <b>Associated Domains</b>-entitlement (iOS), <b>assetlinks.json</b> + intent-filter (Android), og AASA/asset-filer hostet på domenet.</p>
+    </div>
+  </section>
+
+  <!-- ============ COMPONENTS ============ -->
+  <section id="components">
+    <h2><span class="num">06</span>Komponent-forslag</h2>
+    <p class="sub">Nye og endrede byggeklosser. Gjenbruk av eksisterende der det går (share-kort finnes allerede som <code>log-card</code> edge function).</p>
+
+    <div class="grid g3">
+      <div class="comp">
+        <h4>ActivityStream <span class="tag new">ny</span></h4>
+        <p>Vertikal liste av <b>ActivityRow</b>. Erstatter FeedView. Paginert, pull-to-refresh, tom-tilstand som peker til Utforsk.</p>
+        <div class="plat">iOS: ActivityView · Android: ActivityScreen</div>
+      </div>
+      <div class="comp">
+        <h4>ActivityRow <span class="tag new">ny</span></h4>
+        <p>Avatar · «hvem verb» · innebygd <b>CigarChip</b> med «Vil prøve»-knapp. Hele raden er én NavigationLink. Ingen kommentar-affordans.</p>
+        <div class="plat">Gjenbruker CigarRow-stil</div>
+      </div>
+      <div class="comp">
+        <h4>ShareSheetAfterSave <span class="tag new">ny</span></h4>
+        <p>Bunnark med to <b>ToggleRow</b> + primær «Del» + «Behold privat». Presenteres etter journal-lagring.</p>
+        <div class="plat">iOS: .sheet · Android: ModalBottomSheet</div>
+      </div>
+      <div class="comp">
+        <h4>ShareCard <span class="tag">gjenbruk</span></h4>
+        <p>Brand-kort som bilde. <code>log-card</code> edge function finnes — <b>rebrand Vitola→SEDER</b> og bruk som delings-bilde.</p>
+        <div class="plat">Edge function (finnes)</div>
+      </div>
+      <div class="comp">
+        <h4>PublicJournalPage <span class="tag new">ny</span></h4>
+        <p>Server-rendret HTML-side per slug. Uten login. Soft install-banner. Håndterer privat/trukket-tilstand.</p>
+        <div class="plat">Edge function (ny)</div>
+      </div>
+      <div class="comp">
+        <h4>NativeShare-bro <span class="tag new">ny</span></h4>
+        <p>Tynt lag som pakker URL + kort og åpner systemets delings-ark. Ingen hardkodet kanal.</p>
+        <div class="plat">iOS: UIActivityViewController · Android: ACTION_SEND</div>
+      </div>
+      <div class="comp">
+        <h4>ShareSettingsRow <span class="tag new">ny</span></h4>
+        <p>På journal-oppføringens ⋯-meny: «Delingsvalg» → åpner samme bunnark igjen for å endre/trekke deling.</p>
+        <div class="plat">Begge plattformer</div>
+      </div>
+      <div class="comp">
+        <h4>InstallPromptCard <span class="tag new">ny</span></h4>
+        <p>Rolig kort nederst på offentlig side. «Åpne i SEDER» + «Fortsett i nettleseren». Aldri blokkerende.</p>
+        <div class="plat">Web (i public page)</div>
+      </div>
+      <div class="comp">
+        <h4>FeedView / kommentarer <span class="tag rm">fjernes</span></h4>
+        <p>PostComposer, PostDetailView, kommentar-ark og likes-UI avvikles gjennom migrasjonen.</p>
+        <div class="plat">Se migrasjonsplan</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DATA MODEL ============ -->
+  <section id="data">
+    <h2><span class="num">07</span>Datamodell-endringer</h2>
+    <p class="sub">Nøkkelgrep: Aktivitet <em>avledes</em> fra journalen (<code>tasting_logs</code>), ikke fra en egen posts-tabell. Deling er et par flagg + en offentlig slug.</p>
+
+    <h3>Endringer på <code>tasting_logs</code> (journal)</h3>
+    <table>
+      <tr><th>Kolonne</th><th>Type</th><th>Rolle</th></tr>
+      <tr><td><code>shared_to_community</code></td><td>bool, default false</td><td>Vises i Aktivitet-strømmen</td></tr>
+      <tr><td><code>shared_externally</code></td><td>bool, default false</td><td>Ekstern lenke aktiv (unlisted om community=false)</td></tr>
+      <tr><td><code>public_slug</code></td><td>text, unik, nullbar</td><td>Kort id for <code>seder.app/j/&lt;slug&gt;</code></td></tr>
+      <tr><td><code>shared_at</code></td><td>timestamptz, nullbar</td><td>Sortering i Aktivitet</td></tr>
+    </table>
+
+    <h3>Nye/endrede RPC-er & functions</h3>
+    <table>
+      <tr><th>Navn</th><th>Type</th><th>Gjør</th></tr>
+      <tr><td><code>get_activity</code></td><td>RPC <span class="tag new">ny</span></td><td>Journal-hendelser der <code>shared_to_community=true</code> fra deg + de du følger, nyeste først. Erstatter <code>get_feed</code>.</td></tr>
+      <tr><td><code>set_entry_sharing</code></td><td>RPC <span class="tag new">ny</span></td><td>Setter flaggene, genererer/​trekker <code>public_slug</code> atomisk.</td></tr>
+      <tr><td><code>public-journal</code></td><td>Edge fn <span class="tag new">ny</span></td><td>Rendrer offentlig HTML-side for en slug (RLS-fri lesing kun av delte felt).</td></tr>
+      <tr><td><code>log-card</code></td><td>Edge fn <span class="tag">rebrand</span></td><td>Share-kort som bilde — bytt Vitola→SEDER.</td></tr>
+      <tr><td><code>get_feed</code>, <code>post_*</code></td><td><span class="tag rm">deprecate</span></td><td>posts, post_likes, post_comments avvikles (se migrasjon).</td></tr>
+    </table>
+
+    <h3>Sikkerhet / RLS</h3>
+    <div class="card">
+      <p class="muted" style="font-size:13px; margin:0">
+        • Offentlig side leser via <b>SECURITY DEFINER</b>-funksjon som kun returnerer felt fra oppføringer der <code>public_slug</code> matcher <b>og</b> deling er aktiv — aldri hele raden.<br>
+        • <code>get_activity</code> respekterer venne-/følge-graf; usdelte oppføringer er usynlige.<br>
+        • Trekker bruker deling → <code>public_slug</code> nulles, siden svarer «privat». <br>
+        • Følger prosjektets regel: storage-stier lowercase for RLS.
+      </p>
+    </div>
+
+    <pre><span class="c">-- Skisse: aktivitet avledet fra journalen, ikke egne "posts"</span>
+<span class="k">create function</span> get_activity(p_limit int, p_before timestamptz)
+<span class="k">returns table</span>(entry_id uuid, user_id uuid, display_name text,
+  avatar_url text, verb text, cigar_id uuid, brand text,
+  series text, vitola text, rating int, shared_at timestamptz)
+<span class="k">as</span> $$
+  <span class="k">select</span> l.id, l.user_id, p.display_name, p.avatar_url,
+         <span class="s">'logged'</span>, c.id, c.brand, c.series, c.vitola,
+         l.rating, l.shared_at
+  <span class="k">from</span> tasting_logs l
+  <span class="k">join</span> cigars c <span class="k">on</span> c.id = l.cigar_id
+  <span class="k">join</span> profiles p <span class="k">on</span> p.id = l.user_id
+  <span class="k">where</span> l.shared_to_community
+    <span class="k">and</span> l.user_id <span class="k">in</span> (<span class="c">/* meg + de jeg følger */</span>)
+    <span class="k">and</span> (p_before <span class="k">is null</span> <span class="k">or</span> l.shared_at &lt; p_before)
+  <span class="k">order by</span> l.shared_at <span class="k">desc</span> <span class="k">limit</span> p_limit;
+$$ <span class="k">language</span> sql <span class="k">stable</span>;</pre>
+  </section>
+
+  <!-- ============ MIGRATION ============ -->
+  <section id="migration">
+    <h2><span class="num">08</span>Migrasjonsplan: Feed → Aktivitet</h2>
+    <p class="sub">Fire faser. Ingen «big bang». Aktivitet kjører parallelt bak et flagg før Feed pensjoneres, slik at ingenting brekker for testerne.</p>
+
+    <div class="tl">
+      <div class="phase">
+        <div class="pn">Fase 1 · Grunnmur (backend, usynlig)</div>
+        <h4>Legg til delings-felt + get_activity</h4>
+        <ul>
+          <li>Migrasjon: kolonner på <code>tasting_logs</code> + <code>set_entry_sharing</code> + <code>get_activity</code>.</li>
+          <li>Backfill: eksisterende delte innlegg (posts) → sett <code>shared_to_community</code> på tilknyttede journal-oppføringer der det finnes kobling.</li>
+          <li>Ingen UI-endring ennå. Kan verifiseres i basen.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="pn">Fase 2 · Aktivitet ved siden av Feed</div>
+        <h4>Ny fane bak flagg</h4>
+        <ul>
+          <li>Bygg ActivityStream/ActivityRow, les fra <code>get_activity</code>.</li>
+          <li>Vis Aktivitet for interne testere; Feed står fortsatt for alle andre.</li>
+          <li>Del-bunnark kobles på journal-lagring (skriver de nye flaggene).</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="pn">Fase 3 · Bytt & slå av skriving</div>
+        <h4>Aktivitet erstatter Feed</h4>
+        <ul>
+          <li>Bunnfane «Feed» → «Aktivitet» for alle. Oppdater copy (se neste seksjon).</li>
+          <li>Skru av post composer + kommentar-inntasting (les-only utfasing).</li>
+          <li>Offentlig side + universal links live.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="pn">Fase 4 · Opprydding</div>
+        <h4>Fjern gammel modell</h4>
+        <ul>
+          <li>Slett FeedView/PostComposer/PostDetail/kommentar-UI fra begge apper.</li>
+          <li>Etter en karensperiode: arkiver/dropp <code>posts</code>, <code>post_likes</code>, <code>post_comments</code>, <code>get_feed</code>.</li>
+          <li>Oppdater PARITET_SJEKKLISTE.md.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rec">
+      <b>Datamigrasjon av gamle innlegg:</b> Fritekst-innlegg uten en journal-oppføring bak seg passer ikke inn i den nye, strukturerte modellen. Anbefaling: <b>ikke</b> tvangskonverter dem. La dem utløpe med Feed (les-only i fase 3, arkivert i fase 4). Kommentarer eksporteres eventuelt til eier som et engangsvarsel, men vises ikke videre.
+    </div>
+  </section>
+
+  <!-- ============ COPY ============ -->
+  <section id="copy">
+    <h2><span class="num">09</span>Copy-oppdateringer</h2>
+    <p class="sub">Språket skal signalisere «rolig, privat, oppdagelse» — ikke «sosialt medium». Norsk, i appens stemme.</p>
+
+    <table>
+      <tr><th>Sted</th><th>Før</th><th>Etter</th></tr>
+      <tr><td>Bunnfane</td><td><span class="old">Feed</span></td><td><span class="arrowcopy">→</span> <b>Aktivitet</b></td></tr>
+      <tr><td>Tom-tilstand</td><td><span class="old">Ingen innlegg ennå</span></td><td><span class="arrowcopy">→</span> «Følg noen for å se hva de røyker. Eller <b>utforsk</b> selv.»</td></tr>
+      <tr><td>Lagre-bekreftelse</td><td><span class="old">Publisert</span></td><td><span class="arrowcopy">→</span> «Lagret i journalen din»</td></tr>
+      <tr><td>Del-ark tittel</td><td>—</td><td><span class="arrowcopy">→</span> «Dele opplevelsen din?»</td></tr>
+      <tr><td>Del-ark undertekst</td><td>—</td><td><span class="arrowcopy">→</span> «Journalen din er privat. Velg selv hva du deler.»</td></tr>
+      <tr><td>Bryter 1</td><td>—</td><td><span class="arrowcopy">→</span> «Del i appen» / «Vises i Aktivitet for følgere»</td></tr>
+      <tr><td>Bryter 2</td><td>—</td><td><span class="arrowcopy">→</span> «Del eksternt» / «Share-kort via delings-arket»</td></tr>
+      <tr><td>Sekundær-knapp</td><td>—</td><td><span class="arrowcopy">→</span> «Behold privat»</td></tr>
+      <tr><td>Aktivitets-verb</td><td><span class="old">la ut et innlegg</span></td><td><span class="arrowcopy">→</span> «loggførte en sigar» / «vil prøve»</td></tr>
+      <tr><td>Handling på rad</td><td><span class="old">Kommenter · Lik</span></td><td><span class="arrowcopy">→</span> «＋ ønskeliste» (eneste handling)</td></tr>
+      <tr><td>Offentlig side CTA</td><td>—</td><td><span class="arrowcopy">→</span> «Vil du føre din egen sigarjournal?» → «Last ned appen» · «Fortsett til nettsiden»</td></tr>
+      <tr><td>Privat/trukket side</td><td>—</td><td><span class="arrowcopy">→</span> «Denne oppføringen er privat.»</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    SEDER — forslag til informasjonsarkitektur & delings-UX · design-spec, ikke implementert.<br>
+    Kjernevalg å bekrefte før bygging: (1) Journal på egen fane vs. inne i Profil · (2) kutt alt sosialt i v1 vs. behold én stille reaksjon · (3) unlisted offentlig side ved kun-ekstern deling.
+  </footer>
+
+</div>
+</body>
+</html>
