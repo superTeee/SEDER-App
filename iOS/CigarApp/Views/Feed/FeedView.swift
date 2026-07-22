@@ -1134,6 +1134,7 @@ struct ActivityView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var wishlisted: Set<UUID> = []
+    @State private var selectedItem: ActivityItem?
 
     var body: some View {
         NavigationStack {
@@ -1163,13 +1164,16 @@ struct ActivityView: View {
     private var list: some View {
         List {
             ForEach(items) { item in
-                NavigationLink(destination: CigarDetailLoader(cigarId: item.cigarId)) {
+                Button {
+                    selectedItem = item
+                } label: {
                     ActivityRow(
                         item: item,
                         isWishlisted: wishlisted.contains(item.cigarId),
                         onWishlist: { addToWishlist(item) }
                     )
                 }
+                .buttonStyle(.plain)
                 .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
                 .listRowBackground(Color("Background"))
                 .listRowSeparator(.hidden)
@@ -1178,6 +1182,9 @@ struct ActivityView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color("Background"))
+        .navigationDestination(item: $selectedItem) { item in
+            CigarDetailLoader(cigarId: item.cigarId)
+        }
     }
 
     private func load() async {
