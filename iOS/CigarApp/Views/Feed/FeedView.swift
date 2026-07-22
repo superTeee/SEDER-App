@@ -1209,133 +1209,99 @@ struct ActivityRow: View {
     var onWishlist: () -> Void
 
     private var verbText: String {
-        item.verb == "wishlist" ? "vil prøve" : "loggførte en sigar"
+        item.verb == "wishlist" ? "vil prøve" : "delte en sigar"
     }
-    private var stars: Double { Double(item.cigarRating ?? 0) / 20.0 }
+    /// 0–100 → 0–5 (avrundet), til «Min vurdering (X/5)».
+    private var stars: Int { Int((Double(item.cigarRating ?? 0) / 20.0).rounded()) }
+    private var initials: String {
+        let s = item.authorName.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()
+        return s.isEmpty ? "?" : s.uppercased()
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // hvem + verb
-            HStack(spacing: 10) {
-                AvatarBubble(name: item.authorName, url: item.authorAvatarUrl)
-                (Text(item.authorName).font(.subheadline).bold().foregroundColor(Color("TextPrimary"))
-                 + Text(" \(verbText)").font(.subheadline).foregroundColor(Color("Accent")))
-                Spacer()
-            }
-
-            // rating — prominent (kun logg-hendelser med score)
-            if item.verb != "wishlist", let r = item.cigarRating, r > 0 {
-                HStack(spacing: 8) {
-                    StarRow(value: stars)
-                    Text("\(r)/100").font(.caption).foregroundColor(Color("TextSecondary"))
+        VStack(spacing: 0) {
+            // 1. Hvem + verb
+            HStack(spacing: 6) {
+                ZStack {
+                    Circle().fill(Color("Accent"))
+                    Text(initials).font(.system(size: 11, weight: .medium)).foregroundColor(.white)
                 }
-                .padding(.top, 8)
+                .frame(width: 24, height: 24)
+                Text(item.authorName).font(.system(size: 13, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                Text(verbText).font(.system(size: 13, weight: .medium)).foregroundColor(Color("TextSecondary"))
+                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .overlay(alignment: .bottom) { Rectangle().fill(Color("Background")).frame(height: 1) }
 
-            // brukerens bilde
-            if let photo = item.tastingPhotoUrl, let url = URL(string: photo) {
-                KFImage(url)
-                    .resizable().scaledToFill()
-                    .frame(maxWidth: .infinity).frame(height: 190)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 9))
-                    .padding(.top, 9)
-            }
-
-            // brukerens notat
-            if let note = item.personalNotes, !note.isEmpty {
-                Text("«\(note)»")
-                    .font(.subheadline).italic()
-                    .foregroundColor(Color("TextPrimary"))
-                    .padding(.top, 9)
-            }
-
-            // sigar-kort med ønskeliste-knapp
-            HStack(spacing: 10) {
+            // 2. Sigar + «Lagre i liste»
+            HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.cigarBrand)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(Color("TextPrimary"))
+                        .font(.system(size: 16, weight: .semibold)).foregroundColor(Color("TextPrimary"))
                     if !item.cigarMetaLine.isEmpty {
                         Text(item.cigarMetaLine)
-                            .font(.caption).foregroundColor(Color("TextSecondary"))
+                            .font(.system(size: 12, weight: .medium)).foregroundColor(Color("TextSecondary"))
                     }
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 Button(action: onWishlist) {
-                    HStack(spacing: 4) {
-                        Image(systemName: isWishlisted ? "checkmark" : "plus")
-                        Text(isWishlisted ? "På lista" : "ønskeliste")
+                    HStack(spacing: 5) {
+                        Text(isWishlisted ? "Lagret" : "Lagre i liste").font(.system(size: 12, weight: .medium))
+                        Image(systemName: isWishlisted ? "bookmark.fill" : "bookmark").font(.system(size: 14))
                     }
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(Color("Accent"))
-                    .padding(.horizontal, 11).padding(.vertical, 6)
-                    .overlay(Capsule().stroke(Color("Accent").opacity(0.4), lineWidth: 1))
+                    .foregroundColor(Color("TextPrimary"))
                 }
                 .buttonStyle(.borderless)
-                .disabled(isWishlisted)
             }
-            .padding(10)
-            .background(Color("Surface"))
-            .clipShape(RoundedRectangle(cornerRadius: 9))
-            .padding(.top, 9)
+            .padding(.horizontal, 14).padding(.vertical, 12)
 
-            // relativ tid
-            if let d = item.sharedAt {
-                Text(activityRelativeTime(d))
-                    .font(.caption2).foregroundColor(Color("TextSecondary").opacity(0.7))
-                    .padding(.top, 7)
+            // 3. Bilde — kant-til-kant
+            if let photo = item.tastingPhotoUrl, let url = URL(string: photo) {
+                KFImage(url).resizable().scaledToFill()
+                    .frame(maxWidth: .infinity).frame(height: 240)
+                    .clipped()
+            }
+
+            // 4. Min vurdering
+            if item.verb != "wishlist", let r = item.cigarRating, r > 0 {
+                HStack {
+                    Text("Min vurdering (\(stars)/5)")
+                        .font(.system(size: 14, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                    Spacer(minLength: 0)
+                    StarRow(filled: stars)
+                }
+                .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
+            }
+
+            // 5. Notat
+            if let note = item.personalNotes, !note.isEmpty {
+                HStack {
+                    Text(note)
+                        .font(.system(size: 13)).lineSpacing(2).foregroundColor(Color("TextPrimary"))
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 14).padding(.top, 2).padding(.bottom, 16)
             }
         }
-        .padding(12)
         .background(Color("Card"))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
     }
 }
 
-// MARK: - Små hjelpe-views for Aktivitet
-private struct AvatarBubble: View {
-    let name: String
-    let url: String?
-    var body: some View {
-        Group {
-            if let url, let u = URL(string: url) {
-                KFImage(u).resizable().scaledToFill()
-            } else {
-                ZStack {
-                    Color("Surface")
-                    Text(initials).font(.caption.bold()).foregroundColor(Color("Accent"))
-                }
-            }
-        }
-        .frame(width: 36, height: 36).clipShape(Circle())
-    }
-    private var initials: String {
-        let s = name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()
-        return s.isEmpty ? "?" : s.uppercased()
-    }
-}
-
+// MARK: - Stjerne-rad for Aktivitet (X av 5)
 private struct StarRow: View {
-    let value: Double   // 0...5
+    let filled: Int   // 0...5
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(0..<5, id: \.self) { i in
-                let d = value - Double(i)
-                Image(systemName: d >= 1 ? "star.fill" : (d >= 0.5 ? "star.leadinghalf.filled" : "star"))
+                Image(systemName: i < filled ? "star.fill" : "star")
                     .font(.system(size: 15))
-                    .foregroundColor(Color("Accent"))
+                    .foregroundColor(i < filled ? Color("Accent") : Color("TextSecondary").opacity(0.35))
             }
         }
     }
-}
-
-private func activityRelativeTime(_ date: Date) -> String {
-    let f = RelativeDateTimeFormatter()
-    f.locale = Locale(identifier: "nb_NO")
-    f.unitsStyle = .short
-    return f.localizedString(for: date, relativeTo: Date())
 }
 
 // Laster en sigar via id og viser detaljsiden (Aktivitet har bare cigar_id).

@@ -8,20 +8,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import kotlin.math.roundToInt
 import com.tomerikheggedal.vitola.data.ActivityItem
 import com.tomerikheggedal.vitola.data.ActivityRepository
 import com.tomerikheggedal.vitola.data.Supa
@@ -110,81 +113,98 @@ private fun ActivityCard(
     onClick: () -> Unit,
     onWishlist: () -> Unit,
 ) {
+    val starCount = ((item.cigarRating ?: 0) / 20.0).roundToInt().coerceIn(0, 5)
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
-            .padding(12.dp)
     ) {
-        // hvem + verb
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // 1. hvem + verb
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
-                Modifier.size(34.dp).clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                Modifier.size(24.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
-                Text(initials(item.authorName), style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(initials(item.authorName), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color.White)
             }
-            Spacer(Modifier.width(10.dp))
-            Text(
-                buildString { append(item.authorName); append(" "); append(item.verbText) },
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Spacer(Modifier.width(6.dp))
+            Text(item.authorName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.width(6.dp))
+            Text(item.verbText, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.background)
 
-        // rating — prominent (kun logg-hendelser med score)
-        if (item.verb != "wishlist" && (item.cigarRating ?: 0) > 0) {
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stars(item.cigarRating!!), color = MaterialTheme.colorScheme.primary,
-                    fontSize = 18.sp, letterSpacing = 2.sp)
-                Spacer(Modifier.width(8.dp))
-                Text("${item.cigarRating}/100", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-
-        // bilde
-        if (!item.tastingPhotoUrl.isNullOrBlank()) {
-            Spacer(Modifier.height(9.dp))
-            AsyncImage(
-                model = item.tastingPhotoUrl, contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(9.dp))
-            )
-        }
-
-        // notat
-        if (!item.personalNotes.isNullOrBlank()) {
-            Spacer(Modifier.height(9.dp))
-            Text("«${item.personalNotes}»", style = MaterialTheme.typography.bodyMedium,
-                fontStyle = FontStyle.Italic)
-        }
-
-        // sigar-kort + ønskeliste
-        Spacer(Modifier.height(9.dp))
+        // 2. sigar + «Lagre i liste»
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(9.dp))
-                .background(MaterialTheme.colorScheme.background).padding(10.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(item.cigarBrand, style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold)
+                Text(item.cigarBrand, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface)
                 if (item.cigarMeta.isNotBlank()) {
-                    Text(item.cigarMeta, style = MaterialTheme.typography.bodySmall,
+                    Text(item.cigarMeta, fontSize = 12.sp, fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            AssistChip(
-                onClick = onWishlist,
-                enabled = !isWishlisted,
-                label = { Text(if (isWishlisted) "På lista" else "ønskeliste") },
-                leadingIcon = {
-                    Icon(if (isWishlisted) Icons.Filled.Check else Icons.Filled.Add,
-                        null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            Row(
+                Modifier.clickable(enabled = !isWishlisted, onClick = onWishlist),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(if (isWishlisted) "Lagret" else "Lagre i liste", fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.width(5.dp))
+                Icon(
+                    if (isWishlisted) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                    contentDescription = "Lagre i liste", modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        // 3. bilde — kant-til-kant
+        if (!item.tastingPhotoUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = item.tastingPhotoUrl, contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().height(240.dp)
+            )
+        }
+
+        // 4. Min vurdering
+        if (item.verb != "wishlist" && (item.cigarRating ?: 0) > 0) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Min vurdering ($starCount/5)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.weight(1f))
+                Row {
+                    repeat(5) { i ->
+                        Icon(
+                            if (i < starCount) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = null, modifier = Modifier.size(18.dp),
+                            tint = if (i < starCount) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                        )
+                    }
                 }
+            }
+        }
+
+        // 5. notat
+        if (!item.personalNotes.isNullOrBlank()) {
+            Text(
+                item.personalNotes!!, fontSize = 13.sp, lineHeight = 17.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 2.dp, bottom = 16.dp)
             )
         }
     }
@@ -194,11 +214,4 @@ private fun initials(name: String): String {
     val s = name.trim().split(" ").filter { it.isNotBlank() }.take(2)
         .mapNotNull { it.firstOrNull()?.toString() }.joinToString("")
     return if (s.isBlank()) "?" else s.uppercase()
-}
-
-private fun stars(rating: Int): String {
-    val v = rating / 20.0
-    return (0 until 5).joinToString("") { i ->
-        if (v - i >= 1) "★" else if (v - i >= 0.5) "½" else "☆"
-    }
 }

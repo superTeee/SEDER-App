@@ -28,7 +28,7 @@ data class ActivityItem(
     @SerialName("public_slug") val publicSlug: String? = null,
 ) {
     val cigarMeta: String get() = listOfNotNull(cigarSeries, cigarVitola).joinToString(" · ")
-    val verbText: String get() = if (verb == "wishlist") "vil prøve" else "loggførte en sigar"
+    val verbText: String get() = if (verb == "wishlist") "vil prøve" else "delte en sigar"
 }
 
 @Serializable
