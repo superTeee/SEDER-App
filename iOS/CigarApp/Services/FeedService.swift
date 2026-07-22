@@ -170,7 +170,7 @@ class FeedService {
 // Deling styres av set_entry_sharing. Ny kode bor her (eksisterende prosjektfil).
 
 /// Én hendelse i Aktivitet-strømmen (delt journal-oppføring).
-struct ActivityItem: Decodable, Identifiable {
+struct ActivityItem: Decodable, Identifiable, Hashable {
     let entryId: UUID
     let userId: UUID
     let authorName: String
