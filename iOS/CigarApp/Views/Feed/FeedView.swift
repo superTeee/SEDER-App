@@ -1135,6 +1135,7 @@ struct ActivityView: View {
     @State private var errorMessage: String?
     @State private var wishlisted: Set<UUID> = []
     @State private var selectedItem: ActivityItem?
+    @State private var selectedAuthor: AuthorRef?
 
     var body: some View {
         NavigationStack {
@@ -1170,11 +1171,12 @@ struct ActivityView: View {
                     ActivityRow(
                         item: item,
                         isWishlisted: wishlisted.contains(item.cigarId),
-                        onWishlist: { addToWishlist(item) }
+                        onWishlist: { addToWishlist(item) },
+                        onAuthor: { selectedAuthor = AuthorRef(id: item.userId) }
                     )
                 }
                 .buttonStyle(.plain)
-                .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color("Background"))
                 .listRowSeparator(.hidden)
             }
@@ -1184,6 +1186,9 @@ struct ActivityView: View {
         .background(Color("Background"))
         .navigationDestination(item: $selectedItem) { item in
             CigarDetailLoader(cigarId: item.cigarId)
+        }
+        .navigationDestination(item: $selectedAuthor) { ref in
+            UserProfileView(userId: ref.id, isOwnProfile: false)
         }
     }
 
@@ -1214,6 +1219,7 @@ struct ActivityRow: View {
     let item: ActivityItem
     var isWishlisted: Bool
     var onWishlist: () -> Void
+    var onAuthor: () -> Void = {}
 
     private var verbText: String {
         item.verb == "wishlist" ? "vil prøve" : "delte en sigar"
@@ -1227,14 +1233,19 @@ struct ActivityRow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 1. Hvem + verb
+            // 1. Hvem + verb — avatar+navn er trykkbart inn til posterens profil
             HStack(spacing: 6) {
-                ZStack {
-                    Circle().fill(Color("Accent"))
-                    Text(initials).font(.system(size: 11, weight: .medium)).foregroundColor(.white)
+                Button(action: onAuthor) {
+                    HStack(spacing: 8) {
+                        ZStack {
+                            Circle().fill(Color("Accent"))
+                            Text(initials).font(.system(size: 12, weight: .medium)).foregroundColor(.white)
+                        }
+                        .frame(width: 28, height: 28)
+                        Text(item.authorName).font(.system(size: 13, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                    }
                 }
-                .frame(width: 24, height: 24)
-                Text(item.authorName).font(.system(size: 13, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                .buttonStyle(.borderless)
                 Text(verbText).font(.system(size: 13, weight: .medium)).foregroundColor(Color("TextSecondary"))
                 Spacer(minLength: 0)
             }
@@ -1254,8 +1265,8 @@ struct ActivityRow: View {
                 Spacer(minLength: 8)
                 Button(action: onWishlist) {
                     HStack(spacing: 5) {
-                        Text(isWishlisted ? "Lagret" : "Lagre i liste").font(.system(size: 12, weight: .medium))
-                        Image(systemName: isWishlisted ? "bookmark.fill" : "bookmark").font(.system(size: 14))
+                        Text(isWishlisted ? "Lagret" : "Lagre i liste").font(.system(size: 13, weight: .medium))
+                        Image(systemName: isWishlisted ? "bookmark.fill" : "bookmark").font(.system(size: 18))
                     }
                     .foregroundColor(Color("TextPrimary"))
                 }
@@ -1291,11 +1302,15 @@ struct ActivityRow: View {
                 .padding(.horizontal, 14).padding(.top, 2).padding(.bottom, 16)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color("Card"))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
     }
 }
+
+/// Identifiable-wrapper for navigasjon til en forfatters profil (bli venner).
+struct AuthorRef: Identifiable, Hashable { let id: UUID }
 
 // MARK: - Stjerne-rad for Aktivitet (X av 5)
 private struct StarRow: View {

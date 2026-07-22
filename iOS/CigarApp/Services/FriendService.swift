@@ -48,6 +48,15 @@ class FriendService: ObservableObject {
             .execute()
     }
 
+    // Send venneforespørsel direkte til en bruker (fra profil/aktivitet).
+    // Bruker request_friendship-RPC (samme som Android), tar mottakerens user-id.
+    func requestFriendship(userId: UUID) async throws {
+        struct P: Encodable { let p_user_id: String }
+        try await supabase
+            .rpc("request_friendship", params: P(p_user_id: userId.uuidString))
+            .execute()
+    }
+
     // Godta eller avslå en innkommende forespørsel
     func respondToRequest(friendshipId: UUID, accept: Bool) async throws {
         try await supabase

@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 // kommentarer. Hele kortet → sigarens detaljside. «＋ ønskeliste» legger rett til.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ActivityScreen(onCigar: (String) -> Unit) {
+fun ActivityScreen(onCigar: (String) -> Unit, onUser: (String) -> Unit = {}) {
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
     val scope = rememberCoroutineScope()
@@ -72,14 +72,15 @@ fun ActivityScreen(onCigar: (String) -> Unit) {
                 items.isEmpty() -> Centered("Ingen aktivitet ennå.\nDel et journalinnlegg, eller finn nye sigarer i Utforsk.")
                 else -> LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     items(items, key = { it.entryId }) { item ->
                         ActivityCard(
                             item = item,
                             isWishlisted = wishlisted.contains(item.cigarId),
                             onClick = { onCigar(item.cigarId) },
+                            onUser = { onUser(item.userId) },
                             onWishlist = {
                                 if (!wishlisted.contains(item.cigarId)) {
                                     wishlisted = wishlisted + item.cigarId
@@ -111,6 +112,7 @@ private fun ActivityCard(
     item: ActivityItem,
     isWishlisted: Boolean,
     onClick: () -> Unit,
+    onUser: () -> Unit,
     onWishlist: () -> Unit,
 ) {
     val starCount = ((item.cigarRating ?: 0) / 20.0).roundToInt().coerceIn(0, 5)
@@ -119,20 +121,25 @@ private fun ActivityCard(
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
     ) {
-        // 1. hvem + verb
+        // 1. hvem + verb — avatar+navn trykkbart inn til posterens profil
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                Modifier.size(24.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
+            Row(
+                Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onUser),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(initials(item.authorName), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                Box(
+                    Modifier.size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(initials(item.authorName), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(item.authorName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface)
             }
-            Spacer(Modifier.width(6.dp))
-            Text(item.authorName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.width(6.dp))
             Text(item.verbText, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -157,12 +164,12 @@ private fun ActivityCard(
                 Modifier.clickable(enabled = !isWishlisted, onClick = onWishlist),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (isWishlisted) "Lagret" else "Lagre i liste", fontSize = 12.sp,
+                Text(if (isWishlisted) "Lagret" else "Lagre i liste", fontSize = 13.sp,
                     fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.width(5.dp))
                 Icon(
                     if (isWishlisted) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                    contentDescription = "Lagre i liste", modifier = Modifier.size(20.dp),
+                    contentDescription = "Lagre i liste", modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }

@@ -45,6 +45,8 @@ struct UserProfileView: View {
 
     private let profileService = ProfileService()
     private let favoriteService = FavoriteService()
+    private let friendService = FriendService()
+    @State private var friendRequestSent = false
 
     // Samme farge som smaksnote-ikonene: #8F7B51 i lys modus, accent i mørk.
     private var accentIconColor: Color {
@@ -83,6 +85,19 @@ struct UserProfileView: View {
                         Image(systemName: "gearshape")
                             .foregroundColor(Color("TextPrimary"))
                     }
+                }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        guard !friendRequestSent else { return }
+                        friendRequestSent = true
+                        Task { try? await friendService.requestFriendship(userId: userId) }
+                    } label: {
+                        Label(friendRequestSent ? "Forespørsel sendt" : "Legg til venn",
+                              systemImage: friendRequestSent ? "checkmark" : "person.badge.plus")
+                            .foregroundColor(Color("Accent"))
+                    }
+                    .disabled(friendRequestSent)
                 }
             }
         }

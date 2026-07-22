@@ -140,7 +140,10 @@ fun VitolaApp() {
             modifier = Modifier.padding(padding)
         ) {
             composable("activity") {
-                ActivityScreen(onCigar = { nav.navigate("cigar/${it}") })
+                ActivityScreen(
+                    onCigar = { nav.navigate("cigar/${it}") },
+                    onUser = { nav.navigate("user/${it}") }
+                )
             }
             composable("user/{id}") { entry ->
                 UserProfileScreen(
