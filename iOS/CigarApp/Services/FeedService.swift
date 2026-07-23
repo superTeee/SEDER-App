@@ -276,6 +276,17 @@ class ShareService: ObservableObject {
     func publicURL(slug: String) -> URL? {
         URL(string: "https://seder-app-pearl.vercel.app/j/\(slug)")
     }
+
+    /// «Primer» Facebooks cache i bakgrunnen — samme som å kjøre lenken i FB
+    /// Sharing Debugger, bare automatisk. Gjør at FB har Open Graph-kortet klart
+    /// FØR brukeren limer inn lenken (FB-appen henter det ikke selv ved liming).
+    /// Fire-and-forget: feiler stille, blokkerer aldri delings-flyten.
+    func primeFacebook(slug: String) {
+        guard let url = URL(string: "https://seder-app-pearl.vercel.app/api/prime?slug=\(slug)") else { return }
+        Task.detached {
+            _ = try? await URLSession.shared.data(from: url)
+        }
+    }
 }
 
 // MARK: - FeedError

@@ -799,6 +799,7 @@ struct ShareAfterSaveSheet: View {
         do {
             let res = try await shareService.setSharing(entryId: entryId, community: community, external: external)
             if external, let slug = res.publicSlug, let url = shareService.publicURL(slug: slug) {
+                shareService.primeFacebook(slug: slug)   // varm opp FB-cachen i bakgrunnen
                 onExternalShare(url)
             }
         } catch {
