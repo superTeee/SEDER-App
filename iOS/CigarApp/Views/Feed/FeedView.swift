@@ -1276,10 +1276,16 @@ struct ActivityRow: View {
             }
             .padding(.horizontal, 14).padding(.vertical, 12)
 
-            // 3. Bilde — kant-til-kant
+            // 3. Bilde — kant-til-kant. Fast full-bredde-boks (Color.clear) som
+            // bildet fyller via overlay + clipped, så bildet ALDRI dytter kortet
+            // bredere enn raden (ellers ble bilde-kort bredere enn tekst-kort).
             if let photo = item.tastingPhotoUrl, let url = URL(string: photo) {
-                KFImage(url).resizable().scaledToFill()
-                    .frame(maxWidth: .infinity).frame(height: 240)
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 240)
+                    .overlay {
+                        KFImage(url).resizable().scaledToFill()
+                    }
                     .clipped()
             }
 

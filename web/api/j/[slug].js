@@ -27,9 +27,13 @@ function page(body, meta) {
   const og = `
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SEDER">
+${meta.url ? `<meta property="og:url" content="${esc(meta.url)}">` : ""}
 <meta property="og:title" content="${esc(meta.title)}">
 <meta property="og:description" content="${esc(meta.desc)}">
-${meta.image ? `<meta property="og:image" content="${esc(meta.image)}">` : ""}
+${meta.image ? `<meta property="og:image" content="${esc(meta.image)}">
+<meta property="og:image:secure_url" content="${esc(meta.image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="1200">` : ""}
 <meta name="twitter:card" content="${meta.image ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${esc(meta.title)}">
 <meta name="twitter:description" content="${esc(meta.desc)}">
@@ -111,5 +115,9 @@ module.exports = async (req, res) => {
   </div></div>`;
 
   res.statusCode = 200;
-  res.end(page(body, { title, desc, image: row.photo_url || null }));
+  res.end(page(body, {
+    title, desc,
+    image: row.photo_url || null,
+    url: `https://seder-app-pearl.vercel.app/j/${slug}`,
+  }));
 };
