@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/j/:slug", "destination": "/api/j/:slug" }
+  ],
+  "headers": [
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    }
+  ]
+}
