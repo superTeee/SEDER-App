@@ -1174,8 +1174,10 @@ struct ActivityView: View {
                         onWishlist: { addToWishlist(item) },
                         onAuthor: { selectedAuthor = AuthorRef(id: item.userId) }
                     )
+                    .frame(maxWidth: .infinity)   // tving label til full radbredde
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)       // tving selve Button-en til full bredde
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color("Background"))
                 .listRowSeparator(.hidden)
