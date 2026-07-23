@@ -1136,6 +1136,7 @@ struct ActivityView: View {
     @State private var wishlisted: Set<UUID> = []
     @State private var selectedItem: ActivityItem?
     @State private var selectedAuthor: AuthorRef?
+    @State private var showCompose = false
 
     var body: some View {
         NavigationStack {
@@ -1157,6 +1158,23 @@ struct ActivityView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color("Background"), for: .navigationBar)
             .toolbarColorScheme(colorScheme, for: .navigationBar)
+            .toolbar {
+                if authService.userId != nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showCompose = true
+                        } label: {
+                            Image(systemName: "square.and.pencil")
+                                .foregroundColor(Color("TextPrimary"))
+                        }
+                        .accessibilityLabel("Nytt innlegg")
+                    }
+                }
+            }
+            .sheet(isPresented: $showCompose) {
+                ComposePostView(onPosted: { await load() })
+                    .environmentObject(authService)
+            }
             .task { if items.isEmpty { await load() } }
             .refreshable { await load() }
         }
@@ -1212,6 +1230,125 @@ struct ActivityView: View {
             do { try await wishlistService.addToWishlist(userId: userId, cigarId: item.cigarId) }
             catch { await MainActor.run { wishlisted.remove(item.cigarId) } }
         }
+    }
+}
+
+// MARK: - ComposePostView
+// «+» fra Aktivitet: søk opp en sigar → samme logg-ark (0–100 + notat + bilde)
+// → post til journal + tilbud om deling. Gjenbruker searchCigars, SmokingLogSheet,
+// logTastingForCigar og ShareAfterSaveSheet — ingen ny backend.
+struct ComposePostView: View {
+
+    var onPosted: () async -> Void = {}
+
+    @EnvironmentObject var authService: AuthService
+    @Environment(\.dismiss) private var dismiss
+
+    private let cigarService = CigarService()
+    private let humidorService = HumidorService()
+
+    @State private var searchQuery = ""
+    @State private var searchResults: [Cigar] = []
+    @State private var isSearching = false
+    @State private var hasSearched = false
+
+    // Valgt sigar → logg-ark
+    @State private var logCigar: Cigar?
+    // Del-etter-lagring
+    @State private var sharePrompt: SharePrompt?
+    @State private var externalShare: ExternalShareItem?
+    @State private var pendingShareImageData: Data?
+    @State private var pendingShareCaption: String = ""
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(header: Text("Søk opp en sigar å skrive om")) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(Color("TextSecondary"))
+                        TextField("F.eks. Liga Privada, Padron…", text: $searchQuery)
+                            .textInputAutocapitalization(.words)
+                            .submitLabel(.search)
+                            .onSubmit { Task { await runSearch() } }
+                        if isSearching { ProgressView() }
+                    }
+                    .padding(.vertical, 4)
+
+                    if hasSearched && searchResults.isEmpty && !isSearching {
+                        Text("Ingen sigarer matchet «\(searchQuery)».")
+                            .font(.caption).foregroundColor(Color("TextSecondary"))
+                    }
+
+                    ForEach(searchResults) { cigar in
+                        Button { logCigar = cigar } label: {
+                            CigarRow(cigar: cigar)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Nytt innlegg")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Avbryt") { dismiss() }
+                }
+            }
+            // Steg 2: samme logg-ark som ellers i appen
+            .sheet(item: $logCigar) { cigar in
+                SmokingLogSheet(cigar: cigar, userId: authService.userId) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
+                    guard let userId = authService.userId else { return }
+                    Task {
+                        do {
+                            let logId = try await humidorService.logTastingForCigar(
+                                cigarId: cigar.id, userId: userId, smokedAt: smokedAt,
+                                rating: rating, smokeAgain: smokeAgain, drawRating: draw,
+                                burnRating: burn, flavorRating: flavor, notes: notes,
+                                cutType: cutType, store: store)
+                            if let data = photoData {
+                                let ts = TastingService()
+                                let url = try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
+                                try await ts.updateLog(
+                                    id: logId, smokedAt: smokedAt, rating: rating,
+                                    smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
+                                    flavorRating: flavor, personalNotes: notes, photoUrl: url)
+                            }
+                            await onPosted()
+                            await MainActor.run {
+                                pendingShareImageData = photoData
+                                pendingShareCaption = "\(cigar.fullName) · min opplevelse på SEDER"
+                                sharePrompt = SharePrompt(entryId: logId)
+                            }
+                        } catch { print("Compose-logg feil: \(error)") }
+                    }
+                }
+            }
+            .sheet(item: $sharePrompt) { prompt in
+                ShareAfterSaveSheet(entryId: prompt.entryId) { url in
+                    let img = pendingShareImageData.flatMap { UIImage(data: $0) }
+                    externalShare = ExternalShareItem(url: url, image: img, caption: pendingShareCaption)
+                }
+            }
+            .sheet(item: $externalShare) { item in
+                IOSShareSheet(items: {
+                    var arr: [Any] = []
+                    if let img = item.image { arr.append(img) }
+                    if !item.caption.isEmpty { arr.append(item.caption) }
+                    arr.append(item.url)
+                    return arr
+                }())
+            }
+        }
+    }
+
+    private func runSearch() async {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { searchResults = []; hasSearched = false; return }
+        isSearching = true; hasSearched = true
+        do { searchResults = try await cigarService.searchCigars(query: query) }
+        catch { searchResults = [] }
+        isSearching = false
     }
 }
 
