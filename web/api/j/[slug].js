@@ -8,7 +8,7 @@
 
 const SUPABASE_URL = "https://wpcricosogcmzebkplwp.supabase.co";
 const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY3JpY29zb2djbXplYmtwbHdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjE0OTQsImV4cCI6MjA5NzEzNzQ5NH0.wdTDMuY1EzZFkoFdLP-HKx-Jx_cfT1OlPjMpet9gL44";
-const APP_STORE_URL = "https://vitola.app";
+const APP_STORE_URL = "/"; // landingssiden på samme domene
 
 function esc(s) {
   return (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) =>

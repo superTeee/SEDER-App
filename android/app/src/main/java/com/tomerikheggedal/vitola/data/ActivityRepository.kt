@@ -60,8 +60,8 @@ object ShareRepository {
             put("p_external", external)
         }).decodeList<EntrySharing>().first()
 
-    /** Offentlig URL til en delt oppføring.
-     *  TODO: bytt til pen universal link vitola.app/j/<slug> når DNS/assetlinks er satt opp. */
+    /** Offentlig URL til en delt oppføring — pen side hostet på Vercel
+     *  (rendrer som ekte HTML m/Open Graph-kort). */
     fun publicUrl(slug: String): String =
-        "https://wpcricosogcmzebkplwp.supabase.co/functions/v1/public-journal?slug=$slug"
+        "https://seder-app-pearl.vercel.app/j/$slug"
 }

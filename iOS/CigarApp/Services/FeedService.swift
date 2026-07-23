@@ -271,11 +271,10 @@ class ShareService: ObservableObject {
         return try Self.decoder.decode(EntrySharing.self, from: response.data)
     }
 
-    /// Offentlig URL til en delt oppføring.
-    /// TODO: bytt til pen universal link `vitola.app/j/<slug>` når DNS/AASA er satt opp.
-    /// Inntil da peker vi rett på edge-funksjonen som rendrer den offentlige siden.
+    /// Offentlig URL til en delt oppføring — pen side hostet på Vercel (rendrer som
+    /// ekte HTML m/Open Graph-kort, i motsetning til Supabase-funksjons-domenet).
     func publicURL(slug: String) -> URL? {
-        URL(string: "https://wpcricosogcmzebkplwp.supabase.co/functions/v1/public-journal?slug=\(slug)")
+        URL(string: "https://seder-app-pearl.vercel.app/j/\(slug)")
     }
 }
 
