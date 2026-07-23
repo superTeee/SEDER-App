@@ -35,7 +35,12 @@ struct CigarDetailViewDesign: View {
     @State private var showReportSheet = false
     // Del-etter-lagring
     @State private var sharePrompt: SharePrompt?
-    @State private var externalShareURL: ShareURLItem?
+    @State private var externalShare: ExternalShareItem?
+    // Stashes bildet + tekst fra loggingen slik at ekstern deling kan sende
+    // SELVE bildet (Facebook-appen viser aldri lenke-kort — et ekte bilde-innlegg
+    // er den eneste måten å få et visuelt innlegg på FB fra mobil).
+    @State private var pendingShareImageData: Data?
+    @State private var pendingShareCaption: String = ""
     @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
 
     private let humidorService = HumidorService()
@@ -142,7 +147,12 @@ struct CigarDetailViewDesign: View {
                                         flavorRating: flavor, personalNotes: notes, photoUrl: url)
                                 }
                             }
-                            await MainActor.run { confirmLogged(); sharePrompt = SharePrompt(entryId: logId) }
+                            await MainActor.run {
+                                confirmLogged()
+                                pendingShareImageData = photoData
+                                pendingShareCaption = "\(cigar.fullName) · min opplevelse på SEDER"
+                                sharePrompt = SharePrompt(entryId: logId)
+                            }
                         } catch { print("Røyke-logg feil: \(error)") }
                         quantity = max(0, quantity - 1)
                     }
@@ -192,11 +202,21 @@ struct CigarDetailViewDesign: View {
         }
         .sheet(item: $sharePrompt) { prompt in
             ShareAfterSaveSheet(entryId: prompt.entryId) { url in
-                externalShareURL = ShareURLItem(url: url)
+                let img = pendingShareImageData.flatMap { UIImage(data: $0) }
+                externalShare = ExternalShareItem(url: url, image: img, caption: pendingShareCaption)
             }
         }
-        .sheet(item: $externalShareURL) { item in
-            IOSShareSheet(items: [item.url])
+        .sheet(item: $externalShare) { item in
+            // Del SELVE bildet + tekst + lenke. Bildet gir et ekte bilde-innlegg på
+            // Facebook/Instagram (FB viser aldri lenke-kort fra mobil); lenken gir
+            // rikt kort i iMessage/WhatsApp der det støttes.
+            IOSShareSheet(items: {
+                var arr: [Any] = []
+                if let img = item.image { arr.append(img) }
+                if !item.caption.isEmpty { arr.append(item.caption) }
+                arr.append(item.url)
+                return arr
+            }())
         }
         .sheet(isPresented: $showLoginSheet) {
             AuthView(onSuccess: { showAddToHumidorSheet = true })

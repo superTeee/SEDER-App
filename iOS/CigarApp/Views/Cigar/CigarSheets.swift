@@ -699,6 +699,15 @@ struct ShareURLItem: Identifiable {
     let url: URL
 }
 
+/// Ekstern deling: bilde + tekst + lenke i ett. Bildet gjør at Facebook/Instagram
+/// viser et ekte bilde-innlegg (FB-appen viser aldri lenke-kort fra mobil).
+struct ExternalShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+    let image: UIImage?
+    let caption: String
+}
+
 struct ShareAfterSaveSheet: View {
 
     let entryId: UUID
