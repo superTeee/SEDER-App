@@ -6,6 +6,7 @@
 // Leser kun trygge visningsfelt via get_public_journal_entry (SECURITY DEFINER,
 // kun delte oppføringer). Anon-nøkkelen er trygg i kildekode (Supabase-praksis).
 
+const FB_APP_ID = "1524715886334745"; // SEDER Facebook-app (ikke hemmelig; kun app-secret er hemmelig)
 const SUPABASE_URL = "https://wpcricosogcmzebkplwp.supabase.co";
 const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY3JpY29zb2djbXplYmtwbHdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjE0OTQsImV4cCI6MjA5NzEzNzQ5NH0.wdTDMuY1EzZFkoFdLP-HKx-Jx_cfT1OlPjMpet9gL44";
 const APP_STORE_URL = "/"; // landingssiden på samme domene
@@ -26,6 +27,7 @@ function ratingStars(r) {
 function page(body, meta) {
   const og = `
 <meta property="og:type" content="website">
+<meta property="fb:app_id" content="${FB_APP_ID}">
 <meta property="og:site_name" content="SEDER">
 ${meta.url ? `<meta property="og:url" content="${esc(meta.url)}">` : ""}
 <meta property="og:title" content="${esc(meta.title)}">
@@ -95,16 +97,18 @@ module.exports = async (req, res) => {
   const title = [row.cigar_brand, row.cigar_series].filter(Boolean).join(" ");
   const metaLine = [row.cigar_vitola].filter(Boolean).join(" · ");
   const photo = row.photo_url ? `<img class="hero" src="${esc(row.photo_url)}" alt="">` : "";
-  const stars = ratingStars(row.rating);
+  const score = row.rating ? `${row.rating}/100` : "";
   const note = row.personal_notes ? `<p class="note">«${esc(row.personal_notes)}»</p>` : "";
-  const desc = [metaLine, row.personal_notes].filter(Boolean).join(" — ") || "En sigar-opplevelse på SEDER";
+  // Delings-kortets beskrivelse: vitola · score/100 — notat
+  const head = [metaLine, score].filter(Boolean).join(" · ");
+  const desc = [head, row.personal_notes].filter(Boolean).join(" — ") || "En sigar-opplevelse på SEDER";
 
   const body = `
   <div class="wrap">
     <div class="brand">S E D E R</div>
     ${photo}
     <h1 class="serif">${esc(title)}</h1>
-    <p class="meta">${esc(metaLine)}${stars ? ` · <span class="stars">${stars}</span>` : ""}</p>
+    <p class="meta">${esc(metaLine)}${score ? ` · <span class="stars">${esc(score)}</span>` : ""}</p>
     ${note}
     <div class="author">Loggført av ${esc(row.author_name)}</div>
   </div>
