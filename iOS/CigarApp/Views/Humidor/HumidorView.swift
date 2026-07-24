@@ -606,7 +606,7 @@ struct HumidorCard: View {
 
                 rhIndicator
             }
-            .padding(.vertical, 12)
+            .padding(.vertical, 6)
         }
         .padding(.vertical, 4)
     }
