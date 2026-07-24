@@ -1131,6 +1131,7 @@ struct ActivityView: View {
     private let wishlistService = WishlistService()
     private let tastingService = TastingService()
     private let shareService = ShareService()
+    private let friendService = FriendService()
 
     @State private var items: [ActivityItem] = []
     @State private var isLoading = true
@@ -1141,6 +1142,7 @@ struct ActivityView: View {
     @State private var showCompose = false
     @State private var pendingDelete: ActivityItem?   // eget innlegg som skal slettes
     @State private var externalShare: ExternalShareItem?   // «Del» fra «...»-menyen
+    @State private var toast: String?   // kort bekreftelse (f.eks. venneforespørsel)
 
     var body: some View {
         NavigationStack {
@@ -1181,6 +1183,18 @@ struct ActivityView: View {
             }
             .task { if items.isEmpty { await load() } }
             .refreshable { await load() }
+            .overlay(alignment: .bottom) {
+                if let toast {
+                    Text(toast)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .background(Capsule().fill(Color.black.opacity(0.85)))
+                        .padding(.bottom, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: toast)
         }
     }
 
@@ -1196,6 +1210,7 @@ struct ActivityView: View {
                         onWishlist: { addToWishlist(item) },
                         onAuthor: { selectedAuthor = AuthorRef(id: item.userId) },
                         onShare: { sharePost(item) },
+                        onAddFriend: item.userId == authService.userId ? nil : { addFriend(item) },
                         onDelete: item.userId == authService.userId ? { pendingDelete = item } : nil
                     )
                     .frame(maxWidth: .infinity)   // tving label til full radbredde
@@ -1270,6 +1285,27 @@ struct ActivityView: View {
             } catch {
                 print("Del innlegg feilet: \(error)")
             }
+        }
+    }
+
+    /// «Legg til som venn» fra «...»-menyen: sender venneforespørsel til
+    /// forfatteren (request_friendship-RPC), som på Facebook.
+    private func addFriend(_ item: ActivityItem) {
+        Task {
+            do {
+                try await friendService.requestFriendship(userId: item.userId)
+                await MainActor.run { showToast("Venneforespørsel sendt til \(item.authorName)") }
+            } catch {
+                await MainActor.run { showToast("Kunne ikke sende forespørsel") }
+            }
+        }
+    }
+
+    private func showToast(_ text: String) {
+        toast = text
+        Task {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            await MainActor.run { if toast == text { toast = nil } }
         }
     }
 
@@ -1412,7 +1448,8 @@ struct ActivityRow: View {
     var onWishlist: () -> Void
     var onAuthor: () -> Void = {}
     var onShare: () -> Void = {}
-    var onDelete: (() -> Void)? = nil   // nil = ikke eget innlegg (skjul Slett)
+    var onAddFriend: (() -> Void)? = nil   // nil = eget innlegg (skjul «Legg til som venn»)
+    var onDelete: (() -> Void)? = nil      // nil = ikke eget innlegg (skjul Slett)
 
     private var verbText: String {
         item.verb == "wishlist" ? "vil prøve" : "delte en sigar"
@@ -1443,8 +1480,10 @@ struct ActivityRow: View {
                 Spacer(minLength: 0)
                 // «...»-meny øverst til høyre
                 Menu {
-                    Button { onWishlist() } label: {
-                        Label("Legg i ønskeliste", systemImage: "bookmark")
+                    if let onAddFriend {
+                        Button { onAddFriend() } label: {
+                            Label("Legg til som venn", systemImage: "person.badge.plus")
+                        }
                     }
                     Button { onShare() } label: {
                         Label("Del", systemImage: "square.and.arrow.up")
