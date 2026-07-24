@@ -1129,6 +1129,7 @@ struct ActivityView: View {
 
     @StateObject private var activityService = ActivityService()
     private let wishlistService = WishlistService()
+    private let tastingService = TastingService()
 
     @State private var items: [ActivityItem] = []
     @State private var isLoading = true
@@ -1137,6 +1138,7 @@ struct ActivityView: View {
     @State private var selectedItem: ActivityItem?
     @State private var selectedAuthor: AuthorRef?
     @State private var showCompose = false
+    @State private var pendingDelete: ActivityItem?   // eget innlegg som skal slettes
 
     var body: some View {
         NavigationStack {
@@ -1199,11 +1201,32 @@ struct ActivityView: View {
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color("Background"))
                 .listRowSeparator(.hidden)
+                // Forfatteren kan sveipe eget innlegg til venstre for å slette
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if item.userId == authService.userId {
+                        Button(role: .destructive) {
+                            pendingDelete = item
+                        } label: {
+                            Label("Slett", systemImage: "trash")
+                        }
+                    }
+                }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color("Background"))
+        .alert("Slette innlegget?", isPresented: Binding(
+            get: { pendingDelete != nil },
+            set: { if !$0 { pendingDelete = nil } }
+        )) {
+            Button("Slett", role: .destructive) {
+                if let item = pendingDelete { deletePost(item) }
+            }
+            Button("Avbryt", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("Innlegget fjernes fra Aktivitet og journalen din. Dette kan ikke angres.")
+        }
         .navigationDestination(item: $selectedItem) { item in
             CigarDetailLoader(cigarId: item.cigarId)
         }
@@ -1229,6 +1252,21 @@ struct ActivityView: View {
         Task {
             do { try await wishlistService.addToWishlist(userId: userId, cigarId: item.cigarId) }
             catch { await MainActor.run { wishlisted.remove(item.cigarId) } }
+        }
+    }
+
+    /// Sletter forfatterens eget innlegg (tasting_log). RLS sikrer at kun eier
+    /// kan slette. Fjernes optimistisk fra lista.
+    private func deletePost(_ item: ActivityItem) {
+        pendingDelete = nil
+        Task {
+            do {
+                try await tastingService.deleteLog(id: item.entryId)
+                await MainActor.run { items.removeAll { $0.entryId == item.entryId } }
+            } catch {
+                print("Slett innlegg feilet: \(error)")
+                await MainActor.run { errorMessage = error.localizedDescription }
+            }
         }
     }
 }
