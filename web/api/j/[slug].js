@@ -119,8 +119,11 @@ module.exports = async (req, res) => {
   </div></div>`;
 
   res.statusCode = 200;
+  // og:title inkluderer vitola + rating, siden FB-kortet i feeden viser tittelen
+  // men dropper description. Slik ser kortet: bilde + «Navn · Toro · 85/100».
+  const ogTitle = [title, metaLine, score].filter(Boolean).join(" · ");
   res.end(page(body, {
-    title, desc,
+    title: ogTitle, desc,
     image: row.photo_url || null,
     url: `https://seder-app-pearl.vercel.app/j/${slug}`,
   }));

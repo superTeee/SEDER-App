@@ -207,16 +207,10 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(item: $externalShare) { item in
-            // Del bildet + tekst (navn · rating/100 + lenke som tekst). Facebook-
-            // appen viser ikke lenke-kort, så et ekte bilde-innlegg med rating og
-            // klikkbar lenke i teksten er beste resultat der. Kortet vises fortsatt
-            // på iMessage/WhatsApp/PC via lenken.
-            IOSShareSheet(items: {
-                var arr: [Any] = []
-                if let img = item.image { arr.append(img) }
-                arr.append(item.caption + "\n" + item.url.absoluteString)
-                return arr
-            }())
+            // Del tekst + lenke (IKKE bildefila). Facebook lager da et rikt kort fra
+            // lenken (bilde + «Navn · Vitola · rating» i tittelen) — takket være
+            // auto-prime. Deler vi bildefila, blir det bare et løst foto uten kort.
+            IOSShareSheet(items: [item.caption, item.url])
         }
         .sheet(isPresented: $showLoginSheet) {
             AuthView(onSuccess: { showAddToHumidorSheet = true })

@@ -1331,14 +1331,9 @@ struct ComposePostView: View {
                 }
             }
             .sheet(item: $externalShare) { item in
-                // Del bildet + tekst (navn · rating/100 + lenke). Ekte bilde-innlegg
-                // på FB-mobil; kortet vises fortsatt på iMessage/WhatsApp/PC.
-                IOSShareSheet(items: {
-                    var arr: [Any] = []
-                    if let img = item.image { arr.append(img) }
-                    arr.append(item.caption + "\n" + item.url.absoluteString)
-                    return arr
-                }())
+                // Del tekst + lenke (ikke bildefila) → Facebook lager rikt kort fra
+                // lenken (bilde + «Navn · Vitola · rating» i tittelen).
+                IOSShareSheet(items: [item.caption, item.url])
             }
         }
     }
