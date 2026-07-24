@@ -207,16 +207,11 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(item: $externalShare) { item in
-            // Del SELVE bildet + tekst + lenke. Bildet gir et ekte bilde-innlegg på
-            // Facebook/Instagram (FB viser aldri lenke-kort fra mobil); lenken gir
-            // rikt kort i iMessage/WhatsApp der det støttes.
-            IOSShareSheet(items: {
-                var arr: [Any] = []
-                if let img = item.image { arr.append(img) }
-                if !item.caption.isEmpty { arr.append(item.caption) }
-                arr.append(item.url)
-                return arr
-            }())
+            // Del KUN lenken. Nå som FB-cachen primes automatisk (ShareService
+            // .primeFacebook), viser Facebook et rikt kort med bilde + tittel +
+            // rating + klikkbar lenke tilbake til appen. Deler vi også bildet,
+            // velger FB bildet og dropper kortet/lenken — derfor bare URL.
+            IOSShareSheet(items: [item.url])
         }
         .sheet(isPresented: $showLoginSheet) {
             AuthView(onSuccess: { showAddToHumidorSheet = true })

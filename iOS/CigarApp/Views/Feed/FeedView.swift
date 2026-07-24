@@ -1331,13 +1331,9 @@ struct ComposePostView: View {
                 }
             }
             .sheet(item: $externalShare) { item in
-                IOSShareSheet(items: {
-                    var arr: [Any] = []
-                    if let img = item.image { arr.append(img) }
-                    if !item.caption.isEmpty { arr.append(item.caption) }
-                    arr.append(item.url)
-                    return arr
-                }())
+                // Del KUN lenken → Facebook viser rikt kort (bilde + tittel + rating
+                // + klikkbar lenke tilbake til appen), takket være FB-auto-prime.
+                IOSShareSheet(items: [item.url])
             }
         }
     }
