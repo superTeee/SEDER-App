@@ -542,6 +542,7 @@ struct HumidorCard: View {
     let cigarCount: Int
     var totalValue: Double = 0
     var latestRH: HumidorRHReading? = nil
+    @Environment(\.colorScheme) private var colorScheme
 
     private var valueLabel: String {
         let f = NumberFormatter()
@@ -647,12 +648,12 @@ struct HumidorCard: View {
                 .scaledToFit()
                 .frame(width: 18, height: 15)
             Text(countLabel)
-                .font(.footnote.weight(.semibold))
+                .font(.system(size: 12, weight: .semibold))
         }
         .foregroundColor(Color("TextPrimary"))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Capsule().fill(Color("Surface").opacity(0.92)))
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(colorScheme == .light ? Color.white : Color("Surface").opacity(0.92)))
     }
 
     // RH-indikator: farget boble + verdi (grå + 0 % når ingenting er målt).
@@ -662,7 +663,7 @@ struct HumidorCard: View {
                 .fill(latestRH != nil ? rhTrafficColor(humidor.rhStatus(for: latestRH?.rh)) : Color(.tertiaryLabel))
                 .frame(width: 12, height: 12)
             Text(latestRH.map { "\(rhString($0.rh)) % RH" } ?? "0 % RH")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(Color("TextPrimary"))
         }
     }
