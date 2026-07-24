@@ -1317,7 +1317,7 @@ struct ComposePostView: View {
                             await onPosted()
                             await MainActor.run {
                                 pendingShareImageData = photoData
-                                pendingShareCaption = "\(cigar.fullName) · min opplevelse på SEDER"
+                                pendingShareCaption = "\(cigar.fullName)" + (rating.map { " · \($0)/100" } ?? "") + " på SEDER"
                                 sharePrompt = SharePrompt(entryId: logId)
                             }
                         } catch { print("Compose-logg feil: \(error)") }
@@ -1331,9 +1331,14 @@ struct ComposePostView: View {
                 }
             }
             .sheet(item: $externalShare) { item in
-                // Del KUN lenken → Facebook viser rikt kort (bilde + tittel + rating
-                // + klikkbar lenke tilbake til appen), takket være FB-auto-prime.
-                IOSShareSheet(items: [item.url])
+                // Del bildet + tekst (navn · rating/100 + lenke). Ekte bilde-innlegg
+                // på FB-mobil; kortet vises fortsatt på iMessage/WhatsApp/PC.
+                IOSShareSheet(items: {
+                    var arr: [Any] = []
+                    if let img = item.image { arr.append(img) }
+                    arr.append(item.caption + "\n" + item.url.absoluteString)
+                    return arr
+                }())
             }
         }
     }

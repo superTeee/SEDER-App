@@ -150,7 +150,7 @@ struct CigarDetailViewDesign: View {
                             await MainActor.run {
                                 confirmLogged()
                                 pendingShareImageData = photoData
-                                pendingShareCaption = "\(cigar.fullName) · min opplevelse på SEDER"
+                                pendingShareCaption = "\(cigar.fullName)" + (rating.map { " · \($0)/100" } ?? "") + " på SEDER"
                                 sharePrompt = SharePrompt(entryId: logId)
                             }
                         } catch { print("Røyke-logg feil: \(error)") }
@@ -207,11 +207,16 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(item: $externalShare) { item in
-            // Del KUN lenken. Nå som FB-cachen primes automatisk (ShareService
-            // .primeFacebook), viser Facebook et rikt kort med bilde + tittel +
-            // rating + klikkbar lenke tilbake til appen. Deler vi også bildet,
-            // velger FB bildet og dropper kortet/lenken — derfor bare URL.
-            IOSShareSheet(items: [item.url])
+            // Del bildet + tekst (navn · rating/100 + lenke som tekst). Facebook-
+            // appen viser ikke lenke-kort, så et ekte bilde-innlegg med rating og
+            // klikkbar lenke i teksten er beste resultat der. Kortet vises fortsatt
+            // på iMessage/WhatsApp/PC via lenken.
+            IOSShareSheet(items: {
+                var arr: [Any] = []
+                if let img = item.image { arr.append(img) }
+                arr.append(item.caption + "\n" + item.url.absoluteString)
+                return arr
+            }())
         }
         .sheet(isPresented: $showLoginSheet) {
             AuthView(onSuccess: { showAddToHumidorSheet = true })
