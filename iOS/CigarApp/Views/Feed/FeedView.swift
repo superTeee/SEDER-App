@@ -1130,6 +1130,7 @@ struct ActivityView: View {
     @StateObject private var activityService = ActivityService()
     private let wishlistService = WishlistService()
     private let tastingService = TastingService()
+    private let shareService = ShareService()
 
     @State private var items: [ActivityItem] = []
     @State private var isLoading = true
@@ -1139,6 +1140,7 @@ struct ActivityView: View {
     @State private var selectedAuthor: AuthorRef?
     @State private var showCompose = false
     @State private var pendingDelete: ActivityItem?   // eget innlegg som skal slettes
+    @State private var externalShare: ExternalShareItem?   // «Del» fra «...»-menyen
 
     var body: some View {
         NavigationStack {
@@ -1192,7 +1194,9 @@ struct ActivityView: View {
                         item: item,
                         isWishlisted: wishlisted.contains(item.cigarId),
                         onWishlist: { addToWishlist(item) },
-                        onAuthor: { selectedAuthor = AuthorRef(id: item.userId) }
+                        onAuthor: { selectedAuthor = AuthorRef(id: item.userId) },
+                        onShare: { sharePost(item) },
+                        onDelete: item.userId == authService.userId ? { pendingDelete = item } : nil
                     )
                     .frame(maxWidth: .infinity)   // tving label til full radbredde
                 }
@@ -1201,16 +1205,6 @@ struct ActivityView: View {
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color("Background"))
                 .listRowSeparator(.hidden)
-                // Forfatteren kan sveipe eget innlegg til venstre for å slette
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if item.userId == authService.userId {
-                        Button(role: .destructive) {
-                            pendingDelete = item
-                        } label: {
-                            Label("Slett", systemImage: "trash")
-                        }
-                    }
-                }
             }
         }
         .listStyle(.plain)
@@ -1226,6 +1220,10 @@ struct ActivityView: View {
             Button("Avbryt", role: .cancel) { pendingDelete = nil }
         } message: {
             Text("Innlegget fjernes fra Aktivitet og journalen din. Dette kan ikke angres.")
+        }
+        .sheet(item: $externalShare) { item in
+            // Del tekst + lenke → FB-kort (bilde + «Navn · Vitola · rating» i tittelen).
+            IOSShareSheet(items: [item.caption, item.url])
         }
         .navigationDestination(item: $selectedItem) { item in
             CigarDetailLoader(cigarId: item.cigarId)
@@ -1252,6 +1250,26 @@ struct ActivityView: View {
         Task {
             do { try await wishlistService.addToWishlist(userId: userId, cigarId: item.cigarId) }
             catch { await MainActor.run { wishlisted.remove(item.cigarId) } }
+        }
+    }
+
+    /// «Del» fra «...»-menyen: sørg for at oppføringen er delt eksternt (får slug),
+    /// varm opp FB-cachen, og åpne delings-arket med tekst + lenke.
+    private func sharePost(_ item: ActivityItem) {
+        Task {
+            do {
+                let res = try await shareService.setSharing(entryId: item.entryId, community: true, external: true)
+                guard let slug = res.publicSlug, let url = shareService.publicURL(slug: slug) else { return }
+                shareService.primeFacebook(slug: slug)
+                let name = [item.cigarBrand, item.cigarSeries].compactMap { $0 }.joined(separator: " ")
+                let parts = [name, item.cigarVitola, item.cigarRating.map { "\($0)/100" }].compactMap { $0 }
+                let caption = parts.joined(separator: " · ") + " på SEDER"
+                await MainActor.run {
+                    externalShare = ExternalShareItem(url: url, image: nil, caption: caption)
+                }
+            } catch {
+                print("Del innlegg feilet: \(error)")
+            }
         }
     }
 
@@ -1393,6 +1411,8 @@ struct ActivityRow: View {
     var isWishlisted: Bool
     var onWishlist: () -> Void
     var onAuthor: () -> Void = {}
+    var onShare: () -> Void = {}
+    var onDelete: (() -> Void)? = nil   // nil = ikke eget innlegg (skjul Slett)
 
     private var verbText: String {
         item.verb == "wishlist" ? "vil prøve" : "delte en sigar"
@@ -1421,6 +1441,27 @@ struct ActivityRow: View {
                 .buttonStyle(.borderless)
                 Text(verbText).font(.system(size: 13, weight: .medium)).foregroundColor(Color("TextSecondary"))
                 Spacer(minLength: 0)
+                // «...»-meny øverst til høyre
+                Menu {
+                    Button { onWishlist() } label: {
+                        Label("Legg i ønskeliste", systemImage: "bookmark")
+                    }
+                    Button { onShare() } label: {
+                        Label("Del", systemImage: "square.and.arrow.up")
+                    }
+                    if let onDelete {
+                        Button(role: .destructive) { onDelete() } label: {
+                            Label("Slett", systemImage: "trash")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color("TextSecondary"))
+                        .frame(width: 34, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
             .overlay(alignment: .bottom) { Rectangle().fill(Color("Background")).frame(height: 1) }
