@@ -148,27 +148,38 @@ struct ContentView: View {
 
     private func tabButton(tag: Int, title: String, image: String, showBadge: Bool = false) -> some View {
         let selected = selectedTab == tag
+        // Solid, lesbar inaktiv-farge (ikke gjennomsiktig → ser ikke «disabled» ut)
+        let inactive = Color("TextSecondary")
         return Button {
             selectedTab = tag
         } label: {
             VStack(spacing: 4) {
-                ZStack(alignment: .topTrailing) {
+                // Aktivt ikon får en avrundet flate i skann-knappens farge, hvitt ikon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(selected ? Color("Accent") : Color.clear)
+                        .frame(width: 46, height: 34)
                     Image(image)
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 32, height: 32)
-                    if showBadge {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 8, height: 8)
-                            .offset(x: 5, y: -2)
-                    }
+                        .frame(width: 26, height: 26)
+                        .foregroundColor(selected ? .white : inactive)
+                        .overlay(alignment: .topTrailing) {
+                            if showBadge {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 4, y: -2)
+                            }
+                        }
                 }
+                .frame(height: 34)
+
                 Text(title)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 11, weight: selected ? .semibold : .medium))
+                    .foregroundColor(selected ? Color("Accent") : inactive)
             }
-            .foregroundColor(selected ? Color("Accent") : Color("TextSecondary").opacity(0.6))
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
