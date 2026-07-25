@@ -658,6 +658,35 @@ class HumidorService: ObservableObject {
         return inserted
     }
 
+    /// Smart forhåndsvalg for kvittering: hvilken humidor lå hver sigar sist i?
+    /// Returnerer cigar_id → humidor_id (nyeste oppføring vinner). Brukes til å
+    /// rute returvarer automatisk til der de bodde før.
+    func lastHumidorByCigar(userId: UUID, cigarIds: [UUID]) async -> [UUID: UUID] {
+        guard !cigarIds.isEmpty else { return [:] }
+        struct Row: Decodable {
+            let cigarId: UUID
+            let humidorId: UUID?
+            enum CodingKeys: String, CodingKey {
+                case cigarId = "cigar_id"
+                case humidorId = "humidor_id"
+            }
+        }
+        let rows: [Row] = (try? await supabase
+            .from("humidor")
+            .select("cigar_id, humidor_id, created_at")
+            .eq("user_id", value: userId.uuidString)
+            .in("cigar_id", values: cigarIds.map(\.uuidString))
+            .order("created_at", ascending: false)
+            .execute()
+            .value) ?? []
+
+        var map: [UUID: UUID] = [:]
+        for r in rows where map[r.cigarId] == nil {
+            if let h = r.humidorId { map[r.cigarId] = h }
+        }
+        return map
+    }
+
     // Oppdater antall
     func updateQuantity(entryId: UUID, quantity: Int) async throws {
         try await supabase

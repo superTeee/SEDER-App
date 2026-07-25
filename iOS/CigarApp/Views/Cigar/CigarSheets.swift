@@ -825,6 +825,12 @@ private struct EditableReceiptLine: Identifiable {
     var priceText: String
     var humidorId: UUID?
     var included: Bool = true
+    var smartAssigned: Bool = false   // forhåndsvalgt til sist-brukte humidor
+
+    var priceValue: Double {
+        Double(priceText.replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespaces)) ?? 0
+    }
 }
 
 /// «250» for hele tall, «249,5» ellers — norsk visning av enhetspris.
@@ -850,6 +856,8 @@ struct ReceiptConfirmView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var manualResolving: ReceiptUnmatchedLine?
+    @State private var groupByHumidor = false
+    @State private var smartApplied = false
 
     init(result: ReceiptParseResult, humidors: [Humidor], userId: UUID, onFinished: @escaping () -> Void) {
         self.humidors = humidors
@@ -887,13 +895,18 @@ struct ReceiptConfirmView: View {
                 } else {
                     List {
                         defaultSection
-                        matchedSection
+                        if groupByHumidor {
+                            groupedSummarySection
+                        } else {
+                            matchedSection
+                        }
                         if !unmatched.isEmpty { unmatchedSection }
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
                     .background(Color("Background"))
                     .safeAreaInset(edge: .bottom) { addBar }
+                    .task { await applySmartHumidors() }
                 }
             }
             .navigationTitle("Fra kvittering")
@@ -934,9 +947,67 @@ struct ReceiptConfirmView: View {
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(Color("TextSecondary"))
             }
+            Toggle("Grupper etter humidor", isOn: $groupByHumidor)
+                .tint(Color("Accent"))
         } footer: {
             Text("Velger du humidor her, flyttes alle sigarene dit. Du kan overstyre hver enkelt under.")
         }
+    }
+
+    // MARK: Gruppert oppsummering (se fordelingen + totalsum per humidor)
+
+    private struct HumidorGroup: Identifiable {
+        let id: UUID
+        let name: String
+        let lines: [EditableReceiptLine]
+        var count: Int { lines.reduce(0) { $0 + $1.quantity } }
+        var sum: Double { lines.reduce(0) { $0 + Double($1.quantity) * $1.priceValue } }
+    }
+
+    private var groups: [HumidorGroup] {
+        let included = lines.filter { $0.included }
+        var byId: [UUID: [EditableReceiptLine]] = [:]
+        for l in included {
+            guard let hid = l.humidorId ?? defaultHumidorId else { continue }
+            byId[hid, default: []].append(l)
+        }
+        return humidors.compactMap { h in
+            guard let ls = byId[h.id], !ls.isEmpty else { return nil }
+            return HumidorGroup(id: h.id, name: h.name, lines: ls)
+        }
+    }
+
+    private var groupedSummarySection: some View {
+        ForEach(groups) { g in
+            Section {
+                ForEach(g.lines) { l in
+                    HStack {
+                        Text(l.title.isEmpty ? l.receiptName : l.title)
+                            .font(.subheadline)
+                            .foregroundColor(Color("TextPrimary"))
+                        Spacer()
+                        Text("×\(l.quantity)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("\(g.name) · \(g.count) sigarer")
+                    Spacer()
+                    Text("\(formatSum(g.sum)) kr")
+                        .foregroundColor(Color("Accent"))
+                }
+            }
+        }
+    }
+
+    private func formatSum(_ value: Double) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = " "
+        f.maximumFractionDigits = 0
+        return f.string(from: NSNumber(value: value)) ?? "\(Int(value))"
     }
 
     private var matchedSection: some View {
@@ -1034,6 +1105,11 @@ struct ReceiptConfirmView: View {
                 } label: {
                     humidorChip(humidorName(line.wrappedValue.humidorId))
                 }
+                if line.wrappedValue.smartAssigned {
+                    Text("sist her")
+                        .font(.caption2)
+                        .foregroundColor(Color("Accent").opacity(0.7))
+                }
                 Spacer()
             }
             .opacity(line.wrappedValue.included ? 1 : 0.4)
@@ -1100,7 +1176,28 @@ struct ReceiptConfirmView: View {
 
     private func setDefaultHumidor(_ id: UUID) {
         defaultHumidorId = id
-        for i in lines.indices { lines[i].humidorId = id }
+        for i in lines.indices {
+            lines[i].humidorId = id
+            lines[i].smartAssigned = false   // brukeren valgte «alle i én»
+        }
+    }
+
+    /// Smart forhåndsvalg: rut hver sigar til humidoren den lå i sist (hvis noen).
+    /// Kjøres én gang når arket åpnes.
+    private func applySmartHumidors() async {
+        guard !smartApplied, !lines.isEmpty else { return }
+        smartApplied = true
+        let ids = Array(Set(lines.map { $0.cigarId }))
+        let map = await humidorService.lastHumidorByCigar(userId: userId, cigarIds: ids)
+        guard !map.isEmpty else { return }
+        await MainActor.run {
+            for i in lines.indices {
+                if let h = map[lines[i].cigarId], humidors.contains(where: { $0.id == h }) {
+                    lines[i].humidorId = h
+                    lines[i].smartAssigned = (h != defaultHumidorId)
+                }
+            }
+        }
     }
 
     // Ukjent linje ble løst via manuell innlegging — flytt den opp til de matchede.
