@@ -75,6 +75,21 @@ struct ExploreView: View {
     @State private var barcodeFoundCigar:    Cigar?   = nil
     @State private var navigateToBarcode     = false
 
+    // Global skann-bottom-sheet
+    @State private var showScanSheet = false
+
+    // Kvittering-flyt (global, gjenbruker ReceiptService + ReceiptConfirmView)
+    private let humidorService = HumidorService()
+    private let receiptService = ReceiptService()
+    @State private var humidors: [Humidor] = []
+    @State private var receiptImage: UIImage?
+    @State private var showReceiptCamera  = false
+    @State private var showReceiptLibrary = false
+    @State private var receiptResult: ReceiptParseResult?
+    @State private var isParsingReceipt = false
+    @State private var receiptError: String?
+    @State private var showReceiptSource = false
+
     // Navigasjon
     @State private var selectedBrand: String? = nil
 
@@ -235,6 +250,62 @@ struct ExploreView: View {
                     }
                 }
             }
+            // Global skann-bottom-sheet
+            .sheet(isPresented: $showScanSheet) {
+                ScanSheet(
+                    onBand:    { showCameraPicker = true },
+                    onPhoto:   { showLibraryPicker = true },
+                    onReceipt: { showReceiptSource = true },
+                    onBarcode: { showBarcodeScan = true }
+                )
+                .presentationDetents([.height(380)])
+                .presentationDragIndicator(.visible)
+            }
+            // Kvittering-flyt
+            .confirmationDialog("Legg til sigarer fra kvittering", isPresented: $showReceiptSource, titleVisibility: .visible) {
+                Button("Ta bilde av kvittering") { showReceiptCamera = true }
+                Button("Velg bilde fra bibliotek") { showReceiptLibrary = true }
+                Button("Avbryt", role: .cancel) {}
+            }
+            .sheet(isPresented: $showReceiptCamera) {
+                ImagePicker(image: $receiptImage, sourceType: .camera) {
+                    if let img = receiptImage { Task { await parseReceipt(img) } }
+                }
+            }
+            .sheet(isPresented: $showReceiptLibrary) {
+                ImagePicker(image: $receiptImage, sourceType: .photoLibrary) {
+                    if let img = receiptImage { Task { await parseReceipt(img) } }
+                }
+            }
+            .sheet(item: $receiptResult) { result in
+                ReceiptConfirmView(
+                    result: result,
+                    humidors: humidors,
+                    userId: authService.userId ?? UUID(),
+                    onFinished: {}
+                )
+                .environmentObject(authService)
+            }
+            .overlay {
+                if isParsingReceipt {
+                    ZStack {
+                        Color.black.opacity(0.35).ignoresSafeArea()
+                        VStack(spacing: 14) {
+                            ProgressView().tint(.white).scaleEffect(1.3)
+                            Text("Leser kvitteringen…")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.white)
+                        }
+                        .padding(28)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color("Card")))
+                    }
+                }
+            }
+            .alert("Kunne ikke lese kvitteringen", isPresented: .constant(receiptError != nil)) {
+                Button("OK") { receiptError = nil }
+            } message: {
+                Text(receiptError ?? "")
+            }
             .fullScreenCover(isPresented: $scanService.needsShapePhoto) {
                 ShapeConfirmView(scanService: scanService)
             }
@@ -367,22 +438,8 @@ struct ExploreView: View {
     // MARK: - FAB
 
     private var scanFAB: some View {
-        Menu {
-            Button {
-                showBarcodeScan = true
-            } label: {
-                Label("Skann strekkode", systemImage: "barcode.viewfinder")
-            }
-            Button {
-                showCameraPicker = true
-            } label: {
-                Label("Skann magebeltet", systemImage: "camera.fill")
-            }
-            Button {
-                showLibraryPicker = true
-            } label: {
-                Label("Bilde fra kamerarull", systemImage: "photo.on.rectangle")
-            }
+        Button {
+            showScanSheet = true
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "camera.viewfinder")
@@ -397,9 +454,30 @@ struct ExploreView: View {
             .clipShape(Capsule())
             .shadow(color: Color("Accent").opacity(0.35), radius: 10, x: 0, y: 4)
         }
-        .menuOrder(.fixed)
         .padding(.trailing, 20)
         .padding(.bottom, 24)
+    }
+
+    // Les kvittering: hent humidorer (trengs i bekreft-arket) + parse + åpne ark.
+    private func parseReceipt(_ image: UIImage) async {
+        isParsingReceipt = true
+        receiptError = nil
+        do {
+            if let userId = authService.userId, humidors.isEmpty {
+                humidors = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
+            }
+            let result = try await receiptService.parseReceipt(image: image)
+            isParsingReceipt = false
+            if result.matched.isEmpty && result.unmatched.isEmpty {
+                receiptError = "Fant ingen sigarer på kvitteringen. Prøv et tydeligere bilde."
+            } else {
+                receiptResult = result
+            }
+        } catch {
+            isParsingReceipt = false
+            receiptError = "Klarte ikke å lese kvitteringen. Sjekk nettforbindelsen og prøv igjen."
+        }
+        receiptImage = nil
     }
 
     // MARK: - Brukernes topp 3

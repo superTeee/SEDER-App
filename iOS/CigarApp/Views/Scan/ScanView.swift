@@ -164,6 +164,96 @@ struct ScanView: View {
     }
 }
 
+// MARK: - ScanSheet
+// Global bottom sheet som åpnes fra skann-knappen. Ett ikon til venstre per
+// valg, ren hvit bakgrunn i light mode. Hvert valg lukker arket og trigger
+// riktig flyt (via closure) etter en kort forsinkelse, så arket rekker å lukke
+// seg før neste kamera/velger/ark presenteres.
+struct ScanSheet: View {
+
+    var onBand: () -> Void = {}
+    var onPhoto: () -> Void = {}
+    var onReceipt: () -> Void = {}
+    var onBarcode: () -> Void = {}
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var sheetBackground: Color {
+        colorScheme == .light ? .white : Color("Card")
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("Skann")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(Color("TextPrimary"))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
+
+            VStack(spacing: 0) {
+                row(icon: "camera.viewfinder", title: "Sigarbånd",
+                    subtitle: "Skann båndet på sigaren", action: onBand)
+                divider
+                row(icon: "photo.on.rectangle.angled", title: "Bilde fra kamerarull",
+                    subtitle: "Velg et bilde du har tatt", action: onPhoto)
+                divider
+                row(icon: "doc.text.viewfinder", title: "Kvittering",
+                    subtitle: "Legg kjøpet rett i humidoren", action: onReceipt)
+                divider
+                row(icon: "barcode.viewfinder", title: "Strekkode",
+                    subtitle: "Skann strekkoden på esken", action: onBarcode)
+            }
+            .padding(.bottom, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(sheetBackground.ignoresSafeArea())
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Color("TextSecondary").opacity(0.12))
+            .frame(height: 0.5)
+            .padding(.leading, 72)
+    }
+
+    private func row(icon: String, title: String, subtitle: String, action: @escaping () -> Void) -> some View {
+        Button {
+            dismiss()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { action() }
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11)
+                        .fill(Color("Accent").opacity(0.14))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: icon)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(Color("Accent"))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Color("TextPrimary"))
+                    Text(subtitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color("TextSecondary"))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color("TextSecondary").opacity(0.5))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Shape Confirm View
 // Vises når samme bånd matchet flere størrelser/former i databasen.
 // Funksjonell test-UI — visuell stil byttes ut når Toms eget design er klart.
