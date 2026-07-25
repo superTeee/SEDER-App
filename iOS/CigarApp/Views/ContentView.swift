@@ -100,8 +100,8 @@ struct ContentView: View {
                 tabButton(tag: exploreTag,  title: "Utforsk",   image: "tab_explore")
                 tabButton(tag: activityTag, title: "Aktivitet", image: "tab_feed")
 
-                // Hull til senter-knappen
-                Color.clear.frame(width: 74)
+                // Hull til senter-knappen (smalere → fanene 4px nærmere skann-knappen)
+                Color.clear.frame(width: 66)
 
                 tabButton(tag: journalTag,  title: "Journal",   image: "tab_journal")
                 tabButton(tag: humidorTag,  title: "Humidor",   image: "tab_humidor", showBadge: humidorHasNew)

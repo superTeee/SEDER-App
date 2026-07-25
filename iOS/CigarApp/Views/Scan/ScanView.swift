@@ -202,9 +202,6 @@ struct ScanSheet: View {
                 divider
                 row(icon: "doc.text.viewfinder", title: "Kvittering",
                     subtitle: "Legg kjøpet rett i humidoren", action: onReceipt)
-                divider
-                row(icon: "barcode.viewfinder", title: "Strekkode",
-                    subtitle: "Skann strekkoden på esken", action: onBarcode)
             }
             .padding(.bottom, 8)
         }
