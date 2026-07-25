@@ -76,9 +76,6 @@ struct ExploreView: View {
     @State private var barcodeFoundCigar:    Cigar?   = nil
     @State private var navigateToBarcode     = false
 
-    // Global skann-bottom-sheet
-    @State private var showScanSheet = false
-
     // Kvittering-flyt (global, gjenbruker ReceiptService + ReceiptConfirmView)
     private let humidorService = HumidorService()
     private let receiptService = ReceiptService()
@@ -168,11 +165,10 @@ struct ExploreView: View {
             .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
             .toolbarBackground(Color("Background"), for: .navigationBar)
             .toolbarColorScheme(colorScheme, for: .navigationBar)
-            // Profil-avatar øverst til venstre + global skann via senter-knapp
+            // Profil-avatar øverst til venstre
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
             }
-            .onChange(of: appShell.scanTrigger) { _ in showScanSheet = true }
             // --- Sheets & navigasjon ---
             .sheet(isPresented: $showFilterSheet) {
                 AdvancedFilterSheet(
@@ -253,16 +249,16 @@ struct ExploreView: View {
                     }
                 }
             }
-            // Global skann-bottom-sheet
-            .sheet(isPresented: $showScanSheet) {
-                ScanSheet(
-                    onBand:    { showCameraPicker = true },
-                    onPhoto:   { showLibraryPicker = true },
-                    onReceipt: { showReceiptSource = true },
-                    onBarcode: { showBarcodeScan = true }
-                )
-                .presentationDetents([.height(380)])
-                .presentationDragIndicator(.visible)
+            // Skann-arket presenteres globalt fra ContentView; her kjører vi kun
+            // riktig flyt når brukeren har valgt (via appShell.pendingScan).
+            .onChange(of: appShell.pendingScan) { action in
+                guard let action else { return }
+                switch action {
+                case .band:    showCameraPicker = true
+                case .photo:   showLibraryPicker = true
+                case .receipt: showReceiptSource = true
+                }
+                appShell.pendingScan = nil
             }
             // Kvittering-flyt
             .confirmationDialog("Legg til sigarer fra kvittering", isPresented: $showReceiptSource, titleVisibility: .visible) {

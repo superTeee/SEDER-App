@@ -647,7 +647,7 @@ struct HumidorCard: View {
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 18, height: 15)
+                .frame(width: 17, height: 14)
             Text(countLabel)
                 .font(.system(size: 12, weight: .semibold))
         }

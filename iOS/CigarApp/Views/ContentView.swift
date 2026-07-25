@@ -3,20 +3,25 @@ import SwiftUI
 // MARK: - AppShell
 // Liten app-koordinator som lar den globale skann-knappen og profil-avataren
 // (som lever i ContentView / toolbars) styre resten av appen:
-//  • scanTrigger — bumpes for å be Utforsk om å åpne skann-arket
+//  • showScan/pendingScan — åpner skann-arket globalt, kjører flyt på Utforsk
 //  • showProfile — presenterer profilen modalt (avatar øverst til venstre)
 //  • ownAvatarUrl/ownName — hentes én gang, brukes i avatar-knappen
+enum ScanAction { case band, photo, receipt }
+
 @MainActor
 final class AppShell: ObservableObject {
-    @Published var scanTrigger = 0
+    /// Presenterer skann-arket globalt (over gjeldende fane — ingen navigasjon).
+    @Published var showScan = false
+    /// Valgt skann-handling → Utforsk kjører riktig flyt (kamera/kvittering).
+    @Published var pendingScan: ScanAction? = nil
     @Published var showProfile = false
     @Published var ownAvatarUrl: String?
     @Published var ownName: String = ""
 
     private let profileService = ProfileService()
 
-    /// Ber Utforsk-fanen åpne skann-arket (senter-knappen).
-    func requestScan() { scanTrigger += 1 }
+    /// Åpner skann-arket der brukeren står (senter-knappen).
+    func requestScan() { showScan = true }
 
     /// Henter egen avatar/navn til profil-knappen (kalles én gang ved oppstart).
     func loadOwnProfile(userId: UUID) async {
@@ -82,6 +87,20 @@ struct ContentView: View {
             ProfileView(onClose: { appShell.showProfile = false })
                 .environmentObject(authService)
                 .environmentObject(appShell)
+        }
+        // Skann-arket presenteres globalt (over gjeldende fane). Først når et valg
+        // gjøres bytter vi til Utforsk og kjører flyten der (kamera/kvittering).
+        .sheet(isPresented: $appShell.showScan) {
+            ScanSheet(
+                onBand:    { appShell.pendingScan = .band },
+                onPhoto:   { appShell.pendingScan = .photo },
+                onReceipt: { appShell.pendingScan = .receipt }
+            )
+            .presentationDetents([.height(300)])
+            .presentationDragIndicator(.visible)
+        }
+        .onChange(of: appShell.pendingScan) { action in
+            if action != nil { selectedTab = exploreTag }
         }
     }
 
@@ -158,8 +177,7 @@ struct ContentView: View {
 
     private var scanCenterButton: some View {
         Button {
-            selectedTab = exploreTag       // skann-flyten lever på Utforsk
-            appShell.requestScan()         // be Utforsk åpne skann-arket
+            appShell.requestScan()         // åpne skann-arket der brukeren står
         } label: {
             ZStack {
                 Circle()
