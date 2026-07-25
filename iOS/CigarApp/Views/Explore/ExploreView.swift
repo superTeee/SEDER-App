@@ -408,9 +408,12 @@ struct ExploreView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        // 5% accent i hvile, 10% når feltet er aktivt (fokusert)
-        .background(Color("Accent").opacity(searchFocused ? 0.10 : 0.05))
+        .background(colorScheme == .light ? Color.white : Color("Card"))
         .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color("TextSecondary").opacity(searchFocused ? 0.25 : 0.12), lineWidth: 1)
+        )
     }
 
     // MARK: - Filter-knapp (toolbar)

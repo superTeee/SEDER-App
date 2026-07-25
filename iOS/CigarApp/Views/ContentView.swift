@@ -137,7 +137,7 @@ struct ContentView: View {
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 28, height: 28)
+                        .frame(width: 32, height: 32)
                     if showBadge {
                         Circle()
                             .fill(Color.red)
@@ -164,7 +164,6 @@ struct ContentView: View {
                 Circle()
                     .fill(Color("Accent"))
                     .frame(width: 60, height: 60)
-                    .overlay(Circle().stroke(barFill, lineWidth: 4))   // ring så knappen «løftes» fra baren
                     .shadow(color: Color("Accent").opacity(0.35), radius: 8, x: 0, y: 3)
 
                 // Skann-ikon: søker-ramme + horisontal skann-strek
@@ -193,7 +192,6 @@ struct ProfileAvatarButton: View {
             appShell.showProfile = true
         } label: {
             AvatarView(url: appShell.ownAvatarUrl, name: appShell.ownName, size: 30)
-                .overlay(Circle().stroke(Color("TextSecondary").opacity(0.15), lineWidth: 0.5))
         }
         .accessibilityLabel("Profil")
     }
