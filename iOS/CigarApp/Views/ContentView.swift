@@ -127,7 +127,7 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 60)
-            .padding(.horizontal, 8)   // trekk fanene litt nærmere senter-knappen
+            .padding(.horizontal, 12)   // ytterste faner litt nærmere de indre
 
             // Hevet senter-knapp: SKANN
             scanCenterButton

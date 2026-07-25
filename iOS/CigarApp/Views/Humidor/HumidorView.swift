@@ -93,7 +93,7 @@ struct HumidorView: View {
                     if selectedTab == .humidor {
                         // Fullbredde-kort i samme stil som journal-kortene, ikke liste-rader.
                         ScrollView {
-                            LazyVStack(spacing: 10) {
+                            LazyVStack(spacing: 16) {
                                 if authService.userId != nil && !isLoading {
                                     ForEach(humidors) { humidor in
                                         NavigationLink(destination: HumidorDetailView(
