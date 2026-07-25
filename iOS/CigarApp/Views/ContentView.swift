@@ -108,6 +108,7 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 60)
+            .padding(.horizontal, 8)   // trekk fanene litt nærmere senter-knappen
 
             // Hevet senter-knapp: SKANN
             scanCenterButton
@@ -193,6 +194,7 @@ struct ProfileAvatarButton: View {
         } label: {
             AvatarView(url: appShell.ownAvatarUrl, name: appShell.ownName, size: 30)
         }
+        .buttonStyle(.plain)   // fjern iOS-standard rund knappe-bakgrunn/kant i toolbaren
         .accessibilityLabel("Profil")
     }
 }
