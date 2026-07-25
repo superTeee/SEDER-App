@@ -1201,6 +1201,7 @@ struct ActivityView: View {
             .toolbarBackground(Color("Background"), for: .navigationBar)
             .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
                 if authService.userId != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {

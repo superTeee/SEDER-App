@@ -8,15 +8,32 @@ struct ProfileView: View {
 
     @EnvironmentObject var authService: AuthService
 
+    /// Settes når profilen presenteres modalt (fra avatar-knappen) → viser lukk-knapp.
+    var onClose: (() -> Void)? = nil
+
     @State private var showLoginSheet = false
 
     var body: some View {
         NavigationStack {
-            if let userId = authService.userId {
-                UserProfileView(userId: userId, isOwnProfile: true)
-                    .environmentObject(authService)
-            } else {
-                notLoggedInView
+            Group {
+                if let userId = authService.userId {
+                    UserProfileView(userId: userId, isOwnProfile: true)
+                        .environmentObject(authService)
+                } else {
+                    notLoggedInView
+                }
+            }
+            .toolbar {
+                if let onClose {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: onClose) {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+                        }
+                        .accessibilityLabel("Lukk")
+                    }
+                }
             }
         }
     }

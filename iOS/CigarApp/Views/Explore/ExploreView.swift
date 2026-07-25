@@ -10,6 +10,7 @@ struct ExploreView: View {
     @StateObject private var scanService  = ScanService()
 
     @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var appShell: AppShell
     @Environment(\.colorScheme) private var colorScheme
 
     // Legg til egen sigar når søket ikke gir treff
@@ -158,18 +159,20 @@ struct ExploreView: View {
                                 browseContent
                             }
                         }
-                        .padding(.bottom, 100) // plass til FAB
+                        .padding(.bottom, 24)
                     }
                     .scrollDismissesKeyboard(.immediately) // dra/scroll lukker tastaturet
                 }
-
-                // — FAB: Skann sigar
-                scanFAB
             }
             .navigationTitle("Utforsk")
             .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
             .toolbarBackground(Color("Background"), for: .navigationBar)
             .toolbarColorScheme(colorScheme, for: .navigationBar)
+            // Profil-avatar øverst til venstre + global skann via senter-knapp
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
+            }
+            .onChange(of: appShell.scanTrigger) { _ in showScanSheet = true }
             // --- Sheets & navigasjon ---
             .sheet(isPresented: $showFilterSheet) {
                 AdvancedFilterSheet(
@@ -433,29 +436,6 @@ struct ExploreView: View {
                 }
         }
         .accessibilityLabel("Avansert søk")
-    }
-
-    // MARK: - FAB
-
-    private var scanFAB: some View {
-        Button {
-            showScanSheet = true
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 16, weight: .semibold))
-                Text("Skann sigar")
-                    .font(.system(size: 15, weight: .semibold))
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(Color("Accent"))
-            .foregroundColor(.white)
-            .clipShape(Capsule())
-            .shadow(color: Color("Accent").opacity(0.35), radius: 10, x: 0, y: 4)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 24)
     }
 
     // Les kvittering: hent humidorer (trengs i bekreft-arket) + parse + åpne ark.

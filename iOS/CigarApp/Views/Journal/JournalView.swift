@@ -38,6 +38,9 @@ struct JournalView: View {
                 .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
                 .toolbarBackground(Color("Background"), for: .navigationBar)
                 .toolbarColorScheme(colorScheme, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
+                }
             .onAppear { Task { await loadLogs() } }
             .refreshable { await loadLogs() }
             .sheet(isPresented: $showLoginSheet) {
