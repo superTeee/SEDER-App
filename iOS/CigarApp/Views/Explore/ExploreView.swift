@@ -425,7 +425,8 @@ struct ExploreView: View {
             Image(systemName: "slider.horizontal.3")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: 44, height: 44)
+                .frame(width: 48)
+                .frame(maxHeight: .infinity)   // match søkefeltets høyde
                 .background(Color("Accent"))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(alignment: .topTrailing) {
@@ -551,7 +552,7 @@ struct ExploreView: View {
                 if let vitola = cigar.vitola ?? cigar.commonFormat {
                     Text(vitola)
                         .font(.caption)
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .foregroundColor(Color(.secondaryLabel))
                 }
             }
 
@@ -1012,7 +1013,7 @@ struct ExploreResultRow: View {
                 if let vitolaLine {
                     Text(vitolaLine)
                         .font(.caption)
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .foregroundColor(Color(.secondaryLabel))
                 }
 
                 // Format-chip: navn + mål, så «Robusto» blir konkret.
@@ -1883,7 +1884,7 @@ struct TopCigarRow: View {
                 if let vitola = cigar.vitola {
                     Text(vitola)
                         .font(.caption)
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .foregroundColor(Color(.secondaryLabel))
                 }
             }
 
