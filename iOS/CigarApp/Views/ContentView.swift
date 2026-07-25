@@ -36,6 +36,7 @@ struct ContentView: View {
 
     @EnvironmentObject var authService: AuthService
     @StateObject private var appShell = AppShell()
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var selectedTab = 0   // åpner på Utforsk
     @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
@@ -86,36 +87,43 @@ struct ContentView: View {
 
     // MARK: - Egen tab-bar
 
+    // Opak bar-farge (hvit i light, mørkt kort i dark) — tydelig atskilt fra
+    // den beige sidebakgrunnen slik at innhold ikke skinner gjennom.
+    private var barFill: Color {
+        colorScheme == .light ? .white : Color("Card")
+    }
+
     private var customTabBar: some View {
         ZStack {
-            // Bakgrunn + fanene
+            // Fanene
             HStack(spacing: 0) {
                 tabButton(tag: exploreTag,  title: "Utforsk",   image: "tab_explore")
                 tabButton(tag: activityTag, title: "Aktivitet", image: "tab_feed")
 
                 // Hull til senter-knappen
-                Color.clear.frame(width: 64)
+                Color.clear.frame(width: 74)
 
                 tabButton(tag: journalTag,  title: "Journal",   image: "tab_journal")
                 tabButton(tag: humidorTag,  title: "Humidor",   image: "tab_humidor", showBadge: humidorHasNew)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(
-                Color("Background")
-                    .overlay(
-                        Rectangle()
-                            .fill(Color("TextSecondary").opacity(0.12))
-                            .frame(height: 0.5),
-                        alignment: .top
-                    )
-                    .ignoresSafeArea(edges: .bottom)
-            )
+            .frame(height: 60)
 
             // Hevet senter-knapp: SKANN
             scanCenterButton
-                .offset(y: -20)
+                .offset(y: -16)
         }
+        .background(
+            barFill
+                .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: -2)
+                .overlay(
+                    Rectangle()
+                        .fill(Color("TextSecondary").opacity(0.10))
+                        .frame(height: 0.5),
+                    alignment: .top
+                )
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 
     private func tabButton(tag: Int, title: String, image: String, showBadge: Bool = false) -> some View {
@@ -123,24 +131,24 @@ struct ContentView: View {
         return Button {
             selectedTab = tag
         } label: {
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 ZStack(alignment: .topTrailing) {
                     Image(image)
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 24, height: 24)
+                        .frame(width: 28, height: 28)
                     if showBadge {
                         Circle()
                             .fill(Color.red)
-                            .frame(width: 7, height: 7)
+                            .frame(width: 8, height: 8)
                             .offset(x: 5, y: -2)
                     }
                 }
                 Text(title)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 11, weight: .medium))
             }
-            .foregroundColor(selected ? Color("Accent") : Color("TextSecondary").opacity(0.55))
+            .foregroundColor(selected ? Color("Accent") : Color("TextSecondary").opacity(0.6))
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
@@ -155,11 +163,18 @@ struct ContentView: View {
             ZStack {
                 Circle()
                     .fill(Color("Accent"))
-                    .frame(width: 58, height: 58)
+                    .frame(width: 60, height: 60)
+                    .overlay(Circle().stroke(barFill, lineWidth: 4))   // ring så knappen «løftes» fra baren
                     .shadow(color: Color("Accent").opacity(0.35), radius: 8, x: 0, y: 3)
-                Image(systemName: "viewfinder")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.white)
+
+                // Skann-ikon: søker-ramme + horisontal skann-strek
+                ZStack {
+                    Image(systemName: "viewfinder")
+                        .font(.system(size: 27, weight: .light))
+                    Capsule()
+                        .frame(width: 19, height: 2)
+                }
+                .foregroundColor(.white)
             }
         }
         .buttonStyle(.plain)
