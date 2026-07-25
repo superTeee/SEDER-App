@@ -117,6 +117,7 @@ struct ContentView: View {
             // Fanene
             HStack(spacing: 0) {
                 tabButton(tag: exploreTag,  title: "Utforsk",   image: "tab_explore")
+                    .offset(x: 4)    // 4px nærmere Aktivitet
                 tabButton(tag: activityTag, title: "Aktivitet", image: "tab_feed")
 
                 // Hull til senter-knappen (smalere → fanene 4px nærmere skann-knappen)
@@ -124,6 +125,7 @@ struct ContentView: View {
 
                 tabButton(tag: journalTag,  title: "Journal",   image: "tab_journal")
                 tabButton(tag: humidorTag,  title: "Humidor",   image: "tab_humidor", showBadge: humidorHasNew)
+                    .offset(x: -4)   // 4px nærmere Journal
             }
             .frame(maxWidth: .infinity)
             .frame(height: 60)
