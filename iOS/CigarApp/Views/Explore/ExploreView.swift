@@ -407,7 +407,7 @@ struct ExploreView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 14)
         .background(colorScheme == .light ? Color.white : Color("Card"))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(
@@ -599,9 +599,11 @@ struct ExploreView: View {
                 ForEach(recentSearches, id: \.self) { term in
                     HStack(spacing: 12) {
                         Image(systemName: "clock")
+                            .font(.system(size: 15))
                             .foregroundColor(Color(.secondaryLabel))
                             .frame(width: 20)
                         Text(term)
+                            .font(.system(size: 15))
                             .foregroundColor(Color(.label))
                         Spacer()
                         Button {
