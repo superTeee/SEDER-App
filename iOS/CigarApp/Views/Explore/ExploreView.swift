@@ -407,7 +407,7 @@ struct ExploreView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 14)
+        .frame(height: 50)
         .background(colorScheme == .light ? Color.white : Color("Card"))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(
@@ -425,8 +425,7 @@ struct ExploreView: View {
             Image(systemName: "slider.horizontal.3")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: 48)
-                .frame(maxHeight: .infinity)   // match søkefeltets høyde
+                .frame(width: 50, height: 50)   // match søkefeltets høyde
                 .background(Color("Accent"))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(alignment: .topTrailing) {
