@@ -1,4 +1,5 @@
 import SwiftUI
+import LinkPresentation
 import PhotosUI
 import Kingfisher
 
@@ -1111,9 +1112,44 @@ struct IOSShareSheet: UIViewControllerRepresentable {
     let items: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        // Bytt ut rå URL-er med en kilde som leverer ferdig LPLinkMetadata.
+        // Uten dette henter iOS lenke-forhåndsvisningen over nett FØR arket
+        // tegnes ferdig → merkbart lag. Med ferdig metadata åpner arket umiddelbart.
+        let title = items.compactMap { $0 as? String }.first ?? "SEDER"
+        let prepared: [Any] = items.map { item in
+            if let url = item as? URL {
+                return ShareLinkSource(url: url, title: title)
+            }
+            return item
+        }
+        return UIActivityViewController(activityItems: prepared, applicationActivities: nil)
     }
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// Leverer lenke-metadata lokalt slik at UIActivityViewController slipper
+// nettverkshentingen som ellers forsinker at delings-arket vises.
+final class ShareLinkSource: NSObject, UIActivityItemSource {
+    let url: URL
+    let title: String
+
+    init(url: URL, title: String) {
+        self.url = url
+        self.title = title
+    }
+
+    func activityViewControllerPlaceholderItem(_ controller: UIActivityViewController) -> Any { url }
+
+    func activityViewController(_ controller: UIActivityViewController,
+                                itemForActivityType activityType: UIActivity.ActivityType?) -> Any? { url }
+
+    func activityViewControllerLinkMetadata(_ controller: UIActivityViewController) -> LPLinkMetadata? {
+        let md = LPLinkMetadata()
+        md.originalURL = url
+        md.url = url
+        md.title = title
+        return md
+    }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1271,14 +1307,26 @@ struct ActivityView: View {
     /// «Del» fra «...»-menyen: sørg for at oppføringen er delt eksternt (får slug),
     /// varm opp FB-cachen, og åpne delings-arket med tekst + lenke.
     private func sharePost(_ item: ActivityItem) {
+        let name = [item.cigarBrand, item.cigarSeries].compactMap { $0 }.joined(separator: " ")
+        let parts = [name, item.cigarVitola, item.cigarRating.map { "\($0)/100" }].compactMap { $0 }
+        let caption = parts.joined(separator: " · ") + " på SEDER"
+
+        // Rask vei: innlegget har allerede en offentlig slug → vis delings-arket
+        // umiddelbart. Sørg for at ekstern-flagget er satt i bakgrunnen slik at
+        // vi ikke blokkerer arket på et nettverkskall.
+        if let slug = item.publicSlug, let url = shareService.publicURL(slug: slug) {
+            shareService.primeFacebook(slug: slug)
+            externalShare = ExternalShareItem(url: url, image: nil, caption: caption)
+            Task { _ = try? await shareService.setSharing(entryId: item.entryId, community: true, external: true) }
+            return
+        }
+
+        // Ingen slug ennå → må hente en fra serveren først.
         Task {
             do {
                 let res = try await shareService.setSharing(entryId: item.entryId, community: true, external: true)
                 guard let slug = res.publicSlug, let url = shareService.publicURL(slug: slug) else { return }
                 shareService.primeFacebook(slug: slug)
-                let name = [item.cigarBrand, item.cigarSeries].compactMap { $0 }.joined(separator: " ")
-                let parts = [name, item.cigarVitola, item.cigarRating.map { "\($0)/100" }].compactMap { $0 }
-                let caption = parts.joined(separator: " · ") + " på SEDER"
                 await MainActor.run {
                     externalShare = ExternalShareItem(url: url, image: nil, caption: caption)
                 }
