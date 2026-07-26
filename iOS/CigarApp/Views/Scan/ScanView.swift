@@ -703,12 +703,6 @@ struct ManualAddSheet: View {
             .padding(20)
         }
         .background(sheetBackground.ignoresSafeArea())
-        .onAppear {
-            // Forhåndsutfyll fra OCR hvis vi leste noe – sparer skriving.
-            if brand.isEmpty, !ocrText.isEmpty {
-                brand = ocrText.split(separator: "\n").first.map(String.init) ?? ""
-            }
-        }
     }
 
     private func fieldLabel(_ t: String) -> some View {
@@ -730,7 +724,8 @@ struct ManualAddSheet: View {
         guard !b.isEmpty else { return }
         isSaving = true; errorText = nil
         do {
-            let note = ocrText.isEmpty ? "" : "Fra skann: \(ocrText)"
+            let trimmedOcr = String(ocrText.prefix(200))
+            let note = trimmedOcr.isEmpty ? "" : "Fra skann: \(trimmedOcr)"
             let cigar = try await cigarService.createOwnCigar(
                 brand: b, series: series, vitola: vitola,
                 country: "", wrapper: "", ringGauge: nil, lengthInches: nil,

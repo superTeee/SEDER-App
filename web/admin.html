@@ -104,6 +104,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const $ = (id) => document.getElementById(id);
 const show = (id) => { for (const s of ["app-login","app-denied","app-main"]) $(s).classList.toggle("hidden", s !== id); };
 const esc = (s) => (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const trunc = (s, n = 90) => { s = (s ?? "").toString(); return s.length > n ? s.slice(0, n) + "…" : s; };
 
 async function boot() {
   const { data:{ session } } = await db.auth.getSession();
@@ -150,8 +151,8 @@ async function loadDekning() {
   if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen bom registrert ennå.</div>'; return; }
   box.innerHTML = gaps.map(g => `
     <div class="card"><div class="row">
-      <div><div>${esc(g.sample_ocr || g.norm_text)}</div>
-        <div class="muted" style="font-size:12px">${esc(g.norm_text)}</div></div>
+      <div style="min-width:0"><div>${esc(trunc(g.sample_ocr || g.norm_text))}</div>
+        <div class="muted" style="font-size:12px">${esc(trunc(g.norm_text, 70))}</div></div>
       <div class="count">${g.misses}×</div>
     </div></div>`).join("");
 }
