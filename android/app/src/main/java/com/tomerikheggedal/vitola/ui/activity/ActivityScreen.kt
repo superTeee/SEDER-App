@@ -34,6 +34,7 @@ import com.tomerikheggedal.vitola.data.ActivityItem
 import com.tomerikheggedal.vitola.data.ActivityRepository
 import com.tomerikheggedal.vitola.data.FriendRepository
 import com.tomerikheggedal.vitola.data.JournalRepository
+import com.tomerikheggedal.vitola.data.ShareRepository
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.WishlistRepository
 import io.github.jan.supabase.gotrue.SessionStatus
