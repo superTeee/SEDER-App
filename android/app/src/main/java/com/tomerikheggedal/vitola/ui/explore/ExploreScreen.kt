@@ -155,6 +155,9 @@ fun ExploreScreen(
     var pendingShape by remember { mutableStateOf<ScanOutcome?>(null) }
     var pendingWrapper by remember { mutableStateOf<ScanOutcome?>(null) }
     var showManualAdd by remember { mutableStateOf(false) }
+    // Ingen treff → vennlig skjerm + manuell innlegging (speiler iOS-flyten).
+    var showNoMatch by remember { mutableStateOf(false) }
+    var showScanManualAdd by remember { mutableStateOf(false) }
     // Hurtighandlinger (long-trykk) — som iOS contextMenu.
     var quickCigar by remember { mutableStateOf<Cigar?>(null) }
     var qaAddHumidor by remember { mutableStateOf<Cigar?>(null) }
@@ -176,10 +179,8 @@ fun ExploreScreen(
             outcome.needsShape -> pendingShape = outcome
             outcome.needsWrapper -> pendingWrapper = outcome
             outcome.hits.isEmpty() -> {
-                // Aldri blindvei: la brukeren legge sigaren til selv (bånd-bildet
-                // huskes, så den lærte koblingen registreres når de oppretter den).
-                scope.launch { snackbar.showSnackbar("Fant ingen match — legg sigaren til selv.") }
-                showManualAdd = true
+                // Aldri blindvei: vennlig ingen-treff-skjerm (prøv på nytt / legg inn manuelt).
+                showNoMatch = true
             }
             outcome.hits.size == 1 -> resolveTo(outcome.hits.first().cigar.id)
             else -> scanResults = outcome.hits
@@ -459,12 +460,32 @@ fun ExploreScreen(
         )
     }
 
-    // Legg til sigar manuelt.
+    // Legg til sigar manuelt (fra søk).
     if (showManualAdd) {
         AddCigarSheet(
             initialBrand = vm.query,
             onDismiss = { showManualAdd = false },
             onCreated = { newId -> showManualAdd = false; resolveTo(newId) }
+        )
+    }
+
+    // Ingen treff → vennlig skjerm (prøv på nytt / legg inn manuelt).
+    if (showNoMatch) {
+        NoMatchSheet(
+            onDismiss = { showNoMatch = false },
+            onRetry = { showNoMatch = false; cameraLauncher.launch(null) },
+            onManualAdd = { showNoMatch = false; showScanManualAdd = true }
+        )
+    }
+    // Manuell innlegging fra ingen-treff (motiverende + merke-autocomplete).
+    if (showScanManualAdd) {
+        ManualAddCigarSheet(
+            ocrText = scanCtx?.first ?: "",
+            onDismiss = { showScanManualAdd = false },
+            onAdded = {
+                showScanManualAdd = false
+                scope.launch { snackbar.showSnackbar("Lagt i humidoren – takk for bidraget!") }
+            }
         )
     }
 

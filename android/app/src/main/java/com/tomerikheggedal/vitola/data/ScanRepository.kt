@@ -80,7 +80,24 @@ object ScanRepository {
             }
         }
 
+        // Logg skann-hendelsen for dekning-datahjulet (treffrate + hvilke sigarer
+        // folk skanner som vi ikke har). Best effort — velter aldri flyten.
+        val top = hits.firstOrNull()
+        logScanEvent(rawText, hits.isNotEmpty(), top?.cigar?.id, top?.confidence)
+
         return ScanOutcome(hits, auto, needsShape, needsWrapper, candidates, rawText)
+    }
+
+    /** Sender skann-resultatet til Supabase (log_scan_event) for dekning-analyse. */
+    private suspend fun logScanEvent(ocrText: String, hit: Boolean, matchedCigarId: String?, confidence: Double?) {
+        runCatching {
+            Supa.client.postgrest.rpc("log_scan_event", buildJsonObject {
+                put("p_ocr_text", ocrText.take(300))
+                put("p_hit", hit)
+                if (matchedCigarId != null) put("p_matched_cigar_id", matchedCigarId) else put("p_matched_cigar_id", JsonNull)
+                if (confidence != null) put("p_confidence", confidence) else put("p_confidence", JsonNull)
+            })
+        }
     }
 
     /** Bakoverkompatibel enkel skann (kun AI) — brukes der full flyt ikke trengs. */

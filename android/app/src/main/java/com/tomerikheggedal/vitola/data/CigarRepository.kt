@@ -99,6 +99,26 @@ object CigarRepository {
             .firstOrNull()
     }
 
+    /** Merke-autocomplete (manuell innlegging): eksisterende merker som matcher, distinkt. */
+    suspend fun searchBrands(query: String): List<String> {
+        val q = query.trim()
+        if (q.isBlank()) return emptyList()
+        val rows = Supa.client.from("cigars")
+            .select(columns = Columns.list("brand", "series")) {
+                filter { ilike("brand", "%$q%") }
+                limit(60)
+            }
+            .decodeList<BrandRow>()
+        return rows.map { it.brand }.distinctBy { it.lowercase() }.take(6)
+    }
+
+    /** Serie-/navn-forslag for et valgt merke (autocomplete). */
+    suspend fun seriesForBrand(brand: String): List<String> =
+        runCatching { byBrand(brand) }.getOrDefault(emptyList())
+            .mapNotNull { it.series?.takeIf { s -> s.isNotBlank() } }
+            .distinctBy { it.lowercase() }
+            .take(6)
+
     /** Brukernes topp 3 — snitt fra reelle stemmer (RPC top_rated_cigars, migrasjon 107). */
     suspend fun topRated(limit: Int = 3): List<Cigar> {
         return Supa.client.postgrest

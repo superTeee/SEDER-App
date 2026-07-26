@@ -1,7 +1,14 @@
 # Vitola Android — paritet-sjekkliste
 
 Status for Android-appen sammenlignet med iOS. Oppdateres etter hvert som vi jobber.
-Sist oppdatert: 2026-07-20
+Sist oppdatert: 2026-07-26
+
+### Skann-dekning (paritet — klynge A, 26. juli)
+- ✅ `log_scan_event`-logging på hvert bånd-skann (treff + bom) → scan_events (dekning-datahjul) — ScanRepository
+- ✅ Vennlig «ingen treff»-ark (stiplet spøkelses-sigar + årsaks-liste + prøv-på-nytt/legg-inn-manuelt) — ScanNoMatchSheets.NoMatchSheet
+- ✅ Manuell-innlegging-ark: motiverende tekst + merke-autocomplete (searchBrands) → create_own_cigar (suggest) + legg i første humidor — ScanNoMatchSheets.ManualAddCigarSheet
+- 🟡 Båndbildet festes ikke til bidraget ennå (kun OCR-tekst i notat) — samme som iOS v1
+- ⬜ Gjenstår Android-paritet: B tab-bar/senter-skann, C kvittering-oppgradering, D aktivitet (+/slett/venn), E vurdering 0–100, F UI-finpuss
 
 ### Feed → Aktivitet + deling (paritet)
 - ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt
