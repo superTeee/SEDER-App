@@ -179,6 +179,16 @@ const FIELDS = [
   ["description","Beskrivelse","textarea"],
 ];
 
+// Hvilke skjemafelt hvert «mangler»-token dekker (matcher appens GapField).
+const MISSING_TO_FIELDS = {
+  dimensions:  ["ring_gauge", "length_inches"],
+  origin:      ["country_origin"],
+  wrapper:     ["wrapper_leaf"],
+  strength:    ["strength"],
+  flavor:      ["flavor_notes"],
+  description: ["description"],
+};
+
 async function loadDatahull() {
   const { data: gaps } = await db.rpc("admin_data_gaps");
   const box = $("gaps-data");
@@ -186,7 +196,11 @@ async function loadDatahull() {
   box.innerHTML = gaps.map((g, i) => {
     const navn = g.cigar_navn && g.cigar_navn.length ? g.cigar_navn : g.brand;
     const chips = (g.missing || []).map(m => `<span class="chip">${esc(m)}</span>`).join("");
-    const fields = FIELDS.map(([k,label,type]) => `
+    // Vis kun feltene som faktisk mangler (matcher «X mangler»); fyll aldri det som finnes.
+    const allowed = new Set();
+    (g.missing || []).forEach(m => (MISSING_TO_FIELDS[m] || []).forEach(k => allowed.add(k)));
+    const shownFields = allowed.size ? FIELDS.filter(([k]) => allowed.has(k)) : FIELDS;
+    const fields = shownFields.map(([k,label,type]) => `
       <div><label class="f">${label}</label>${
         type === "textarea"
           ? `<textarea id="f-${i}-${k}" rows="2"></textarea>`
