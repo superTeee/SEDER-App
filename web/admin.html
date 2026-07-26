@@ -153,9 +153,20 @@ async function loadDekning() {
     <div class="card"><div class="row">
       <div style="min-width:0"><div>${esc(trunc(g.sample_ocr || g.norm_text))}</div>
         <div class="muted" style="font-size:12px">${esc(trunc(g.norm_text, 70))}</div></div>
-      <div class="count">${g.misses}×</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+        <span class="count">${g.misses}×</span>
+        <button title="Fjern (støy)" style="border:none;background:none;padding:4px;color:#b9433a;cursor:pointer"
+          onclick="deleteScanGap('${esc(g.norm_text)}')"><i class="ti ti-trash" style="font-size:18px"></i></button>
+      </div>
     </div></div>`).join("");
 }
+
+async function deleteScanGap(normText) {
+  if (!confirm("Fjerne denne bom-oppføringen? (fjerner den fra listen)")) return;
+  await db.rpc("admin_delete_scan_gap", { p_norm_text: normText });
+  loadDekning();
+}
+window.deleteScanGap = deleteScanGap;
 
 // ---- Datahull ----
 const FIELDS = [
