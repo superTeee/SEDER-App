@@ -881,8 +881,6 @@ private fun ChevronIcon() {
 }
 
 // «Skann sigar»-FAB som iOS: pill med kamera-ikon, åpner en meny.
-// Uten strekkode-valget — bare kamera og kamerarull.
-@Composable
 // Ett valg i skann-arket (ikon-flate + tittel + undertittel).
 @Composable
 private fun ScanOption(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
