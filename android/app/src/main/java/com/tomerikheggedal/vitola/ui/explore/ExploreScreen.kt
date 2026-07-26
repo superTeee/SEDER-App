@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -138,6 +139,8 @@ class ExploreViewModel : ViewModel() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(
+    onProfile: () -> Unit = {},
+    scanTick: Int = 0,
     onBrand: (String) -> Unit,
     onCigar: (String) -> Unit,
     vm: ExploreViewModel = viewModel()
@@ -158,6 +161,9 @@ fun ExploreScreen(
     // Ingen treff → vennlig skjerm + manuell innlegging (speiler iOS-flyten).
     var showNoMatch by remember { mutableStateOf(false) }
     var showScanManualAdd by remember { mutableStateOf(false) }
+    // Skann-ark åpnet av senter-knappen i tab-baren (band / kamerarull).
+    var showScanChooser by remember { mutableStateOf(false) }
+    LaunchedEffect(scanTick) { if (scanTick > 0) showScanChooser = true }
     // Hurtighandlinger (long-trykk) — som iOS contextMenu.
     var quickCigar by remember { mutableStateOf<Cigar?>(null) }
     var qaAddHumidor by remember { mutableStateOf<Cigar?>(null) }
@@ -233,19 +239,10 @@ fun ExploreScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = {
-            ScanFab(
-                onCamera = { cameraLauncher.launch(null) },
-                onGallery = {
-                    galleryLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                }
-            )
-        },
         topBar = {
             TopAppBar(
                 title = { Text("Utforsk", fontWeight = FontWeight.Bold) },
+                navigationIcon = { com.tomerikheggedal.vitola.ui.components.TopBarProfileAvatar(onProfile) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -487,6 +484,26 @@ fun ExploreScreen(
                 scope.launch { snackbar.showSnackbar("Lagt i humidoren – takk for bidraget!") }
             }
         )
+    }
+
+    // Skann-ark fra senter-knappen (sigarbånd / bilde fra kamerarull).
+    if (showScanChooser) {
+        val chooserState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(onDismissRequest = { showScanChooser = false }, sheetState = chooserState,
+            containerColor = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Text("Skann", fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 20.dp, top = 4.dp, bottom = 12.dp))
+                ScanOption(Icons.Filled.CameraAlt, "Sigarbånd", "Skann båndet på sigaren") {
+                    showScanChooser = false; cameraLauncher.launch(null)
+                }
+                ScanOption(Icons.Filled.PhotoLibrary, "Bilde fra kamerarull", "Velg et bilde du har tatt") {
+                    showScanChooser = false
+                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }
+            }
+        }
     }
 
     // Hurtighandlinger (long-trykk på en sigar-rad).
@@ -865,6 +882,30 @@ private fun ChevronIcon() {
 
 // «Skann sigar»-FAB som iOS: pill med kamera-ikon, åpner en meny.
 // Uten strekkode-valget — bare kamera og kamerarull.
+@Composable
+// Ett valg i skann-arket (ikon-flate + tittel + undertittel).
+@Composable
+private fun ScanOption(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(44.dp).clip(RoundedCornerShape(11.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
 @Composable
 private fun ScanFab(onCamera: () -> Unit, onGallery: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }

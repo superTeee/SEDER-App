@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HumidorScreen(
+    onProfile: () -> Unit = {},
     requestedTab: Int? = null,
     onTabConsumed: () -> Unit = {},
     onHumidor: (String) -> Unit = {},
@@ -144,6 +145,7 @@ fun HumidorScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Humidor", fontWeight = FontWeight.Bold) },
+                navigationIcon = { com.tomerikheggedal.vitola.ui.components.TopBarProfileAvatar(onProfile) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 ),

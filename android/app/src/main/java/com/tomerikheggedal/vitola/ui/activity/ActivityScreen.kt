@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 // kommentarer. Hele kortet → sigarens detaljside. «＋ ønskeliste» legger rett til.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ActivityScreen(onCigar: (String) -> Unit, onUser: (String) -> Unit = {}) {
+fun ActivityScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit, onUser: (String) -> Unit = {}) {
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
     val scope = rememberCoroutineScope()
@@ -59,6 +59,7 @@ fun ActivityScreen(onCigar: (String) -> Unit, onUser: (String) -> Unit = {}) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Aktivitet", fontWeight = FontWeight.Bold) },
+                navigationIcon = { com.tomerikheggedal.vitola.ui.components.TopBarProfileAvatar(onProfile) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )

@@ -8,7 +8,13 @@ Sist oppdatert: 2026-07-26
 - ✅ Vennlig «ingen treff»-ark (stiplet spøkelses-sigar + årsaks-liste + prøv-på-nytt/legg-inn-manuelt) — ScanNoMatchSheets.NoMatchSheet
 - ✅ Manuell-innlegging-ark: motiverende tekst + merke-autocomplete (searchBrands) → create_own_cigar (suggest) + legg i første humidor — ScanNoMatchSheets.ManualAddCigarSheet
 - 🟡 Båndbildet festes ikke til bidraget ennå (kun OCR-tekst i notat) — samme som iOS v1
-- ⬜ Gjenstår Android-paritet: B tab-bar/senter-skann, C kvittering-oppgradering, D aktivitet (+/slett/venn), E vurdering 0–100, F UI-finpuss
+
+### Tab-bar + senter-skann + profil-avatar (paritet — klynge B, 26. juli)
+- ✅ Egen tab-bar (VitolaApp): 4 faner (Utforsk · Aktivitet | Journal · Humidor) + hevet senter-skann-knapp; aktiv fane = aksent-flate bak hvitt ikon
+- ✅ Profil ut av baren → avatar øverst til venstre på alle fire toppskjermer (TopBarProfileAvatar), åpner profil-ruten
+- ✅ Senter-skann åpner skann-ark (Sigarbånd / Bilde fra kamerarull) på Utforsk (scanTick → showScanChooser); gammel «Skann sigar»-FAB fjernet
+- 🟡 Kvittering ligger fortsatt i Humidor-«+»-menyen (ikke i skann-arket ennå — vurder å flytte inn i C)
+- ⬜ Gjenstår Android-paritet: C kvittering-oppgradering, D aktivitet (+/slett/venn), E vurdering 0–100, F UI-finpuss
 
 ### Feed → Aktivitet + deling (paritet)
 - ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt

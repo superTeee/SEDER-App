@@ -44,7 +44,7 @@ private fun parseInstant(s: String): Instant? =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JournalScreen(onCigar: (String) -> Unit) {
+fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
@@ -65,6 +65,7 @@ fun JournalScreen(onCigar: (String) -> Unit) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Journal", fontWeight = FontWeight.Bold) },
+                navigationIcon = { com.tomerikheggedal.vitola.ui.components.TopBarProfileAvatar(onProfile) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
