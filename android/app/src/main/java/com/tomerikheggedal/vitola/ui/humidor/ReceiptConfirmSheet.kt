@@ -45,6 +45,8 @@ private class EditableReceiptLine(
     var priceText by mutableStateOf(priceText)
     var humidorId by mutableStateOf(humidorId)
     var included by mutableStateOf(true)
+    // Satt når raden ble smart-rutet til sist-brukte humidor (viser «sist her»-hint).
+    var smartAssigned by mutableStateOf(false)
 }
 
 // Bekreft-skjerm: varelinjene fra kvitteringen, ferdig matchet. Én standard-humidor
@@ -80,6 +82,14 @@ fun ReceiptConfirmSheet(
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var manualResolving by remember { mutableStateOf<ReceiptUnmatchedLine?>(null) }
+    var groupByHumidor by remember { mutableStateOf(false) }
+
+    // Smart forhåndsvalg: rut hver sigar til humidoren den lå i sist.
+    LaunchedEffect(Unit) {
+        val ids = lines.map { it.cigarId }
+        val last = runCatching { HumidorRepository.lastHumidorByCigar(ids) }.getOrDefault(emptyMap())
+        lines.forEach { l -> last[l.cigarId]?.let { hid -> l.humidorId = hid; l.smartAssigned = true } }
+    }
 
     val total = lines.filter { it.included }.sumOf { it.quantity }
 
@@ -110,10 +120,37 @@ fun ReceiptConfirmSheet(
             FieldLabelR("Legg alle i")
             HumidorDropdown(humidors, defaultHumidorId) { id ->
                 defaultHumidorId = id
-                lines.forEach { it.humidorId = id }
+                lines.forEach { it.humidorId = id; it.smartAssigned = false }
             }
             Text("Velger du humidor her, flyttes alle sigarene dit. Overstyr hver enkelt under.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            // Grupper etter humidor (read-only oppsummering med totalsum).
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Grupper etter humidor", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                Switch(checked = groupByHumidor, onCheckedChange = { groupByHumidor = it })
+            }
+            if (groupByHumidor) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.background).padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    lines.filter { it.included }.groupBy { it.humidorId }.forEach { (hid, ls) ->
+                        val name = humidors.firstOrNull { it.id == hid }?.name ?: "Ingen humidor"
+                        val qty = ls.sumOf { it.quantity }
+                        val sum = ls.sumOf {
+                            (it.priceText.trim().replace(',', '.').toDoubleOrNull() ?: 0.0) * it.quantity
+                        }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("$name · $qty stk", Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text("${formatReceiptPrice(sum)} kr", fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
 
             FieldLabelR("Kjøpt hos")
             OutlinedTextField(
@@ -239,7 +276,16 @@ private fun LineRow(line: EditableReceiptLine, humidors: List<HumidorRow>) {
             )
         }
 
-        HumidorDropdown(humidors, line.humidorId, enabled = line.included) { line.humidorId = it }
+        Row(verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HumidorDropdown(humidors, line.humidorId, enabled = line.included) {
+                line.humidorId = it; line.smartAssigned = false
+            }
+            if (line.smartAssigned) {
+                Text("sist her", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+        }
     }
 }
 

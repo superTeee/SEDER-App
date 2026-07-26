@@ -221,6 +221,26 @@ object HumidorRepository {
             .firstOrNull()?.id
     }
 
+    /** Sist-brukte humidor per cigar_id (nyeste created_at). Til smart forhåndsvalg i kvittering. */
+    suspend fun lastHumidorByCigar(cigarIds: List<String>): Map<String, String> {
+        if (cigarIds.isEmpty()) return emptyMap()
+        val userId = Supa.client.auth.currentUserOrNull()?.id ?: return emptyMap()
+        val rows = Supa.client.from("humidor")
+            .select(columns = Columns.list("cigar_id", "humidor_id", "created_at")) {
+                filter { eq("user_id", userId) }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<LastHumidorRow>()
+        val wanted = cigarIds.toSet()
+        val map = LinkedHashMap<String, String>()
+        for (r in rows) {
+            val c = r.cigarId ?: continue
+            val h = r.humidorId ?: continue
+            if (c in wanted && c !in map) map[c] = h
+        }
+        return map
+    }
+
     /** Legg en sigar i en humidor med antall og valgfri butikk. */
     suspend fun addCigar(cigarId: String, humidorId: String, quantity: Int = 1, store: String? = null, purchasePrice: Double? = null) {
         val userId = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
@@ -324,6 +344,12 @@ private data class PhotoUrlRow(@SerialName("photo_url") val photoUrl: String? = 
 
 @Serializable
 private data class EntryIdRow(val id: String)
+
+@Serializable
+private data class LastHumidorRow(
+    @SerialName("cigar_id") val cigarId: String? = null,
+    @SerialName("humidor_id") val humidorId: String? = null,
+)
 
 @Serializable
 private data class QuantityRow(val quantity: Int? = null)

@@ -57,6 +57,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HumidorScreen(
     onProfile: () -> Unit = {},
+    receiptTick: Int = 0,
     requestedTab: Int? = null,
     onTabConsumed: () -> Unit = {},
     onHumidor: (String) -> Unit = {},
@@ -79,6 +80,8 @@ fun HumidorScreen(
     var parsingReceipt by remember { mutableStateOf(false) }
     var receiptResult by remember { mutableStateOf<ReceiptParseResult?>(null) }
     var receiptError by remember { mutableStateOf<String?>(null) }
+    // «Kvittering» valgt i skann-arket (senter-knappen) → åpne kilde-valg direkte.
+    LaunchedEffect(receiptTick) { if (receiptTick > 0) showReceiptSource = true }
 
     fun runParse(jpeg: ByteArray?) {
         if (jpeg == null) return

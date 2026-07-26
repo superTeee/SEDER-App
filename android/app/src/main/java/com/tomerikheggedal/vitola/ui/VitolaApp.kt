@@ -59,6 +59,8 @@ fun VitolaApp() {
     var humidorTabRequest by remember { mutableStateOf<Int?>(null) }
     // Bumpes av senter-skann-knappen → Utforsk åpner skann-arket.
     var scanTick by remember { mutableIntStateOf(0) }
+    // Bumpes når «Kvittering» velges i skann-arket → Humidor åpner kvittering-flyten.
+    var receiptTick by remember { mutableIntStateOf(0) }
 
     var selectedTab by remember { mutableStateOf("explore") }
     LaunchedEffect(currentBase) {
@@ -115,6 +117,7 @@ fun VitolaApp() {
                 ExploreScreen(
                     onProfile = toProfile,
                     scanTick = scanTick,
+                    onReceipt = { navigateTab("humidor"); receiptTick++ },
                     onBrand = { nav.navigate("brand/${it}") },
                     onCigar = { nav.navigate("cigar/${it}") }
                 )
@@ -135,6 +138,7 @@ fun VitolaApp() {
             composable("humidor") {
                 HumidorScreen(
                     onProfile = toProfile,
+                    receiptTick = receiptTick,
                     requestedTab = humidorTabRequest,
                     onTabConsumed = { humidorTabRequest = null },
                     onHumidor = { nav.navigate("humidorDetail/${it}") },

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
@@ -141,6 +142,7 @@ class ExploreViewModel : ViewModel() {
 fun ExploreScreen(
     onProfile: () -> Unit = {},
     scanTick: Int = 0,
+    onReceipt: () -> Unit = {},
     onBrand: (String) -> Unit,
     onCigar: (String) -> Unit,
     vm: ExploreViewModel = viewModel()
@@ -501,6 +503,9 @@ fun ExploreScreen(
                 ScanOption(Icons.Filled.PhotoLibrary, "Bilde fra kamerarull", "Velg et bilde du har tatt") {
                     showScanChooser = false
                     galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }
+                ScanOption(Icons.Filled.ReceiptLong, "Kvittering", "Legg kjøpet rett i humidoren") {
+                    showScanChooser = false; onReceipt()
                 }
             }
         }
