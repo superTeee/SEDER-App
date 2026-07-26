@@ -8,7 +8,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import android.content.Intent
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.StarBorder
@@ -19,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,6 +32,8 @@ import coil.compose.AsyncImage
 import kotlin.math.roundToInt
 import com.tomerikheggedal.vitola.data.ActivityItem
 import com.tomerikheggedal.vitola.data.ActivityRepository
+import com.tomerikheggedal.vitola.data.FriendRepository
+import com.tomerikheggedal.vitola.data.JournalRepository
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.WishlistRepository
 import io.github.jan.supabase.gotrue.SessionStatus
@@ -54,12 +61,57 @@ fun ActivityScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit, onUser
         } else { items = emptyList(); loading = false }
     }
 
+    val context = LocalContext.current
+    val myId = remember { Supa.client.auth.currentUserOrNull()?.id }
+    val snackbar = remember { SnackbarHostState() }
+    var pendingDelete by remember { mutableStateOf<ActivityItem?>(null) }
+    var showCompose by remember { mutableStateOf(false) }
+    var composeLogCigar by remember { mutableStateOf<com.tomerikheggedal.vitola.data.Cigar?>(null) }
+    var composeShareId by remember { mutableStateOf<String?>(null) }
+
+    suspend fun reload() {
+        items = runCatching { ActivityRepository.activity(40) }.getOrDefault(items)
+    }
+
+    fun addFriend(item: ActivityItem) {
+        scope.launch {
+            val ok = runCatching { FriendRepository.request(item.userId) }.isSuccess
+            snackbar.showSnackbar(
+                if (ok) "Venneforespørsel sendt til ${item.authorName}" else "Kunne ikke sende forespørsel"
+            )
+        }
+    }
+    fun shareItem(item: ActivityItem) {
+        scope.launch {
+            val slug = item.publicSlug ?: runCatching {
+                ShareRepository.setSharing(item.entryId, community = true, external = true).publicSlug
+            }.getOrNull()
+            if (slug == null) { snackbar.showSnackbar("Kunne ikke dele akkurat nå"); return@launch }
+            val url = ShareRepository.publicUrl(slug)
+            val name = listOfNotNull(item.cigarBrand, item.cigarSeries, item.cigarVitola).joinToString(" · ")
+            val text = name + (item.cigarRating?.let { " · $it/100" } ?: "") + " på SEDER\n$url"
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text)
+            }
+            context.startActivity(Intent.createChooser(send, "Del"))
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Aktivitet", fontWeight = FontWeight.Bold) },
                 navigationIcon = { com.tomerikheggedal.vitola.ui.components.TopBarProfileAvatar(onProfile) },
+                actions = {
+                    if (isAuthed) {
+                        IconButton(onClick = { showCompose = true }) {
+                            Icon(Icons.Filled.Add, contentDescription = "Nytt innlegg",
+                                tint = MaterialTheme.colorScheme.onBackground)
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -80,8 +132,12 @@ fun ActivityScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit, onUser
                         ActivityCard(
                             item = item,
                             isWishlisted = wishlisted.contains(item.cigarId),
+                            isMine = myId != null && item.userId == myId,
                             onClick = { onCigar(item.cigarId) },
                             onUser = { onUser(item.userId) },
+                            onAddFriend = { addFriend(item) },
+                            onShare = { shareItem(item) },
+                            onDelete = { pendingDelete = item },
                             onWishlist = {
                                 if (!wishlisted.contains(item.cigarId)) {
                                     wishlisted = wishlisted + item.cigarId
@@ -96,6 +152,49 @@ fun ActivityScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit, onUser
                 }
             }
         }
+    }
+
+    pendingDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Slette innlegget?") },
+            text = { Text("Innlegget fjernes fra aktiviteten og journalen din.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDelete = null
+                    scope.launch {
+                        runCatching { JournalRepository.deleteLog(target.entryId) }
+                        items = items.filterNot { it.entryId == target.entryId }
+                    }
+                }) { Text("Slett") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Avbryt") } }
+        )
+    }
+
+    // «+» nytt innlegg: søk opp en sigar → samme logg-ark (0–100 + notat) → del-tilbud.
+    if (showCompose) {
+        ComposePostSheet(
+            onDismiss = { showCompose = false },
+            onPick = { cigar -> showCompose = false; composeLogCigar = cigar }
+        )
+    }
+    composeLogCigar?.let { c ->
+        com.tomerikheggedal.vitola.ui.detail.SmokingLogSheet(
+            cigar = c,
+            humidorEntryId = null,
+            onDismiss = { composeLogCigar = null },
+            onLogged = { logId ->
+                composeLogCigar = null
+                scope.launch { reload() }
+                if (logId.isNotBlank()) composeShareId = logId
+            }
+        )
+    }
+    composeShareId?.let { eid ->
+        com.tomerikheggedal.vitola.ui.detail.ShareAfterSaveSheet(
+            entryId = eid, onDismiss = { composeShareId = null }
+        )
     }
 }
 
@@ -112,10 +211,15 @@ private fun BoxScope.Centered(text: String) {
 private fun ActivityCard(
     item: ActivityItem,
     isWishlisted: Boolean,
+    isMine: Boolean,
     onClick: () -> Unit,
     onUser: () -> Unit,
+    onAddFriend: () -> Unit,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
     onWishlist: () -> Unit,
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     val starCount = ((item.cigarRating ?: 0) / 20.0).roundToInt().coerceIn(0, 5)
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
@@ -144,6 +248,25 @@ private fun ActivityCard(
             Spacer(Modifier.width(6.dp))
             Text(item.verbText, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.weight(1f))
+            Box {
+                IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "Mer",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    if (!isMine) {
+                        DropdownMenuItem(text = { Text("Legg til som venn") },
+                            onClick = { menuOpen = false; onAddFriend() })
+                    }
+                    DropdownMenuItem(text = { Text("Del") },
+                        onClick = { menuOpen = false; onShare() })
+                    if (isMine) {
+                        DropdownMenuItem(text = { Text("Slett") },
+                            onClick = { menuOpen = false; onDelete() })
+                    }
+                }
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.background)
 
@@ -214,6 +337,76 @@ private fun ActivityCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 2.dp, bottom = 16.dp)
             )
+        }
+    }
+}
+
+// «+» fra Aktivitet: søk opp en sigar å skrive om → velg → logg-ark (i ActivityScreen).
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ComposePostSheet(onDismiss: () -> Unit, onPick: (com.tomerikheggedal.vitola.data.Cigar) -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var query by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<com.tomerikheggedal.vitola.data.Cigar>>(emptyList()) }
+    var searching by remember { mutableStateOf(false) }
+    var hasSearched by remember { mutableStateOf(false) }
+
+    fun runSearch() {
+        val q = query.trim()
+        if (q.isBlank()) { results = emptyList(); hasSearched = false; return }
+        scope.launch {
+            searching = true; hasSearched = true
+            results = runCatching {
+                com.tomerikheggedal.vitola.data.CigarRepository.search(q).map { it.cigar }.distinctBy { it.id }
+            }.getOrDefault(emptyList())
+            searching = false
+        }
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)
+                .heightIn(max = 520.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text("Nytt innlegg", fontSize = 20.sp, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface)
+            Text("Søk opp en sigar du vil skrive om.", fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it; if (it.isBlank()) { results = emptyList(); hasSearched = false } },
+                placeholder = { Text("F.eks. Liga Privada, Padrón…") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = { if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
+                singleLine = true,
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { runSearch() }),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (hasSearched && results.isEmpty() && !searching) {
+                Text("Ingen sigarer matchet «$query».", fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                items(results, key = { it.id }) { cigar ->
+                    Column(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                            .clickable { onPick(cigar) }.padding(vertical = 10.dp)
+                    ) {
+                        Text(cigar.brand, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        val meta = listOfNotNull(cigar.series, cigar.vitola).joinToString(" · ")
+                        if (meta.isNotBlank()) {
+                            Text(meta, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
         }
     }
 }

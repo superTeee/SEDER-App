@@ -18,7 +18,11 @@ Sist oppdatert: 2026-07-26
 - ✅ «Grupper etter humidor»-bryter → read-only oppsummering med antall + totalsum kr per humidor
 - ✅ Pris/stk per rad fantes fra før (→ purchase_price, vises på detalj)
 - ✅ «Kvittering» flyttet inn i skann-arket (senter-knapp) → navigerer til Humidor + åpner kilde-valg (receiptTick). Fortsatt også i Humidor-«+»-menyen.
-- ⬜ Gjenstår Android-paritet: D aktivitet (+/slett/venn), E vurdering 0–100, F UI-finpuss
+
+### Aktivitet: «+» / kontekst-meny / slett (paritet — klynge D, 26. juli)
+- ✅ «+» øverst til høyre → ComposePostSheet: søk opp sigar → velg → samme logg-ark (0–100 + notat) → del-tilbud (ShareAfterSaveSheet); gjenbruker CigarRepository.search + SmokingLogSheet, ingen ny backend
+- ✅ «...»-meny på hvert kort: eget innlegg → «Slett» (bekreftelses-dialog → JournalRepository.deleteLog + fjern fra lista); andres → «Legg til som venn» (FriendRepository.request + snackbar); begge → «Del» (setSharing→publicSlug→ACTION_SEND)
+- ⬜ Gjenstår Android-paritet: E vurdering 0–100 + intensitets-barer, F UI-finpuss
 
 ### Feed → Aktivitet + deling (paritet)
 - ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt
