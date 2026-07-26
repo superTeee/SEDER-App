@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>SEDER · Admin</title>
+<style>
+  :root{
+    --bg:#EDEAE1; --card:#ffffff; --ink:#1F1D1A; --muted:#7A756B;
+    --line:#E1DCCF; --accent:#6E5E45; --accent-dark:#43392D;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:16px 24px;border-bottom:1px solid var(--line);background:var(--card);}
+  header h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.2px}
+  main{max-width:960px;margin:0 auto;padding:24px}
+  .muted{color:var(--muted)}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+    background:var(--card);padding:9px 14px;color:var(--ink)}
+  button.primary{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark)}
+  button:disabled{opacity:.5;cursor:default}
+  input,select,textarea{font:inherit;width:100%;padding:9px 11px;border:1px solid var(--line);
+    border-radius:8px;background:var(--card);color:var(--ink)}
+  .tabs{display:flex;gap:8px;margin-bottom:20px}
+  .tabs button.active{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark)}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+  .stat .v{font-size:28px;font-weight:600}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:2px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .count{font-weight:600;color:var(--accent-dark);white-space:nowrap}
+  .chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;
+    background:#f0ece2;color:var(--accent);margin:2px 4px 2px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  label.f{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  details summary{cursor:pointer;color:var(--accent);font-size:14px;margin-top:8px;user-select:none}
+  .login{max-width:380px;margin:12vh auto;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:28px;text-align:center}
+  .login h2{margin:0 0 6px;font-size:20px}
+  .login p{color:var(--muted);margin:0 0 18px;font-size:14px}
+  .hidden{display:none}
+  .note{font-size:13px;color:var(--muted);margin:8px 0 16px}
+  @media(max-width:640px){.cards{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="app-login" class="hidden">
+  <div class="login">
+    <h2>SEDER Admin</h2>
+    <p>Logg inn med e-posten knyttet til admin-kontoen din.</p>
+    <input id="email" type="email" placeholder="deg@example.com" autocomplete="email" />
+    <button class="primary" id="send" style="width:100%;margin-top:12px">Send innloggingslenke</button>
+    <div id="login-msg" class="note"></div>
+  </div>
+</div>
+
+<div id="app-denied" class="hidden">
+  <div class="login">
+    <h2>Ingen tilgang</h2>
+    <p>Denne kontoen er ikke admin.</p>
+    <button id="logout2" style="width:100%">Logg ut</button>
+  </div>
+</div>
+
+<div id="app-main" class="hidden">
+  <header>
+    <h1>SEDER · Admin</h1>
+    <button id="logout">Logg ut</button>
+  </header>
+  <main>
+    <div class="tabs">
+      <button data-tab="dekning" class="active">Dekning</button>
+      <button data-tab="datahull">Datahull</button>
+    </div>
+
+    <section id="tab-dekning">
+      <div class="cards">
+        <div class="stat"><div class="v" id="hr-rate">–</div><div class="l">Treffrate (30d)</div></div>
+        <div class="stat"><div class="v" id="hr-total">–</div><div class="l">Skann</div></div>
+        <div class="stat"><div class="v" id="hr-miss">–</div><div class="l">Bom</div></div>
+      </div>
+      <div class="note">Mest skannede sigarer vi ikke traff — legg inn de øverste først, verifisert mot produsent.</div>
+      <div id="gaps-scan"></div>
+    </section>
+
+    <section id="tab-datahull" class="hidden">
+      <div class="note">Offentlige sigarer som mangler felt appen viser. Fyll bare tomme felt — oppgi alltid kilde-URL (produsentens side).</div>
+      <div id="gaps-data"></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://wpcricosogcmzebkplwp.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY3JpY29zb2djbXplYmtwbHdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjE0OTQsImV4cCI6MjA5NzEzNzQ5NH0.wdTDMuY1EzZFkoFdLP-HKx-Jx_cfT1OlPjMpet9gL44";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => { for (const s of ["app-login","app-denied","app-main"]) $(s).classList.toggle("hidden", s !== id); };
+const esc = (s) => (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function boot() {
+  const { data:{ session } } = await db.auth.getSession();
+  if (!session) { show("app-login"); return; }
+  const { data: admin, error } = await db.rpc("is_admin");
+  if (error || !admin) { show("app-denied"); return; }
+  show("app-main");
+  loadDekning();
+  loadDatahull();
+}
+
+// ---- Auth ----
+$("send").onclick = async () => {
+  const email = $("email").value.trim();
+  if (!email) return;
+  $("send").disabled = true;
+  const { error } = await db.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.href } });
+  $("login-msg").textContent = error ? ("Feil: " + error.message)
+    : "Sjekk e-posten din og klikk lenken for å logge inn.";
+  $("send").disabled = false;
+};
+$("logout").onclick = $("logout2").onclick = async () => { await db.auth.signOut(); location.reload(); };
+
+db.auth.onAuthStateChange((_e, session) => { if (session) boot(); });
+
+// ---- Tabs ----
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("active", x === b));
+  $("tab-dekning").classList.toggle("hidden", b.dataset.tab !== "dekning");
+  $("tab-datahull").classList.toggle("hidden", b.dataset.tab !== "datahull");
+});
+
+// ---- Dekning ----
+async function loadDekning() {
+  const { data: hr } = await db.rpc("admin_scan_hitrate", { p_days: 30 });
+  const h = Array.isArray(hr) ? hr[0] : hr;
+  if (h) {
+    $("hr-rate").textContent = h.rate == null ? "–" : Math.round(h.rate) + "%";
+    $("hr-total").textContent = h.total ?? 0;
+    $("hr-miss").textContent = (h.total ?? 0) - (h.hits ?? 0);
+  }
+  const { data: gaps } = await db.rpc("admin_scan_gaps", { p_days: 30, p_limit: 50 });
+  const box = $("gaps-scan");
+  if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen bom registrert ennå.</div>'; return; }
+  box.innerHTML = gaps.map(g => `
+    <div class="card"><div class="row">
+      <div><div>${esc(g.sample_ocr || g.norm_text)}</div>
+        <div class="muted" style="font-size:12px">${esc(g.norm_text)}</div></div>
+      <div class="count">${g.misses}×</div>
+    </div></div>`).join("");
+}
+
+// ---- Datahull ----
+const FIELDS = [
+  ["ring_gauge","Ring gauge","number"],
+  ["length_inches","Lengde (tommer)","number"],
+  ["country_origin","Opprinnelsesland","text"],
+  ["wrapper_leaf","Wrapper","text"],
+  ["strength","Styrke (1–5)","number"],
+  ["flavor_notes","Smaksnoter (kommaseparert)","text"],
+  ["description","Beskrivelse","textarea"],
+];
+
+async function loadDatahull() {
+  const { data: gaps } = await db.rpc("admin_data_gaps");
+  const box = $("gaps-data");
+  if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen hull. 🎉</div>'; return; }
+  box.innerHTML = gaps.map((g, i) => {
+    const navn = g.cigar_navn && g.cigar_navn.length ? g.cigar_navn : g.brand;
+    const chips = (g.missing || []).map(m => `<span class="chip">${esc(m)}</span>`).join("");
+    const fields = FIELDS.map(([k,label,type]) => `
+      <div><label class="f">${label}</label>${
+        type === "textarea"
+          ? `<textarea id="f-${i}-${k}" rows="2"></textarea>`
+          : `<input id="f-${i}-${k}" type="${type}" ${type==="number"?'step="any"':''} />`
+      }</div>`).join("");
+    return `<div class="card">
+      <div class="row"><div><strong>${esc(navn)}</strong>
+        <span class="muted"> · ${esc(g.brand)}</span></div>
+        <div class="count">${g.gap_count} mangler</div></div>
+      <div style="margin-top:6px">${chips}</div>
+      <details><summary>Fyll inn</summary>
+        <div class="grid2">${fields}</div>
+        <div style="margin-top:10px"><label class="f">Kilde-URL (produsentens side) *</label>
+          <input id="f-${i}-src" type="url" placeholder="https://..." /></div>
+        <div id="msg-${i}" class="note"></div>
+        <button class="primary" onclick="saveFill(${i}, '${g.id}')">Lagre</button>
+      </details>
+    </div>`;
+  }).join("");
+}
+
+async function saveFill(i, cigarId) {
+  const src = $(`f-${i}-src`).value.trim();
+  if (!src) { $(`msg-${i}`).textContent = "Kilde-URL er påkrevd."; return; }
+  const p = { p_cigar_id: cigarId, p_source_url: src };
+  const num = (v) => v === "" ? null : Number(v);
+  const g = (k) => $(`f-${i}-${k}`).value.trim();
+  if (g("ring_gauge"))     p.p_ring_gauge     = num(g("ring_gauge"));
+  if (g("length_inches"))  p.p_length_inches  = num(g("length_inches"));
+  if (g("country_origin")) p.p_country_origin = g("country_origin");
+  if (g("wrapper_leaf"))   p.p_wrapper_leaf   = g("wrapper_leaf");
+  if (g("strength"))       p.p_strength       = num(g("strength"));
+  if (g("description"))    p.p_description    = g("description");
+  if (g("flavor_notes"))   p.p_flavor_notes   = g("flavor_notes").split(",").map(s=>s.trim()).filter(Boolean);
+
+  $(`msg-${i}`).textContent = "Lagrer…";
+  const { error } = await db.rpc("admin_fill_cigar", p);
+  if (error) { $(`msg-${i}`).textContent = "Feil: " + error.message; return; }
+  loadDatahull();
+}
+
+boot();
+</script>
+</body>
+</html>

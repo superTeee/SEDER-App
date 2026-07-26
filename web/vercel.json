@@ -1,6 +1,7 @@
 {
   "rewrites": [
-    { "source": "/j/:slug", "destination": "/api/j/:slug" }
+    { "source": "/j/:slug", "destination": "/api/j/:slug" },
+    { "source": "/admin", "destination": "/admin.html" }
   ],
   "headers": [
     {
