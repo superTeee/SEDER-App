@@ -161,7 +161,35 @@ class ScanService: ObservableObject {
             checkForWrapperAmbiguity()
         }
 
+        // Logg skann-hendelsen for dekning-analyse (treffrate + hvilke sigarer
+        // folk skanner som vi ikke har). Fyr og glem — blokkerer aldri UI.
+        logScanEvent()
+
         isScanning = false
+    }
+
+    /// Sender skann-resultatet til Supabase (`log_scan_event`) for dekning-datahjulet.
+    private func logScanEvent() {
+        let hit = !scanResults.isEmpty
+        let matchedId = scanResults.first?.cigar.id.uuidString
+        let confidence = scanResults.first?.confidence
+        let ocr = extractedText
+        Task.detached {
+            struct Params: Encodable {
+                let p_ocr_text: String
+                let p_hit: Bool
+                let p_matched_cigar_id: String?
+                let p_confidence: Double?
+            }
+            _ = try? await supabase
+                .rpc("log_scan_event", params: Params(
+                    p_ocr_text: ocr,
+                    p_hit: hit,
+                    p_matched_cigar_id: matchedId,
+                    p_confidence: confidence
+                ))
+                .execute()
+        }
     }
 
     // MARK: - Adaptiv form-avklaring

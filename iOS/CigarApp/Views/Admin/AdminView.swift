@@ -19,6 +19,7 @@ struct AdminView: View {
     enum Fane: String, CaseIterable, Identifiable {
         case ko      = "Kø"
         case datahull = "Datahull"
+        case dekning  = "Dekning"
         var id: String { rawValue }
     }
     @State private var fane: Fane = .ko
@@ -37,6 +38,7 @@ struct AdminView: View {
                     switch fane {
                     case .ko:       koView
                     case .datahull: DatahullView(admin: admin)
+                    case .dekning:  SkannDekningView(admin: admin)
                     }
                 }
             }
@@ -225,6 +227,91 @@ private struct SubmissionRow: View {
 // Motsatt av køen: her leter vi ikke etter feil brukerne har meldt, men etter
 // tomme felt katalogen selv har. Verst først (basen sorterer). Trykk på en rad
 // åpner et ark som bare viser hullene — én ting av gangen, ikke hele sigaren.
+
+// MARK: - Skann-dekning
+//
+// Steg 1 i dekning-datahjulet: treffrate + sigarer folk skanner uten å få treff,
+// sortert etter hvor ofte. Dette forteller nøyaktig hvilke sigarer katalogen bør
+// fylles med først.
+private struct SkannDekningView: View {
+    @ObservedObject var admin: AdminService
+
+    var body: some View {
+        Group {
+            if admin.isLoading && admin.scanGaps.isEmpty && admin.scanHitrate == nil {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    Section {
+                        HStack(spacing: 10) {
+                            statBox(title: "Treffrate", value: admin.scanHitrate?.rateText ?? "–")
+                            statBox(title: "Skann", value: "\(admin.scanHitrate?.total ?? 0)")
+                            statBox(title: "Bom", value: "\(admin.scanHitrate?.misses ?? 0)")
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                        .listRowBackground(Color.clear)
+                    } footer: {
+                        Text("Siste 30 dager. Treffrate = andel skann som fant en sigar.")
+                    }
+
+                    if admin.scanGaps.isEmpty {
+                        Section {
+                            Text("Ingen bom registrert ennå.")
+                                .foregroundColor(Color("TextSecondary"))
+                        }
+                    } else {
+                        Section {
+                            ForEach(admin.scanGaps) { gap in
+                                HStack(spacing: 10) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(gap.visningsnavn)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundColor(Color("TextPrimary"))
+                                            .lineLimit(2)
+                                        if gap.sampleOcr != gap.normText {
+                                            Text(gap.normText)
+                                                .font(.caption)
+                                                .foregroundColor(Color("TextSecondary"))
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    Spacer()
+                                    Text("\(gap.misses)×")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(Color("Accent"))
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        } header: {
+                            Text("Mest skannet som mangler")
+                        } footer: {
+                            Text("Sigarer folk prøvde å skanne uten treff. Legg inn de øverste først — verifisert mot produsent.")
+                        }
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .refreshable { await admin.loadScanCoverage() }
+            }
+        }
+        .task { await admin.loadScanCoverage() }
+    }
+
+    private func statBox(title: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundColor(Color("TextPrimary"))
+            Text(title)
+                .font(.caption)
+                .foregroundColor(Color("TextSecondary"))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
 
 private struct DatahullView: View {
     @ObservedObject var admin: AdminService

@@ -21,6 +21,8 @@ final class AdminService: ObservableObject {
     @Published private(set) var reports: [AdminReport] = []
     @Published private(set) var submissions: [AdminSubmission] = []
     @Published private(set) var gaps: [CigarGap] = []
+    @Published private(set) var scanHitrate: ScanHitrate?
+    @Published private(set) var scanGaps: [ScanGap] = []
     @Published private(set) var isLoading = false
 
     var antallIKo: Int { reports.count + submissions.count }
@@ -69,6 +71,32 @@ final class AdminService: ObservableObject {
             return try SupabaseDecoder.shared.decode([CigarGap].self, from: svar.data)
         }
         gaps = g ?? []
+    }
+
+    // MARK: - Skann-dekning
+    //
+    // Steg 1 i dekning-datahjulet: treffrate + hvilke sigarer folk skanner som
+    // vi ikke traff (mest skannet først). Kilde: scan_events-tabellen.
+
+    struct DaysParam: Encodable { let p_days: Int }
+    struct GapsParam: Encodable { let p_days: Int; let p_limit: Int }
+
+    func loadScanCoverage(days: Int = 30) async {
+        guard isAdmin else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        let h: [ScanHitrate]? = await attempt("admin_scan_hitrate") {
+            let svar = try await supabase.rpc("admin_scan_hitrate", params: DaysParam(p_days: days)).execute()
+            return try SupabaseDecoder.shared.decode([ScanHitrate].self, from: svar.data)
+        }
+        let gaps: [ScanGap]? = await attempt("admin_scan_gaps") {
+            let svar = try await supabase.rpc("admin_scan_gaps", params: GapsParam(p_days: days, p_limit: 50)).execute()
+            return try SupabaseDecoder.shared.decode([ScanGap].self, from: svar.data)
+        }
+
+        scanHitrate = h?.first
+        scanGaps = gaps ?? []
     }
 
     /// Fyller tomme felt på én sigar. Sender bare feltene admin faktisk fylte
@@ -242,6 +270,32 @@ enum GapField: String, CaseIterable, Identifiable, Hashable {
 }
 
 /// En offentlig sigar med minst ett tomt felt. Kommer fra admin_data_gaps().
+// MARK: - Skann-dekning-modeller
+
+struct ScanHitrate: Codable, Hashable {
+    let total: Int
+    let hits: Int
+    let rate: Double?      // prosent, null hvis ingen skann ennå
+
+    var misses: Int { total - hits }
+    var rateText: String { rate.map { "\(Int($0.rounded()))%" } ?? "–" }
+}
+
+struct ScanGap: Codable, Identifiable, Hashable {
+    let normText: String
+    let sampleOcr: String
+    let misses: Int
+
+    var id: String { normText }
+    var visningsnavn: String { sampleOcr.isEmpty ? normText : sampleOcr }
+
+    enum CodingKeys: String, CodingKey {
+        case normText  = "norm_text"
+        case sampleOcr = "sample_ocr"
+        case misses
+    }
+}
+
 struct CigarGap: Codable, Identifiable, Hashable {
     let id: UUID
     let cigarNavn: String?
