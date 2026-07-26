@@ -155,8 +155,8 @@ async function loadDekning() {
         <div class="muted" style="font-size:12px">${esc(trunc(g.norm_text, 70))}</div></div>
       <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
         <span class="count">${g.misses}×</span>
-        <button title="Fjern (støy)" style="border:none;background:none;padding:4px;color:#b9433a;cursor:pointer"
-          onclick="deleteScanGap('${esc(g.norm_text)}')"><i class="ti ti-trash" style="font-size:18px"></i></button>
+        <button title="Fjern (støy)" style="border:1px solid #E7C3BE;background:#FBEEEC;padding:6px 12px;border-radius:8px;color:#b9433a;font-size:13px;cursor:pointer"
+          onclick="deleteScanGap('${esc(g.norm_text)}')">Slett</button>
       </div>
     </div></div>`).join("");
 }
