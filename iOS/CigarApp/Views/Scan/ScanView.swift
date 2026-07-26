@@ -671,16 +671,11 @@ struct ManualAddSheet: View {
                     .padding(.top, 6)
                 }
 
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        fieldLabel("Serie / navn")
-                        textField("F.eks. 1926", text: $series)
-                    }
-                    VStack(alignment: .leading, spacing: 0) {
-                        fieldLabel("Vitola / format")
-                        textField("F.eks. No. 9", text: $vitola)
-                    }
-                }
+                fieldLabel("Serie / navn")
+                textField("F.eks. 1926", text: $series)
+
+                fieldLabel("Vitola / format")
+                textField("F.eks. No. 9", text: $vitola)
 
                 if let errorText {
                     Text(errorText).font(.system(size: 13)).foregroundColor(.red).padding(.top, 10)
@@ -698,21 +693,23 @@ struct ManualAddSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .disabled(!canSave)
-                .padding(.top, 18)
+                .padding(.top, 28)
             }
-            .padding(20)
+            .padding(.horizontal, 22)
+            .padding(.top, 12)
+            .padding(.bottom, 28)
         }
         .background(sheetBackground.ignoresSafeArea())
     }
 
     private func fieldLabel(_ t: String) -> some View {
-        Text(t).font(.system(size: 12)).foregroundColor(Color("TextSecondary"))
-            .padding(.top, 14).padding(.bottom, 5)
+        Text(t).font(.system(size: 13)).foregroundColor(Color("TextSecondary"))
+            .padding(.top, 20).padding(.bottom, 7)
     }
 
     private func textField(_ placeholder: String, text: Binding<String>) -> some View {
         TextField(placeholder, text: text)
-            .padding(12)
+            .padding(.horizontal, 14).padding(.vertical, 15)
             .background(fieldBackground)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color("TextSecondary").opacity(0.15), lineWidth: 1))

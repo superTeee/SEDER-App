@@ -337,7 +337,7 @@ struct ExploreView: View {
                     onAdded: { showAddedConfirm = true }
                 )
                 .environmentObject(authService)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             }
             .alert("Lagt i humidoren", isPresented: $showAddedConfirm) {
