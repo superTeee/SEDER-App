@@ -71,6 +71,10 @@ struct ExploreView: View {
     @State private var capturedImage: UIImage?
     @State private var navigateToResults  = false
 
+    // Ingen treff → vennlig skjerm + manuell innlegging
+    @State private var showManualAdd      = false
+    @State private var showAddedConfirm   = false
+
     // Strekkode-scanner
     @State private var showBarcodeScan       = false
     @State private var barcodeFoundCigar:    Cigar?   = nil
@@ -310,6 +314,36 @@ struct ExploreView: View {
             }
             .fullScreenCover(isPresented: $scanService.needsWrapperPhoto) {
                 WrapperConfirmView(scanService: scanService)
+            }
+            // Ingen treff → vennlig skjerm med prøv-på-nytt / legg inn manuelt
+            .fullScreenCover(isPresented: $scanService.noMatch) {
+                NoMatchView(
+                    image: capturedImage,
+                    ocrText: scanService.extractedText,
+                    onRetry: {
+                        scanService.noMatch = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { showCameraPicker = true }
+                    },
+                    onManualAdd: {
+                        scanService.noMatch = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { showManualAdd = true }
+                    }
+                )
+            }
+            .sheet(isPresented: $showManualAdd) {
+                ManualAddSheet(
+                    image: capturedImage,
+                    ocrText: scanService.extractedText,
+                    onAdded: { showAddedConfirm = true }
+                )
+                .environmentObject(authService)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+            .alert("Lagt i humidoren", isPresented: $showAddedConfirm) {
+                Button("Fint") {}
+            } message: {
+                Text("Takk for bidraget! Vi finner og verifiserer sigaren så raskt vi kan, så neste som skanner den får treff.")
             }
             .navigationDestination(for: String.self) { brand in
                 BrandCigarsView(brand: brand)

@@ -470,3 +470,282 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
     }
 }
+
+// MARK: - Ingen treff
+// Vennlig skjerm når skannet ikke ga treff. Forklarer hvorfor + gir vei videre:
+// prøv på nytt, eller legg den inn manuelt (og bygg katalogen sammen med oss).
+struct NoMatchView: View {
+    let image: UIImage?
+    let ocrText: String
+    var onRetry: () -> Void
+    var onManualAdd: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Color("Background").ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                }
+                .padding(20)
+
+                Spacer()
+
+                ghostCigar
+                    .frame(width: 84, height: 84)
+                    .background(Circle().fill(Color("Accent").opacity(0.12)))
+                    .padding(.bottom, 18)
+
+                Text("Vi fant ikke denne sigaren")
+                    .font(.title2.bold())
+                    .foregroundColor(Color("TextPrimary"))
+                Text("Ingen match i databasen – ennå.")
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+                    .padding(.top, 4)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Det kan skyldes:")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color("TextPrimary"))
+                    cause("sun.max", "Gjenskinn eller refleks i sigarbeltet")
+                    cause("textformat.size", "Lite eller ingen tekst på båndet")
+                    cause("scribble.variable", "Utydelig, bøyd eller vinklet tekst")
+                    cause("lightbulb", "For svakt lys")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Color("Card"))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, 24)
+                .padding(.top, 22)
+
+                Spacer()
+
+                VStack(spacing: 10) {
+                    Button(action: onManualAdd) {
+                        Text("Legg den inn manuelt")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(Color("Accent"))
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    Button(action: onRetry) {
+                        Text("Prøv på nytt med nytt bilde")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(Color("Card"))
+                            .foregroundColor(Color("Accent"))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 28)
+            }
+        }
+    }
+
+    private func cause(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 15))
+                .foregroundColor(Color("Accent"))
+                .frame(width: 20)
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(Color("TextPrimary").opacity(0.85))
+        }
+    }
+
+    // Stiplet «spøkelses-sigar» — sier «finnes ikke i basen ennå».
+    private var ghostCigar: some View {
+        ZStack {
+            Capsule()
+                .strokeBorder(style: StrokeStyle(lineWidth: 2.4, dash: [5, 4]))
+                .frame(width: 62, height: 18)
+            Rectangle()
+                .strokeBorder(style: StrokeStyle(lineWidth: 2.2, dash: [4, 3]))
+                .frame(width: 11, height: 18)
+                .offset(x: 15)
+        }
+        .rotationEffect(.degrees(-20))
+        .foregroundColor(Color("Accent"))
+    }
+}
+
+// MARK: - Manuell innlegging (bottom sheet, hvit bakgrunn)
+// Kombinerer kort motiverende tekst + feltene i ett ark, med merke-autocomplete
+// mot eksisterende merker så bidraget kobles riktig i stedet for å lage duplikat.
+struct ManualAddSheet: View {
+    let image: UIImage?
+    let ocrText: String
+    var onAdded: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var authService: AuthService
+
+    private let cigarService = CigarService()
+    private let humidorService = HumidorService()
+
+    @State private var brand = ""
+    @State private var series = ""
+    @State private var vitola = ""
+    @State private var brandSuggestions: [String] = []
+    @State private var brandChosen = false
+    @State private var isSaving = false
+    @State private var errorText: String?
+
+    private var sheetBackground: Color { colorScheme == .light ? .white : Color("Card") }
+    private var fieldBackground: Color { colorScheme == .light ? Color(.systemGray6).opacity(0.5) : Color("Surface") }
+    private var canSave: Bool { !brand.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Legg den inn – og hjelp fellesskapet")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color("TextPrimary"))
+                    .padding(.top, 8)
+                Text("Den havner rett i humidoren din. Vi verifiserer den og legger den i basen, så neste som skanner får treff – takket være deg.")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color("TextSecondary"))
+                    .padding(.top, 5)
+
+                HStack(spacing: 8) {
+                    Image(systemName: "rosette")
+                        .foregroundColor(Color("Accent"))
+                    Text("Teller mot Bidragsyter-merket på profilen din")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color("Accent"))
+                }
+                .padding(.horizontal, 11).padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color("Accent").opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .padding(.top, 12)
+
+                // Merke + autocomplete
+                fieldLabel("Merke *")
+                textField("F.eks. Padrón", text: $brand)
+                    .onChange(of: brand) { value in
+                        brandChosen = false
+                        Task {
+                            let s = await cigarService.searchBrands(query: value)
+                            await MainActor.run { brandSuggestions = s }
+                        }
+                    }
+                if !brandChosen && !brandSuggestions.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(brandSuggestions, id: \.self) { b in
+                            Button {
+                                brand = b; brandChosen = true; brandSuggestions = []
+                            } label: {
+                                HStack {
+                                    Text(b).foregroundColor(Color("TextPrimary"))
+                                    Spacer()
+                                    Text("i basen")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(Color(.systemGreen))
+                                }
+                                .padding(.horizontal, 12).padding(.vertical, 11)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            Divider().padding(.leading, 12)
+                        }
+                    }
+                    .background(fieldBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(.top, 6)
+                }
+
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        fieldLabel("Serie / navn")
+                        textField("F.eks. 1926", text: $series)
+                    }
+                    VStack(alignment: .leading, spacing: 0) {
+                        fieldLabel("Vitola / format")
+                        textField("F.eks. No. 9", text: $vitola)
+                    }
+                }
+
+                if let errorText {
+                    Text(errorText).font(.system(size: 13)).foregroundColor(.red).padding(.top, 10)
+                }
+
+                Button(action: { Task { await save() } }) {
+                    HStack {
+                        if isSaving { ProgressView().tint(.white) }
+                        Text(isSaving ? "Legger til…" : "Legg til i humidoren").fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(Color("Accent").opacity(canSave ? 1 : 0.5))
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(!canSave)
+                .padding(.top, 18)
+            }
+            .padding(20)
+        }
+        .background(sheetBackground.ignoresSafeArea())
+        .onAppear {
+            // Forhåndsutfyll fra OCR hvis vi leste noe – sparer skriving.
+            if brand.isEmpty, !ocrText.isEmpty {
+                brand = ocrText.split(separator: "\n").first.map(String.init) ?? ""
+            }
+        }
+    }
+
+    private func fieldLabel(_ t: String) -> some View {
+        Text(t).font(.system(size: 12)).foregroundColor(Color("TextSecondary"))
+            .padding(.top, 14).padding(.bottom, 5)
+    }
+
+    private func textField(_ placeholder: String, text: Binding<String>) -> some View {
+        TextField(placeholder, text: text)
+            .padding(12)
+            .background(fieldBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color("TextSecondary").opacity(0.15), lineWidth: 1))
+    }
+
+    private func save() async {
+        guard let userId = authService.userId else { errorText = "Du må være innlogget."; return }
+        let b = brand.trimmingCharacters(in: .whitespaces)
+        guard !b.isEmpty else { return }
+        isSaving = true; errorText = nil
+        do {
+            let note = ocrText.isEmpty ? "" : "Fra skann: \(ocrText)"
+            let cigar = try await cigarService.createOwnCigar(
+                brand: b, series: series, vitola: vitola,
+                country: "", wrapper: "", ringGauge: nil, lengthInches: nil,
+                note: note, suggest: true
+            )
+            let humidors = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
+            if let h = humidors.first {
+                _ = try? await humidorService.addToHumidor(cigarId: cigar.id, userId: userId, humidorId: h.id)
+            }
+            isSaving = false
+            onAdded()
+            dismiss()
+        } catch {
+            isSaving = false
+            errorText = "Kunne ikke legge til: \(error.localizedDescription)"
+        }
+    }
+}

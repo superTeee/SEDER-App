@@ -116,6 +116,42 @@ class CigarService: ObservableObject {
         return results
     }
 
+    // MARK: - Merke-autocomplete (manuell innlegging)
+    // Foreslår eksisterende merker mens brukeren skriver, så en ny sigar kobles
+    // til riktig merke i stedet for å lage et duplikat.
+    func searchBrands(query: String) async -> [String] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return [] }
+        struct Row: Decodable { let brand: String }
+        let rows: [Row] = (try? await supabase
+            .from("cigars")
+            .select("brand")
+            .ilike("brand", pattern: "%\(q)%")
+            .limit(60)
+            .execute()
+            .value) ?? []
+        var seen = Set<String>()
+        var out: [String] = []
+        for r in rows {
+            let key = r.brand.lowercased()
+            if !seen.contains(key) { seen.insert(key); out.append(r.brand) }
+        }
+        return Array(out.prefix(6))
+    }
+
+    /// Distinkte serie-/navn-forslag for et valgt merke (autocomplete).
+    func seriesForBrand(_ brand: String) async -> [String] {
+        let cigars = (try? await fetchCigarsByBrand(brand)) ?? []
+        var seen = Set<String>()
+        var out: [String] = []
+        for c in cigars {
+            guard let s = c.series, !s.isEmpty else { continue }
+            let key = s.lowercased()
+            if !seen.contains(key) { seen.insert(key); out.append(s) }
+        }
+        return Array(out.prefix(6))
+    }
+
     // MARK: - Hent sigarer basert på merke
     func fetchCigarsByBrand(_ brand: String) async throws -> [Cigar] {
         let results: [Cigar] = try await supabase

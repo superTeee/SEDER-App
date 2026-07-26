@@ -14,6 +14,9 @@ class ScanService: ObservableObject {
     @Published var extractedText: String = ""
     @Published var scanResults: [ScanResult] = []
     @Published var errorMessage: String?
+    // Satt når skannet fullførte uten treff (ikke en teknisk feil) — UI viser da
+    // den vennlige «ingen treff»-skjermen med valg om å prøve på nytt / legge inn manuelt.
+    @Published var noMatch = false
     // Satt når båndet/AI-en eksplisitt pekte ut én bestemt variant —
     // da hopper appen rett til detaljskjermen i stedet for en velgerliste.
     @Published var autoSelectedCigar: Cigar?
@@ -57,6 +60,7 @@ class ScanService: ObservableObject {
         shapeAmbiguityCandidates = []
         wrapperAmbiguityCandidates = []
         errorMessage = nil
+        noMatch = false
 
         // Hent OCR-vokabular (merke-/serienavn fra databasen) før vi kjører
         // Vision, slik at customWords er klar til extractText under.
@@ -138,8 +142,10 @@ class ScanService: ObservableObject {
             errorMessage = "Scanning feilet: \(error.localizedDescription)"
         }
 
+        // Ferdig uten treff, men uten teknisk feil → vis den vennlige «ingen
+        // treff»-skjermen i stedet for en tørr feil-alert.
         if errorMessage == nil && scanResults.isEmpty {
-            errorMessage = "Fant ingen treff for denne sigaren. Prøv et tydeligere bilde av båndet, eller søk den opp manuelt."
+            noMatch = true
         }
 
         // Både DB-søket og AI-fallback bygger scanResults i den rekkefølgen
