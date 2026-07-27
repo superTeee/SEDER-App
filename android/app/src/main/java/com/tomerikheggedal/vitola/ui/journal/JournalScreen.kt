@@ -7,6 +7,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +52,7 @@ private fun parseInstant(s: String): Instant? =
 @Composable
 fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
 
@@ -53,6 +60,8 @@ fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var editLog by remember { mutableStateOf<TastingLog?>(null) }
     var reloadKey by remember { mutableStateOf(0) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var showStats by remember { mutableStateOf(false) }
 
     suspend fun reload() { logs = runCatching { JournalRepository.myLogs() }.getOrDefault(emptyList()) }
 
@@ -66,6 +75,34 @@ fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit) {
             CenterAlignedTopAppBar(
                 title = { Text("Journal", fontWeight = FontWeight.Bold) },
                 navigationIcon = { com.tomerikheggedal.vitola.ui.components.TopBarProfileAvatar(onProfile) },
+                actions = {
+                    if (isAuthed) {
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "Mer")
+                            }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Statistikk") },
+                                    leadingIcon = { Icon(Icons.Outlined.BarChart, null) },
+                                    onClick = { menuOpen = false; showStats = true }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Eksporter som PDF") },
+                                    leadingIcon = { Icon(Icons.Outlined.PictureAsPdf, null) },
+                                    enabled = logs.isNotEmpty(),
+                                    onClick = { menuOpen = false; runCatching { JournalExport.exportPdf(context, logs) } }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Eksporter som CSV") },
+                                    leadingIcon = { Icon(Icons.Outlined.Description, null) },
+                                    enabled = logs.isNotEmpty(),
+                                    onClick = { menuOpen = false; runCatching { JournalExport.exportCsv(context, logs) } }
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -116,6 +153,8 @@ fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit) {
             onChanged = { editLog = null; reloadKey++ }
         )
     }
+
+    if (showStats) StatistikkSheet(onDismiss = { showStats = false })
 }
 
 // Én journaloppføring med vertikal tidslinje til venstre (som iOS): linje over/under
