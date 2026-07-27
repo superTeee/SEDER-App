@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import Kingfisher
+import Charts
 
 // MARK: - JournalView
 // Røykelogg — alle sigarer du har røkt, nyest først.
@@ -15,6 +16,7 @@ struct JournalView: View {
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
     @State private var logToEdit: TastingLog? = nil
+    @State private var showStats = false
 
     private let tastingService = TastingService()
 
@@ -40,9 +42,17 @@ struct JournalView: View {
                 .toolbarColorScheme(colorScheme, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { showStats = true } label: {
+                            Image(systemName: "chart.bar.xaxis")
+                        }
+                    }
                 }
             .onAppear { Task { await loadLogs() } }
             .refreshable { await loadLogs() }
+            .sheet(isPresented: $showStats) {
+                StatistikkView().environmentObject(authService)
+            }
             .sheet(isPresented: $showLoginSheet) {
                 AuthView(onSuccess: { Task { await loadLogs() } })
             }
@@ -745,5 +755,144 @@ struct EditLogSheet: View {
             }
             Spacer()
         }
+    }
+}
+
+// MARK: - StatistikkView (avansert statistikk / innsikt)
+
+struct StatistikkView: View {
+    @EnvironmentObject var authService: AuthService
+    @Environment(\.dismiss) private var dismiss
+    private let profileService = ProfileService()
+
+    @State private var stats: UserStats?
+    @State private var loading = true
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if loading {
+                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let s = stats, s.totalLogged > 0 {
+                    content(s)
+                } else {
+                    emptyState
+                }
+            }
+            .background(Color("Background"))
+            .navigationTitle("Statistikk")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Ferdig") { dismiss() } } }
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        loading = true
+        stats = try? await profileService.fetchUserStats()
+        loading = false
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 42)).foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Ingen data ennå").font(.headline).foregroundColor(Color("TextPrimary"))
+            Text("Loggfør noen sigarer, så dukker innsikten opp her.")
+                .font(.subheadline).foregroundColor(Color("TextSecondary")).multilineTextAlignment(.center)
+        }.padding(40)
+    }
+
+    @ViewBuilder
+    private func content(_ s: UserStats) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    statCard(label: "Røkt totalt", value: "\(s.totalLogged)")
+                    statCard(label: "Merker prøvd", value: "\(s.brandsTried)")
+                    statCard(label: "Snittscore", value: s.avgScore.map { "\($0)" } ?? "–")
+                    statCard(label: "Humidor-verdi", value: "\(kr(s.humidorValue)) kr")
+                }
+
+                if s.scoreSeries.count >= 2 {
+                    statSection("Score over tid") {
+                        Chart(s.scoreSeries) { p in
+                            LineMark(x: .value("Tid", p.d), y: .value("Score", p.s))
+                                .foregroundStyle(Color("Accent")).interpolationMethod(.catmullRom)
+                            PointMark(x: .value("Tid", p.d), y: .value("Score", p.s))
+                                .foregroundStyle(Color("Accent")).symbolSize(22)
+                        }
+                        .chartYScale(domain: 40...100)
+                        .frame(height: 190)
+                    }
+                }
+
+                if let st = s.strengthAvg {
+                    statSection("Snitt-styrke") {
+                        HStack(spacing: 9) {
+                            ForEach(1...5, id: \.self) { i in
+                                Capsule().fill(Double(i) <= st ? Color("Accent") : Color("Surface"))
+                                    .frame(height: 8).frame(maxWidth: .infinity)
+                            }
+                        }
+                        Text(strengthText(st)).font(.caption).foregroundColor(Color("TextSecondary")).padding(.top, 6)
+                    }
+                }
+
+                if !s.topBrands.isEmpty {
+                    statSection("Mest røkte merker") {
+                        let maxN = s.topBrands.map(\.n).max() ?? 1
+                        VStack(spacing: 10) {
+                            ForEach(s.topBrands) { b in
+                                HStack(spacing: 10) {
+                                    Text(b.brand).font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(Color("TextPrimary")).frame(width: 110, alignment: .leading).lineLimit(1)
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color("Accent").opacity(0.12)).frame(height: 18)
+                                            Capsule().fill(Color("Accent"))
+                                                .frame(width: max(12, geo.size.width * CGFloat(b.n) / CGFloat(maxN)), height: 18)
+                                        }
+                                    }.frame(height: 18)
+                                    Text("\(b.n)").font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(Color("TextSecondary")).frame(width: 26, alignment: .trailing)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+    }
+
+    private func statCard(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased()).font(.system(size: 10, weight: .semibold))
+                .foregroundColor(Color("TextSecondary")).tracking(0.5)
+            Text(value).font(.system(size: 22, weight: .bold)).foregroundColor(Color("TextPrimary"))
+                .lineLimit(1).minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16).background(Color("Card")).clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private func statSection<C: View>(_ title: String, @ViewBuilder _ inner: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title.uppercased()).font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color("TextSecondary")).tracking(0.6)
+            VStack(alignment: .leading, spacing: 0) { inner() }
+                .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color("Card")).clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private func kr(_ v: Double) -> String {
+        let f = NumberFormatter(); f.numberStyle = .decimal; f.maximumFractionDigits = 0; f.groupingSeparator = " "
+        return f.string(from: NSNumber(value: v)) ?? "\(Int(v))"
+    }
+    private func strengthText(_ v: Double) -> String {
+        switch v { case ..<2: return "Mild"; case ..<3: return "Medium"; case ..<4: return "Fyldig"; default: return "Sterk" }
     }
 }

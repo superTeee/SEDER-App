@@ -1,5 +1,40 @@
 import Foundation
 
+// MARK: - UserStats
+// Returnert av get_user_stats() RPC — aggregert innsikt over journalen.
+
+struct UserStats: Codable {
+    let totalLogged: Int
+    let brandsTried: Int
+    let avgScore: Int?
+    let strengthAvg: Double?
+    let humidorValue: Double
+    let topBrands: [TopBrand]
+    let scoreSeries: [ScorePoint]
+
+    enum CodingKeys: String, CodingKey {
+        case totalLogged  = "total_logged"
+        case brandsTried  = "brands_tried"
+        case avgScore     = "avg_score"
+        case strengthAvg  = "strength_avg"
+        case humidorValue = "humidor_value"
+        case topBrands    = "top_brands"
+        case scoreSeries  = "score_series"
+    }
+}
+
+struct TopBrand: Codable, Identifiable {
+    let brand: String
+    let n: Int
+    var id: String { brand }
+}
+
+struct ScorePoint: Codable, Identifiable {
+    let d: Date
+    let s: Int
+    var id: Date { d }
+}
+
 // MARK: - Profile
 // Matcher "profiles"-tabellen i Supabase
 

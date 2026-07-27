@@ -53,6 +53,15 @@ class ProfileService: ObservableObject {
         return OwnStats(cigarCount: c.count, humidorCount: h.count, friendCount: f.count)
     }
 
+    // MARK: - Aggregert statistikk (innsikt-side)
+
+    func fetchUserStats() async throws -> UserStats {
+        try await supabase
+            .rpc("get_user_stats")
+            .execute()
+            .value
+    }
+
     // MARK: - Hent venn sin profil via RPC
 
     func fetchFriendProfile(userId: UUID) async throws -> FriendProfile {
