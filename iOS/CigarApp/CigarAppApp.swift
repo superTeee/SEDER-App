@@ -23,8 +23,8 @@ enum ProConfig {
     /// Trygg i kildekode (public SDK-nøkkel, som Supabase anon key).
     static let revenueCatAPIKey = "test_tweIdoRfwLwIBJdsiNPtcmXEJuQ"
 
-    /// Entitlement-ID satt opp i RevenueCat.
-    static let entitlementID = "pro"
+    /// Entitlement-ID satt opp i RevenueCat (må matche identifieren nøyaktig).
+    static let entitlementID = "SEDER Pro"
 
     /// Fallback-priser vist før ekte App Store-priser er lastet.
     static let fallbackYearly  = "449 kr / år"
