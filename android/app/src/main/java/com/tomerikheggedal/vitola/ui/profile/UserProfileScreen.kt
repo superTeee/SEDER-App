@@ -1,6 +1,7 @@
 package com.tomerikheggedal.vitola.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -32,6 +33,7 @@ import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.FriendProfile
 import com.tomerikheggedal.vitola.data.FriendRepository
 import com.tomerikheggedal.vitola.data.FriendState
+import com.tomerikheggedal.vitola.data.memberStats
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +45,7 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
     var friendshipId by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var working by remember { mutableStateOf(false) }
+    var showMerker by remember { mutableStateOf(false) }
     var myFavorites by remember { mutableStateOf<List<com.tomerikheggedal.vitola.data.FavoriteListItem>>(emptyList()) }
 
     suspend fun reloadState() {
@@ -82,19 +85,29 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                     Spacer(Modifier.height(14.dp))
                     Text(p.displayName ?: "SEDER-bruker", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    if (p.isFoundingMember) {
-                        Spacer(Modifier.height(6.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        val level = com.tomerikheggedal.vitola.data.MemberLevel.current(p.memberStats())
+                        Text(level.title, style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clip(RoundedCornerShape(50))
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Outlined.WorkspacePremium, null,
-                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                            Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                .clickable { showMerker = true }
+                                .padding(horizontal = 10.dp, vertical = 4.dp))
+                        if (p.isFoundingMember) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.clip(RoundedCornerShape(50))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Outlined.WorkspacePremium, null,
+                                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     }
                     val place = listOfNotNull(p.city, p.country).joinToString(", ")
@@ -160,6 +173,10 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (showMerker) {
+        profile?.let { MerkerSheet(it) { showMerker = false } }
     }
 }
 

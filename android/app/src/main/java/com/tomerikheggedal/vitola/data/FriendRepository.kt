@@ -23,6 +23,9 @@ data class FriendProfile(
     @SerialName("friend_count") val friendCount: Int = 0,
     @SerialName("brands_tried") val brandsTried: Int = 0,
     @SerialName("is_founding_member") val isFoundingMember: Boolean = false,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("humidors_count") val humidorsCount: Int = 0,
+    @SerialName("rh_count") val rhCount: Int = 0,
 )
 
 // En venn/forespørsel (get_friends_and_requests RPC).

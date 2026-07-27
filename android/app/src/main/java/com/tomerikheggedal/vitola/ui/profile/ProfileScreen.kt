@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.JournalRepository
 import com.tomerikheggedal.vitola.data.Profile
+import com.tomerikheggedal.vitola.data.memberStats
 import com.tomerikheggedal.vitola.data.FavoriteRepository
 import com.tomerikheggedal.vitola.data.ProfileFavorites
 import com.tomerikheggedal.vitola.data.ProfileRepository
@@ -87,6 +88,8 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
     var uploadingAvatar by remember { mutableStateOf(false) }
     var uploadingCover by remember { mutableStateOf(false) }
     var showBioEditor by remember { mutableStateOf(false) }
+    var selfProfile by remember { mutableStateOf<com.tomerikheggedal.vitola.data.FriendProfile?>(null) }
+    var showMerker by remember { mutableStateOf(false) }
 
     val pickAvatar = com.tomerikheggedal.vitola.ui.rememberCropPicker(1, 1) { uri ->
         uploadingAvatar = true
@@ -122,6 +125,9 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                 runCatching { FavoriteRepository.favoriteList(myUid) }.getOrDefault(emptyList())
             else emptyList()
             lastLog = runCatching { JournalRepository.lastLog() }.getOrNull()
+            selfProfile = if (myUid != null)
+                runCatching { com.tomerikheggedal.vitola.data.FriendRepository.profile(myUid) }.getOrNull()
+            else null
             loading = false
         } else {
             profile = null; stats = ProfileStats(0, 0, 0, 0); favorites = null; myFavorites = emptyList(); lastLog = null
@@ -179,19 +185,31 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
                         )
-                        if (profile?.isFoundingMember == true) {
-                            Spacer(Modifier.height(6.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.clip(RoundedCornerShape(50))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Icon(Icons.Outlined.WorkspacePremium, null,
-                                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                                Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            selfProfile?.let { sp ->
+                                val level = com.tomerikheggedal.vitola.data.MemberLevel.current(sp.memberStats())
+                                Text(level.title, style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clip(RoundedCornerShape(50))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                        .clickable { showMerker = true }
+                                        .padding(horizontal = 10.dp, vertical = 4.dp))
+                            }
+                            if (profile?.isFoundingMember == true) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    modifier = Modifier.clip(RoundedCornerShape(50))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(Icons.Outlined.WorkspacePremium, null,
+                                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                    Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                }
                             }
                         }
                         val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")
@@ -248,6 +266,10 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                 scope.launch { runCatching { ProfileRepository.saveBio(newBio) }; reloadKey++ }
             }
         )
+    }
+
+    if (showMerker) {
+        selfProfile?.let { MerkerSheet(it) { showMerker = false } }
     }
 }
 
