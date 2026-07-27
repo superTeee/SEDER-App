@@ -22,7 +22,12 @@ Sist oppdatert: 2026-07-26
 ### Aktivitet: «+» / kontekst-meny / slett (paritet — klynge D, 26. juli)
 - ✅ «+» øverst til høyre → ComposePostSheet: søk opp sigar → velg → samme logg-ark (0–100 + notat) → del-tilbud (ShareAfterSaveSheet); gjenbruker CigarRepository.search + SmokingLogSheet, ingen ny backend
 - ✅ «...»-meny på hvert kort: eget innlegg → «Slett» (bekreftelses-dialog → JournalRepository.deleteLog + fjern fra lista); andres → «Legg til som venn» (FriendRepository.request + snackbar); begge → «Del» (setSharing→publicSlug→ACTION_SEND)
-- ⬜ Gjenstår Android-paritet: E vurdering 0–100 + intensitets-barer, F UI-finpuss
+
+### Vurdering 0–100 + del-vurderinger (paritet — klynge E, 27. juli)
+- ✅ 0–100-poengsum (50–100-slider m/scoreLabel) i logg-arket + intensitets-barer for Styrke/Kropp/Smaksintensitet/Sødme på detaljsiden — fantes allerede fra tidligere arbeid, verifisert mot iOS
+- ✅ Nytt i E: sammenleggbart «Detaljer (valgfritt)» i logg-arket med del-vurderinger Trekk/Brenning/Smak (1–5 prikker, trykk igjen = nullstill) → lagres til draw_rating/burn_rating/flavor_rating (samme kolonner journal-redigering allerede leser); addLog + NewLog utvidet
+- ⬜ Gjenstår i logg-arket vs iOS (kandidat F): røyk-dato-velger, kutt-type, foto+beskjæring i hurtiglogg (foto finnes allerede i journal-redigering)
+- ⬜ Gjenstår Android-paritet: F UI-finpuss
 
 ### Feed → Aktivitet + deling (paritet)
 - ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt

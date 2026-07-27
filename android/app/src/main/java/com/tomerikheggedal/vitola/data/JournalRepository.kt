@@ -106,6 +106,9 @@ object JournalRepository {
         notes: String?,
         store: String?,
         humidorEntryId: String? = null,
+        drawRating: Int? = null,
+        burnRating: Int? = null,
+        flavorRating: Int? = null,
     ): String {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
         val inserted = Supa.client.from("tasting_logs").insert(
@@ -118,6 +121,9 @@ object JournalRepository {
                 smoke_again = smokeAgain,
                 personal_notes = notes?.ifBlank { null },
                 store = store?.ifBlank { null },
+                draw_rating = drawRating,
+                burn_rating = burnRating,
+                flavor_rating = flavorRating,
             )
         ) {
             select(Columns.list("id"))
@@ -143,4 +149,7 @@ private data class NewLog(
     val smoke_again: Boolean? = null,
     val personal_notes: String? = null,
     val store: String? = null,
+    val draw_rating: Int? = null,
+    val burn_rating: Int? = null,
+    val flavor_rating: Int? = null,
 )

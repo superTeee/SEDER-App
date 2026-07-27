@@ -1,12 +1,19 @@
 package com.tomerikheggedal.vitola.ui.detail
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.Cigar
@@ -39,6 +46,10 @@ fun SmokingLogSheet(
     var smokeAgain by remember { mutableStateOf<Boolean?>(null) }
     var notes by remember { mutableStateOf("") }
     var store by remember { mutableStateOf("") }
+    var showSub by remember { mutableStateOf(false) }
+    var drawRating by remember { mutableStateOf(0) }   // 0 = ikke satt, 1–5
+    var burnRating by remember { mutableStateOf(0) }
+    var flavorRating by remember { mutableStateOf(0) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -91,6 +102,27 @@ fun SmokingLogSheet(
                 }
             }
 
+            // Detaljer (valgfritt): del-vurderinger — som iOS.
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().clickable { showSub = !showSub },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Detaljer (valgfritt)", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.weight(1f))
+                    Icon(
+                        if (showSub) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (showSub) {
+                    DotRatingRow("Trekk", drawRating) { drawRating = it }
+                    DotRatingRow("Brenning", burnRating) { burnRating = it }
+                    DotRatingRow("Smak", flavorRating) { flavorRating = it }
+                }
+            }
+
             OutlinedTextField(
                 value = notes, onValueChange = { notes = it },
                 label = { Text("Notater (valgfritt)") },
@@ -118,6 +150,9 @@ fun SmokingLogSheet(
                                 notes = notes,
                                 store = store,
                                 humidorEntryId = humidorEntryId,
+                                drawRating = drawRating.takeIf { it > 0 },
+                                burnRating = burnRating.takeIf { it > 0 },
+                                flavorRating = flavorRating.takeIf { it > 0 },
                             )
                             onLogged(logId)
                         } catch (e: Exception) {
@@ -141,4 +176,26 @@ fun SmokingLogSheet(
 private fun Label(text: String) {
     Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+// Prikkerad 1–5 (trykk på samme prikk igjen = nullstill), som iOS' dotRatingRow.
+@Composable
+private fun DotRatingRow(label: String, value: Int, onChange: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            for (i in 1..5) {
+                val filled = i <= value
+                Box(
+                    Modifier.size(20.dp).clip(CircleShape)
+                        .background(
+                            if (filled) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        .clickable { onChange(if (value == i) 0 else i) }
+                )
+            }
+        }
+    }
 }
