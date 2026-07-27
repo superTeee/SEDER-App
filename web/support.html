@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SEDER — Support</title>
+<meta name="description" content="Hjelp og kontakt for SEDER — din digitale humidor og sigarjournal." />
+<meta name="theme-color" content="#14110D" />
+<link rel="icon" href="assets/vitola-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14110D; --surface:#1D1811; --ink:#ECE5D6; --muted:#A2957E;
+    --line:rgba(236,229,214,.12); --line-2:rgba(236,229,214,.22); --accent:#C6A15B;
+    --serif:"Fraunces",Georgia,serif; --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--sans); background:var(--bg); color:var(--ink); line-height:1.7; -webkit-font-smoothing:antialiased}
+  a{color:var(--accent); text-decoration:none} a:hover{text-decoration:underline}
+  header.nav{position:sticky; top:0; z-index:40; background:rgba(20,17,13,.82);
+    backdrop-filter:saturate(160%) blur(14px); border-bottom:1px solid var(--line)}
+  .nav-inner{max-width:820px; margin:0 auto; padding:0 24px; height:66px; display:flex; align-items:center; justify-content:space-between}
+  .brand{display:flex; align-items:center; gap:10px; font-family:var(--serif); font-weight:600; font-size:20px; color:var(--ink)}
+  .brand img{width:30px; height:30px; border-radius:7px; display:block}
+  .nav-inner a.home{color:var(--muted); font-size:14px; font-weight:500}
+  main{max-width:820px; margin:0 auto; padding:56px 24px 96px}
+  h1{font-family:var(--serif); font-weight:500; font-size:clamp(30px,5vw,42px); letter-spacing:-.01em; margin:0 0 10px}
+  h2{font-family:var(--serif); font-weight:500; font-size:22px; margin:44px 0 12px}
+  p{color:#d8d0c1; margin:0 0 16px}
+  .lead{font-size:18px; color:var(--muted); margin-bottom:8px}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:24px 26px; margin:22px 0}
+  .contact{display:flex; align-items:center; gap:14px; font-size:17px}
+  ul{color:#d8d0c1; padding-left:20px} li{margin:8px 0}
+  .faq{border-top:1px solid var(--line); padding:20px 0}
+  .faq:first-of-type{border-top:none}
+  .faq h3{font-family:var(--sans); font-weight:600; font-size:16px; margin:0 0 6px; color:var(--ink)}
+  .faq p{margin:0; color:var(--muted)}
+  footer{max-width:820px; margin:0 auto; padding:28px 24px 60px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; display:flex; gap:20px; flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/"><img src="assets/vitola-mark.png" alt="SEDER" />SEDER</a>
+    <a class="home" href="/">Til forsiden</a>
+  </div>
+</header>
+
+<main>
+  <h1>Support</h1>
+  <p class="lead">Trenger du hjelp med SEDER? Vi svarer så raskt vi kan.</p>
+
+  <div class="card">
+    <div class="contact">
+      <span>E-post:</span>
+      <a href="mailto:support@vitola.app">support@vitola.app</a>
+    </div>
+    <p style="margin:14px 0 0; color:var(--muted); font-size:14px">Skriv gjerne hvilken telefon og appversjon du bruker, så finner vi feilen raskere.</p>
+  </div>
+
+  <h2>Vanlige spørsmål</h2>
+
+  <div class="faq">
+    <h3>Hvordan skanner jeg en sigar?</h3>
+    <p>Trykk på skann-knappen nederst, hold sigarbåndet innenfor rammen og ta bilde. SEDER prøver å kjenne igjen sigaren mot databasen. Får du ikke treff, kan du legge den inn manuelt.</p>
+  </div>
+  <div class="faq">
+    <h3>Skanningen fant ikke sigaren min</h3>
+    <p>Databasen vokser hele tiden. Bruk «Legg til manuelt» så registreres sigaren i din egen humidor, og du hjelper samtidig til med å gjøre gjenkjenningen bedre.</p>
+  </div>
+  <div class="faq">
+    <h3>Hvordan følger jeg luftfuktigheten (RH)?</h3>
+    <p>Åpne en humidor og bruk «Registrer» på RH-kortet for å legge inn en måling fra hygrometeret ditt. «Historikk» viser utviklingen over tid i en graf.</p>
+  </div>
+  <div class="faq">
+    <h3>Hvordan sletter jeg kontoen min?</h3>
+    <p>Gå til Profil → Innstillinger → Slett konto. Da fjernes kontoen og dataene dine. Du kan også be om sletting på e-post.</p>
+  </div>
+  <div class="faq">
+    <h3>Hvem kan se det jeg logger?</h3>
+    <p>Humidoren og journalen din er privat. Du velger selv om et innlegg skal deles i aktivitet eller med venner.</p>
+  </div>
+
+  <h2>Melde feil på en sigar</h2>
+  <p>Ser du feil informasjon på en sigar i appen, bruk «Meld feil» på detaljsiden. Da ser vi over det og retter opp.</p>
+</main>
+
+<footer>
+  <span>© SEDER</span>
+  <a href="/personvern">Personvern</a>
+  <a href="/">Forsiden</a>
+</footer>
+</body>
+</html>

@@ -1,7 +1,9 @@
 {
   "rewrites": [
     { "source": "/j/:slug", "destination": "/api/j/:slug" },
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/support", "destination": "/support.html" },
+    { "source": "/personvern", "destination": "/personvern.html" }
   ],
   "headers": [
     {
