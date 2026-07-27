@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import Kingfisher
 import Charts
+import UIKit
 
 // MARK: - JournalView
 // Røykelogg — alle sigarer du har røkt, nyest først.
@@ -17,6 +18,12 @@ struct JournalView: View {
     @State private var showLoginSheet = false
     @State private var logToEdit: TastingLog? = nil
     @State private var showStats = false
+    @State private var exportFile: ExportFile?
+
+    private func export(_ kind: ExportKind) {
+        let url: URL? = (kind == .pdf) ? JournalExporter.writePDF(logs) : JournalExporter.writeCSV(logs)
+        if let url { exportFile = ExportFile(url: url) }
+    }
 
     private let tastingService = TastingService()
 
@@ -43,8 +50,19 @@ struct JournalView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button { showStats = true } label: {
-                            Image(systemName: "chart.bar.xaxis")
+                        Menu {
+                            Button { showStats = true } label: {
+                                Label("Statistikk", systemImage: "chart.bar.xaxis")
+                            }
+                            Divider()
+                            Button { export(.pdf) } label: {
+                                Label("Eksporter som PDF", systemImage: "doc.richtext")
+                            }
+                            Button { export(.csv) } label: {
+                                Label("Eksporter som CSV", systemImage: "tablecells")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
                         }
                     }
                 }
@@ -52,6 +70,9 @@ struct JournalView: View {
             .refreshable { await loadLogs() }
             .sheet(isPresented: $showStats) {
                 StatistikkView().environmentObject(authService)
+            }
+            .sheet(item: $exportFile) { file in
+                IOSShareSheet(items: [file.url])
             }
             .sheet(isPresented: $showLoginSheet) {
                 AuthView(onSuccess: { Task { await loadLogs() } })
@@ -894,5 +915,104 @@ struct StatistikkView: View {
     }
     private func strengthText(_ v: Double) -> String {
         switch v { case ..<2: return "Mild"; case ..<3: return "Medium"; case ..<4: return "Fyldig"; default: return "Sterk" }
+    }
+}
+
+// MARK: - Journal-eksport (PDF / CSV)
+
+enum ExportKind { case pdf, csv }
+struct ExportFile: Identifiable { let id = UUID(); let url: URL }
+
+enum JournalExporter {
+
+    private static func dateStr(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "nb_NO")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: d)
+    }
+
+    private static func write(_ data: Data?, name: String) -> URL? {
+        guard let data else { return nil }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        do { try data.write(to: url); return url } catch { return nil }
+    }
+
+    // CSV — UTF-8 med BOM (så Excel viser æøå riktig).
+    static func writeCSV(_ logs: [TastingLog]) -> URL? {
+        func esc(_ s: String?) -> String {
+            "\"" + (s ?? "").replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        var rows = ["Dato,Merke,Serie,Vitola,Score,Røyk igjen,Trekk,Brenning,Smak,Kutt,Kjøpt hos,Notat"]
+        for l in logs.sorted(by: { $0.smokedAt > $1.smokedAt }) {
+            let c = l.cigar
+            let cols: [String] = [
+                dateStr(l.smokedAt), c?.brand, c?.series, c?.vitola,
+                l.rating.map { "\($0)" }, l.smokeAgain.map { $0 ? "Ja" : "Nei" },
+                l.drawRating.map { "\($0)" }, l.burnRating.map { "\($0)" }, l.flavorRating.map { "\($0)" },
+                l.cutType?.displayName, l.store, l.personalNotes
+            ].map(esc)
+            rows.append(cols.joined(separator: ","))
+        }
+        let csv = "\u{FEFF}" + rows.joined(separator: "\n")
+        return write(csv.data(using: .utf8), name: "seder-journal.csv")
+    }
+
+    // PDF — enkel, lesbar liste (A4).
+    static func writePDF(_ logs: [TastingLog]) -> URL? {
+        let pageW: CGFloat = 595, pageH: CGFloat = 842, margin: CGFloat = 40
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageW, height: pageH))
+        let sorted = logs.sorted(by: { $0.smokedAt > $1.smokedAt })
+
+        let data = renderer.pdfData { ctx in
+            var y: CGFloat = margin
+
+            func header() {
+                "SEDER — Journal".draw(at: CGPoint(x: margin, y: y),
+                    withAttributes: [.font: UIFont.boldSystemFont(ofSize: 20)])
+                y += 28
+                "\(sorted.count) registreringer · eksportert \(dateStr(Date()))"
+                    .draw(at: CGPoint(x: margin, y: y),
+                          withAttributes: [.font: UIFont.systemFont(ofSize: 11), .foregroundColor: UIColor.gray])
+                y += 26
+            }
+            func newPage() { ctx.beginPage(); y = margin; header() }
+
+            newPage()
+            for l in sorted {
+                if y > pageH - margin - 60 { newPage() }
+                let c = l.cigar
+                let name = [c?.brand, c?.series, c?.vitola].compactMap { $0 }.joined(separator: " ")
+                (name.isEmpty ? "Ukjent sigar" : name).draw(at: CGPoint(x: margin, y: y),
+                    withAttributes: [.font: UIFont.boldSystemFont(ofSize: 13)])
+                y += 18
+
+                var meta = dateStr(l.smokedAt)
+                if let r = l.rating { meta += " · \(r)/100" }
+                if let s = l.store, !s.isEmpty { meta += " · \(s)" }
+                meta.draw(at: CGPoint(x: margin, y: y),
+                          withAttributes: [.font: UIFont.systemFont(ofSize: 11), .foregroundColor: UIColor.darkGray])
+                y += 16
+
+                if let note = l.personalNotes, !note.isEmpty {
+                    let ns = note as NSString
+                    let w = pageW - margin * 2
+                    let attrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 11), .foregroundColor: UIColor.black]
+                    let h = ns.boundingRect(with: CGSize(width: w, height: 400),
+                        options: [.usesLineFragmentOrigin], attributes: attrs, context: nil).height
+                    ns.draw(with: CGRect(x: margin, y: y, width: w, height: h),
+                            options: [.usesLineFragmentOrigin], attributes: attrs, context: nil)
+                    y += h + 6
+                }
+
+                ctx.cgContext.setStrokeColor(UIColor.systemGray4.cgColor)
+                ctx.cgContext.setLineWidth(0.5)
+                ctx.cgContext.move(to: CGPoint(x: margin, y: y))
+                ctx.cgContext.addLine(to: CGPoint(x: pageW - margin, y: y))
+                ctx.cgContext.strokePath()
+                y += 12
+            }
+        }
+        return write(data, name: "seder-journal.pdf")
     }
 }
