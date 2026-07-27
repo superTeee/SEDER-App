@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import Kingfisher
+import Charts
 
 // MARK: - HumidorDetailView
 // Viser sigarene i én humidor. Per-sigar kontekstmeny for å flytte mellom humidorer.
@@ -24,6 +25,7 @@ struct HumidorDetailView: View {
     // RH (relativ luftfuktighet)
     @State private var readings: [HumidorRHReading] = []
     @State private var showRHSheet = false
+    @State private var showRHHistory = false
 
     // Bilde (cover) — kan lastes opp direkte fra denne visningen
     @State private var coverURL: String?
@@ -104,6 +106,9 @@ struct HumidorDetailView: View {
         }
         .sheet(isPresented: $showRHSheet) {
             RHReadingSheet(humidorId: humidor.id, onSaved: { Task { await load() } })
+        }
+        .navigationDestination(isPresented: $showRHHistory) {
+            RHHistoryView(humidor: humidor, readings: readings)
         }
         .onChange(of: coverItem) { _, item in
             guard let item else { return }
@@ -246,52 +251,35 @@ struct HumidorDetailView: View {
                     .font(.caption).foregroundColor(Color("TextSecondary"))
                 }
 
-                Button { showRHSheet = true } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus.circle")
-                        Text("Registrer RH").fontWeight(.semibold)
+                // To knapper i bunnen: registrer ny måling + historikk (graf).
+                HStack(spacing: 10) {
+                    Button { showRHSheet = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle")
+                            Text("Registrer").fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(Color("Accent").opacity(0.12))
+                        .foregroundColor(Color("Accent"))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
-                    .frame(maxWidth: .infinity).padding(.vertical, 12)
-                    .background(Color("Accent").opacity(0.12))
-                    .foregroundColor(Color("Accent"))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    Button { showRHHistory = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chart.xyaxis.line")
+                            Text("Historikk").fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(Color("TextSecondary").opacity(0.10))
+                        .foregroundColor(readings.isEmpty ? Color("TextSecondary") : Color("TextPrimary"))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .disabled(readings.isEmpty)
                 }
             }
             .padding(16)
             .background(Color("Card"))
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .padding(.horizontal, 16)
-
-            if !readings.isEmpty {
-                Text("Historikk")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color("TextSecondary")).tracking(0.6)
-                    .padding(.horizontal, 20).padding(.top, 8)
-
-                VStack(spacing: 0) {
-                    let shown = Array(readings.prefix(20))
-                    ForEach(shown) { r in
-                        HStack(spacing: 8) {
-                            Text("\(rhString(r.rh)) %")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(Color("TextPrimary"))
-                            if let t = r.temperature {
-                                Text("· \(rhString(t)) °C").font(.caption).foregroundColor(Color("TextSecondary"))
-                            }
-                            if let note = r.note, !note.isEmpty {
-                                Text("· \(note)").font(.caption).foregroundColor(Color("TextSecondary")).lineLimit(1)
-                            }
-                            Spacer()
-                            Text(relativeDate(r.measuredAt)).font(.caption).foregroundColor(Color("TextSecondary"))
-                        }
-                        .padding(.horizontal, 16).padding(.vertical, 10)
-                        if r.id != shown.last?.id { Divider().padding(.leading, 16) }
-                    }
-                }
-                .background(Color("Card"))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .padding(.horizontal, 16)
-            }
         }
     }
 
@@ -533,5 +521,159 @@ struct RHReadingSheet: View {
             }
             isSaving = false
         }
+    }
+}
+
+// MARK: - RHHistoryView
+// Detaljert RH-historikk: linjegraf over tid med mål-bånd, nøkkeltall (nå/snitt/
+// min–maks) og full liste over målinger. Åpnes fra «Historikk» på RH-kortet.
+
+struct RHHistoryView: View {
+
+    let humidor: Humidor
+    let readings: [HumidorRHReading]   // nyeste først
+
+    private var chrono: [HumidorRHReading] { readings.sorted { $0.measuredAt < $1.measuredAt } }
+    private var rhValues: [Double] { readings.map(\.rh) }
+    private var avg: Double? { rhValues.isEmpty ? nil : rhValues.reduce(0, +) / Double(rhValues.count) }
+
+    private var yDomain: ClosedRange<Double> {
+        var lo = rhValues.min() ?? 60
+        var hi = rhValues.max() ?? 75
+        if let m = humidor.rhMin { lo = min(lo, Double(m)) }
+        if let m = humidor.rhMax { hi = max(hi, Double(m)) }
+        lo -= 4; hi += 4
+        if lo >= hi { hi = lo + 8 }
+        return lo...hi
+    }
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            if readings.isEmpty {
+                Text("Ingen målinger ennå.")
+                    .font(.subheadline).foregroundColor(Color("TextSecondary"))
+                    .frame(maxWidth: .infinity).padding(.top, 60)
+            } else {
+                VStack(alignment: .leading, spacing: 24) {
+                    chartCard
+                    statsRow
+                    listSection
+                }
+                .padding(.vertical, 20)
+            }
+        }
+        .background(Color("Background"))
+        .navigationTitle("RH-historikk")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // ── Graf ──────────────────────────────────────────────────────────────────
+    private var chartCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("UTVIKLING OVER TID")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color("TextSecondary")).tracking(0.6)
+            if let target = humidor.rhTargetLabel {
+                Text("Mål-område: \(target)").font(.caption).foregroundColor(Color("TextSecondary"))
+            }
+            Chart {
+                if let lo = humidor.rhMin {
+                    RuleMark(y: .value("Mål min", Double(lo)))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        .foregroundStyle(Color("Accent").opacity(0.35))
+                }
+                if let hi = humidor.rhMax {
+                    RuleMark(y: .value("Mål maks", Double(hi)))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        .foregroundStyle(Color("Accent").opacity(0.35))
+                }
+                ForEach(chrono) { r in
+                    LineMark(x: .value("Tid", r.measuredAt), y: .value("RH", r.rh))
+                        .foregroundStyle(Color("Accent"))
+                        .interpolationMethod(.catmullRom)
+                    PointMark(x: .value("Tid", r.measuredAt), y: .value("RH", r.rh))
+                        .foregroundStyle(Color("Accent"))
+                        .symbolSize(26)
+                }
+            }
+            .chartYScale(domain: yDomain)
+            .frame(height: 220)
+            .padding(.top, 4)
+        }
+        .padding(16)
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.horizontal, 16)
+    }
+
+    // ── Nøkkeltall ──────────────────────────────────────────────────────────────
+    private var statsRow: some View {
+        HStack(spacing: 10) {
+            statCell(label: "Nå", value: readings.first.map { "\(rhString($0.rh)) %" } ?? "—")
+            statCell(label: "Snitt", value: avg.map { "\(rhString($0)) %" } ?? "—")
+            statCell(label: "Min–maks",
+                     value: (rhValues.min() != nil && rhValues.max() != nil)
+                        ? "\(rhString(rhValues.min()!))–\(rhString(rhValues.max()!)) %" : "—")
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private func statCell(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(Color("TextSecondary")).tracking(0.5)
+            Text(value)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(Color("TextPrimary")).lineLimit(1).minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    // ── Full liste ──────────────────────────────────────────────────────────────
+    private var listSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("ALLE MÅLINGER (\(readings.count))")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color("TextSecondary")).tracking(0.6)
+                .padding(.horizontal, 20)
+
+            VStack(spacing: 0) {
+                ForEach(readings) { r in
+                    HStack(spacing: 8) {
+                        Text("\(rhString(r.rh)) %")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(Color("TextPrimary"))
+                        if let t = r.temperature {
+                            Text("· \(rhString(t)) °C").font(.caption).foregroundColor(Color("TextSecondary"))
+                        }
+                        if let note = r.note, !note.isEmpty {
+                            Text("· \(note)").font(.caption).foregroundColor(Color("TextSecondary")).lineLimit(1)
+                        }
+                        Spacer()
+                        Text(relativeDate(r.measuredAt)).font(.caption).foregroundColor(Color("TextSecondary"))
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    if r.id != readings.last?.id { Divider().padding(.leading, 16) }
+                }
+            }
+            .background(Color("Card"))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func rhString(_ v: Double) -> String {
+        v.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(v)) : String(format: "%.1f", v)
+    }
+
+    private func relativeDate(_ d: Date) -> String {
+        let f = RelativeDateTimeFormatter()
+        f.locale = Locale(identifier: "nb_NO")
+        f.unitsStyle = .full
+        return f.localizedString(for: d, relativeTo: Date())
     }
 }

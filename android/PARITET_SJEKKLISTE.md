@@ -33,6 +33,12 @@ Sist oppdatert: 2026-07-26
 - ✅ Verifisert allerede par: vitola-tekst = onSurfaceVariant (mørk secondary) i alle rader/kort; humidor-kort-spacing; filter/tema/journal
 - 🟡 Gjenstår kun tyngre logg-ekstra vs iOS: røyk-dato-velger + foto+beskjæring i hurtigloggen (foto finnes allerede i journal-redigering) — egen økt ved behov
 
+### RH-kort: to knapper + historikk-skjerm m/graf (paritet — 27. juli)
+- ✅ RH-kortet har nå to knapper i bunnen: «Registrer» (ny måling) + «Historikk» (deaktivert til første måling finnes)
+- ✅ Inline historikk-liste flyttet ut av humidor-detalj → egen RH-historikk-skjerm
+- ✅ Historikk-skjerm: linjegraf over tid m/mål-bånd (iOS: Swift Charts; Android: Canvas), nøkkeltall (Nå / Snitt / Min–maks), full måleliste
+- ✅ Android: ny nav-rute humidorRh/{id} (laster humidor + readings by id); iOS: navigationDestination i HumidorDetailView (ny kode i eksisterende fil pga. ikke-regenererende prosjekt)
+
 ### Feed → Aktivitet + deling (paritet)
 - ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt
 - ✅ Fane «Feed» → «Aktivitet» (scrollbar liste av delte journal-hendelser: rating/bilde/notat + «＋ ønskeliste», trykk → sigar). Journal beholdt som egen fane — begge plattformer

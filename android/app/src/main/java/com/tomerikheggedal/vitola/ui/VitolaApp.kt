@@ -41,6 +41,7 @@ import com.tomerikheggedal.vitola.ui.detail.CigarDetailScreen
 import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
 import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
+import com.tomerikheggedal.vitola.ui.humidor.HumidorRhHistoryScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 import com.tomerikheggedal.vitola.ui.journal.JournalScreen
 import com.tomerikheggedal.vitola.ui.profile.FriendsScreen
@@ -149,7 +150,14 @@ fun VitolaApp() {
                 HumidorDetailScreen(
                     id = entry.arguments?.getString("id").orEmpty(),
                     onBack = { nav.popBackStack() },
-                    onCigar = { nav.navigate("cigar/${it}") }
+                    onCigar = { nav.navigate("cigar/${it}") },
+                    onHistory = { nav.navigate("humidorRh/${it}") }
+                )
+            }
+            composable("humidorRh/{id}") { entry ->
+                HumidorRhHistoryScreen(
+                    id = entry.arguments?.getString("id").orEmpty(),
+                    onBack = { nav.popBackStack() }
                 )
             }
             composable("journal") {

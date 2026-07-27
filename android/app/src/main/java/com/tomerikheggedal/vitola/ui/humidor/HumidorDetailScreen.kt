@@ -3,12 +3,20 @@ package com.tomerikheggedal.vitola.ui.humidor
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,7 +53,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Unit) {
+fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Unit, onHistory: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -123,7 +132,7 @@ fun HumidorDetailScreen(id: String, onBack: () -> Unit, onCigar: (String) -> Uni
                 item { HumidorHeader(humidor, contents.sumOf { it.quantity ?: 1 }, uploadingCover) }
 
                 item {
-                    humidor?.let { RhCard(it, readings, onRegister = { showRhSheet = true }) }
+                    humidor?.let { RhCard(it, readings, onRegister = { showRhSheet = true }, onHistory = { onHistory(id) }) }
                 }
 
                 if (contents.isEmpty()) {
@@ -344,9 +353,9 @@ private fun MoveHumidorPickerSheet(currentId: String, onPick: (String) -> Unit, 
     }
 }
 
-// RH-kort: sist målte RH + mål/status + Registrer RH-knapp + historikk.
+// RH-kort: sist målte RH + mål/status + to knapper (registrer måling + historikk).
 @Composable
-private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: () -> Unit) {
+private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: () -> Unit, onHistory: () -> Unit) {
     val latest = readings.firstOrNull()
     val status = rhStatus(latest?.rh, humidor.targetRh, humidor.rhMin, humidor.rhMax)
     val stale = latest?.let { rhIsStale(it.measuredAt) } ?: false
@@ -397,33 +406,18 @@ private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: (
                     }
                 }
             }
-            OutlinedButton(onClick = onRegister, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Registrer RH")
-            }
-        }
-
-        if (readings.isNotEmpty()) {
-            Spacer(Modifier.height(14.dp))
-            Text("HISTORIKK", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)) {
-                val shown = readings.take(20)
-                shown.forEachIndexed { i, r ->
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Text("${rhStr(r.rh)} %", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                        r.temperature?.let {
-                            Text(" · ${rhStr(it)} °C", style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(Modifier.weight(1f))
-                        Text(rhRelative(r.measuredAt), style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (i < shown.lastIndex) HorizontalDivider(Modifier.padding(start = 16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant)
+            // To knapper i bunnen: registrer ny måling + historikk (graf).
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onRegister, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Registrer")
+                }
+                OutlinedButton(onClick = onHistory, enabled = readings.isNotEmpty(),
+                    modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.ShowChart, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Historikk")
                 }
             }
         }
@@ -514,4 +508,168 @@ private fun uriToJpeg(context: android.content.Context, uri: android.net.Uri, ma
     val out = java.io.ByteArrayOutputStream()
     scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
     return out.toByteArray()
+}
+
+// ── RH-historikk-skjerm: graf over tid + nøkkeltall + full liste ──────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HumidorRhHistoryScreen(id: String, onBack: () -> Unit) {
+    var humidor by remember { mutableStateOf<HumidorRow?>(null) }
+    var readings by remember { mutableStateOf<List<RhReading>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(id) {
+        loading = true
+        humidor = runCatching { HumidorRepository.humidorById(id) }.getOrNull()
+        readings = runCatching { HumidorRepository.readings(id) }.getOrDefault(emptyList())
+        loading = false
+    }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("RH-historikk", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tilbake") }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
+    ) { padding ->
+        when {
+            loading -> Box(Modifier.padding(padding).fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+            readings.isEmpty() -> Box(Modifier.padding(padding).fillMaxSize(), Alignment.Center) {
+                Text("Ingen målinger ennå.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            else -> Column(
+                Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                RhChartCard(humidor, readings)
+                RhStatsRow(readings)
+                RhHistoryList(readings)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RhChartCard(humidor: HumidorRow?, readings: List<RhReading>) {
+    val primary = MaterialTheme.colorScheme.primary
+    val bandColor = primary.copy(alpha = 0.10f)
+    // Kronologisk (eldst → nyest) for grafen.
+    val chrono = readings.sortedBy { rhInstant(it.measuredAt)?.epochSecond ?: 0L }
+    val values = chrono.map { it.rh.toFloat() }
+    val rhMin = humidor?.rhMin
+    val rhMax = humidor?.rhMax
+    var lo = (values.minOrNull() ?: 60f)
+    var hi = (values.maxOrNull() ?: 75f)
+    rhMin?.let { lo = minOf(lo, it.toFloat()) }
+    rhMax?.let { hi = maxOf(hi, it.toFloat()) }
+    lo -= 4f; hi += 4f
+    if (lo >= hi) hi = lo + 8f
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Text("UTVIKLING OVER TID", style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp))
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surface).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            humidor?.rhTargetLabel?.let {
+                Text("Mål-område: $it", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Canvas(Modifier.fillMaxWidth().height(200.dp)) {
+                val w = size.width; val h = size.height
+                fun yFor(v: Float) = h - (v - lo) / (hi - lo) * h
+                // Mål-bånd
+                if (rhMin != null && rhMax != null) {
+                    val top = yFor(rhMax.toFloat())
+                    val bottom = yFor(rhMin.toFloat())
+                    drawRect(color = bandColor, topLeft = Offset(0f, top),
+                        size = Size(w, (bottom - top).coerceAtLeast(0f)))
+                }
+                // Punkter
+                val n = chrono.size
+                val pts = chrono.mapIndexed { i, r ->
+                    val x = if (n <= 1) w / 2f else w * i / (n - 1).toFloat()
+                    Offset(x, yFor(r.rh.toFloat()))
+                }
+                if (pts.size >= 2) {
+                    val path = Path().apply {
+                        pts.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
+                    }
+                    drawPath(path, color = primary, style = Stroke(width = 3f, cap = StrokeCap.Round))
+                }
+                pts.forEach { drawCircle(primary, radius = 4.5f, center = it) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RhStatsRow(readings: List<RhReading>) {
+    val values = readings.map { it.rh }
+    val now = readings.firstOrNull()?.rh
+    val avg = if (values.isEmpty()) null else values.average()
+    val minV = values.minOrNull(); val maxV = values.maxOrNull()
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        RhStatCell("Nå", now?.let { "${rhStr(it)} %" } ?: "—", Modifier.weight(1f))
+        RhStatCell("Snitt", avg?.let { "${rhStr(it)} %" } ?: "—", Modifier.weight(1f))
+        RhStatCell("Min–maks",
+            if (minV != null && maxV != null) "${rhStr(minV)}–${rhStr(maxV)} %" else "—",
+            Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun RhStatCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface).padding(14.dp)
+    ) {
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 0.5.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+            maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@Composable
+private fun RhHistoryList(readings: List<RhReading>) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Text("ALLE MÅLINGER (${readings.size})", style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp))
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface)) {
+            readings.forEachIndexed { i, r ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text("${rhStr(r.rh)} %", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    r.temperature?.let {
+                        Text(" · ${rhStr(it)} °C", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    r.note?.takeIf { it.isNotBlank() }?.let {
+                        Text(" · $it", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(rhRelative(r.measuredAt), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (i < readings.lastIndex) HorizontalDivider(Modifier.padding(start = 16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant)
+            }
+        }
+    }
 }
