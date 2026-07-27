@@ -11,6 +11,7 @@ struct Profile: Codable, Identifiable {
     let city: String?
     let country: String?
     let createdAt: Date?
+    let isFoundingMember: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -20,6 +21,7 @@ struct Profile: Codable, Identifiable {
         case city
         case country
         case createdAt   = "created_at"
+        case isFoundingMember = "is_founding_member"
     }
 }
 
@@ -42,6 +44,7 @@ struct FriendProfile: Codable, Identifiable {
     let favoritesCount: Int      // Antall røkt igjen = true
     let brandsTried: Int         // Unike merker røkt
     let country: String?
+    let isFoundingMember: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -59,6 +62,7 @@ struct FriendProfile: Codable, Identifiable {
         case avgScore       = "avg_score"
         case favoritesCount = "favorites_count"
         case brandsTried    = "brands_tried"
+        case isFoundingMember = "is_founding_member"
     }
 }
 

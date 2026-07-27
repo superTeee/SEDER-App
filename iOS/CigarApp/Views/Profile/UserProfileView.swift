@@ -240,6 +240,19 @@ struct UserProfileView: View {
                         .font(.title2.weight(.bold))
                         .foregroundColor(hasRealName(p) ? Color("TextPrimary") : Color("TextSecondary"))
 
+                    // Tidlig tester-merke (livstids Pro for de første brukerne)
+                    if p.isFoundingMember == true {
+                        HStack(spacing: 5) {
+                            Image(systemName: "seal.fill")
+                            Text("Tidlig tester")
+                        }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color("Accent"))
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(Capsule().fill(Color("Accent").opacity(0.12)))
+                        .padding(.top, 2)
+                    }
+
                     // Badge-nivå (amber tekst, trykk for nivå-ark)
                     Button { showBadgeSheet = true } label: {
                         Text(badge.title)

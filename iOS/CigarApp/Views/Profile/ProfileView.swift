@@ -207,8 +207,10 @@ struct ProfileSettingsView: View {
     @State private var showEditLocation          = false
     @State private var showAdminSheet            = false
     @State private var showPaywall               = false
+    @State private var isFoundingMember          = false
 
     @StateObject private var adminService = AdminService()
+    private let profileService = ProfileService()
     @State private var isDeletingAccount         = false
     @State private var deleteAccountError: String?
 
@@ -246,27 +248,47 @@ struct ProfileSettingsView: View {
                 }
 
                 Section {
-                    Button {
-                        showPaywall = true
-                    } label: {
+                    if isFoundingMember {
                         HStack(spacing: 12) {
                             Image(systemName: "seal.fill")
                                 .font(.system(size: 22))
                                 .foregroundColor(Color("Accent"))
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Oppgrader til Pro")
+                                Text("SEDER Pro")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(Color("TextPrimary"))
-                                Text("Ubegrenset humidor, eksport og innsikt")
+                                Text("Tidlig tester · livstid")
                                     .font(.caption)
                                     .foregroundColor(Color("TextSecondary"))
                             }
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color("TextSecondary").opacity(0.5))
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundColor(Color("Accent"))
                         }
                         .padding(.vertical, 2)
+                    } else {
+                        Button {
+                            showPaywall = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "seal.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(Color("Accent"))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Oppgrader til Pro")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(Color("TextPrimary"))
+                                    Text("Ubegrenset humidor, eksport og innsikt")
+                                        .font(.caption)
+                                        .foregroundColor(Color("TextSecondary"))
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Color("TextSecondary").opacity(0.5))
+                            }
+                            .padding(.vertical, 2)
+                        }
                     }
                 }
 
@@ -400,6 +422,10 @@ struct ProfileSettingsView: View {
             .task {
                 await adminService.refreshAdminStatus()
                 await adminService.loadQueue()
+                if let uid = authService.userId,
+                   let p = try? await profileService.fetchOwnProfile(userId: uid) {
+                    isFoundingMember = p.isFoundingMember ?? false
+                }
             }
             .alert("Logg ut?", isPresented: $showSignOutConfirm) {
                 Button("Avbryt", role: .cancel) {}

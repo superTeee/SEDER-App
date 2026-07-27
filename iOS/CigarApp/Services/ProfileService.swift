@@ -18,7 +18,7 @@ class ProfileService: ObservableObject {
     func fetchOwnProfile(userId: UUID) async throws -> Profile {
         let profile: Profile = try await supabase
             .from("profiles")
-            .select("id, display_name, friend_code, avatar_url, city, country, created_at")
+            .select("id, display_name, friend_code, avatar_url, city, country, created_at, is_founding_member")
             .eq("id", value: userId.uuidString)
             .single()
             .execute()
