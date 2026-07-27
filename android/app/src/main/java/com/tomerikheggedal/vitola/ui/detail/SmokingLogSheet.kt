@@ -50,6 +50,7 @@ fun SmokingLogSheet(
     var drawRating by remember { mutableStateOf(0) }   // 0 = ikke satt, 1–5
     var burnRating by remember { mutableStateOf(0) }
     var flavorRating by remember { mutableStateOf(0) }
+    var cutType by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -120,6 +121,19 @@ fun SmokingLogSheet(
                     DotRatingRow("Trekk", drawRating) { drawRating = it }
                     DotRatingRow("Brenning", burnRating) { burnRating = it }
                     DotRatingRow("Smak", flavorRating) { flavorRating = it }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Label("Kutt")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("straight_cut" to "Rett", "v_cut" to "V-snitt", "punch_cut" to "Punch")
+                                .forEach { (code, lbl) ->
+                                    FilterChip(
+                                        selected = cutType == code,
+                                        onClick = { cutType = if (cutType == code) null else code },
+                                        label = { Text(lbl) }
+                                    )
+                                }
+                        }
+                    }
                 }
             }
 
@@ -153,6 +167,7 @@ fun SmokingLogSheet(
                                 drawRating = drawRating.takeIf { it > 0 },
                                 burnRating = burnRating.takeIf { it > 0 },
                                 flavorRating = flavorRating.takeIf { it > 0 },
+                                cutType = cutType,
                             )
                             onLogged(logId)
                         } catch (e: Exception) {

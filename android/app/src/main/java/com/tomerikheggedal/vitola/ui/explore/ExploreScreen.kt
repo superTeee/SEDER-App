@@ -273,12 +273,11 @@ fun ExploreScreen(
                         if (vm.query.isNotBlank()) recent = SearchHistory.add(context, vm.query)
                     }),
                     colors = OutlinedTextFieldDefaults.colors(
-                        // 5% accent i hvile, 10% accent når feltet er aktivt (som iOS).
-                        unfocusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                        focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                        // Ingen synlig ramme.
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent,
+                        // Hvitt felt (kort-farge i mørk modus) m/svak kant — som iOS.
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+                        focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f),
                     ),
                     modifier = Modifier.weight(1f)
                 )

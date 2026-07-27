@@ -109,6 +109,7 @@ object JournalRepository {
         drawRating: Int? = null,
         burnRating: Int? = null,
         flavorRating: Int? = null,
+        cutType: String? = null,
     ): String {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: error("Ikke innlogget")
         val inserted = Supa.client.from("tasting_logs").insert(
@@ -124,6 +125,7 @@ object JournalRepository {
                 draw_rating = drawRating,
                 burn_rating = burnRating,
                 flavor_rating = flavorRating,
+                cut_type = cutType,
             )
         ) {
             select(Columns.list("id"))
@@ -152,4 +154,5 @@ private data class NewLog(
     val draw_rating: Int? = null,
     val burn_rating: Int? = null,
     val flavor_rating: Int? = null,
+    val cut_type: String? = null,
 )

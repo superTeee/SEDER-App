@@ -26,8 +26,12 @@ Sist oppdatert: 2026-07-26
 ### Vurdering 0–100 + del-vurderinger (paritet — klynge E, 27. juli)
 - ✅ 0–100-poengsum (50–100-slider m/scoreLabel) i logg-arket + intensitets-barer for Styrke/Kropp/Smaksintensitet/Sødme på detaljsiden — fantes allerede fra tidligere arbeid, verifisert mot iOS
 - ✅ Nytt i E: sammenleggbart «Detaljer (valgfritt)» i logg-arket med del-vurderinger Trekk/Brenning/Smak (1–5 prikker, trykk igjen = nullstill) → lagres til draw_rating/burn_rating/flavor_rating (samme kolonner journal-redigering allerede leser); addLog + NewLog utvidet
-- ⬜ Gjenstår i logg-arket vs iOS (kandidat F): røyk-dato-velger, kutt-type, foto+beskjæring i hurtiglogg (foto finnes allerede i journal-redigering)
-- ⬜ Gjenstår Android-paritet: F UI-finpuss
+
+### UI-finpuss (paritet — klynge F, 27. juli)
+- ✅ Utforsk-søkefeltet: hvitt (kort-farge i mørk modus) m/svak kant, ikke accent-tone — matcher iOS
+- ✅ Kutt-type (Rett / V-snitt / Punch) lagt i hurtiglogg-arkets «Detaljer»-seksjon → cut_type (samme koder som journal-redigering); addLog + NewLog utvidet
+- ✅ Verifisert allerede par: vitola-tekst = onSurfaceVariant (mørk secondary) i alle rader/kort; humidor-kort-spacing; filter/tema/journal
+- 🟡 Gjenstår kun tyngre logg-ekstra vs iOS: røyk-dato-velger + foto+beskjæring i hurtigloggen (foto finnes allerede i journal-redigering) — egen økt ved behov
 
 ### Feed → Aktivitet + deling (paritet)
 - ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt
