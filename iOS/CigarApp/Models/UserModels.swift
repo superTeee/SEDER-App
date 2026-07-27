@@ -45,6 +45,8 @@ struct FriendProfile: Codable, Identifiable {
     let brandsTried: Int         // Unike merker røkt
     let country: String?
     let isFoundingMember: Bool?
+    let humidorsCount: Int?      // Antall humidor-beholdere (til nivåberegning)
+    let rhCount: Int?            // Antall RH-målinger (til nivåberegning)
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -63,6 +65,8 @@ struct FriendProfile: Codable, Identifiable {
         case favoritesCount = "favorites_count"
         case brandsTried    = "brands_tried"
         case isFoundingMember = "is_founding_member"
+        case humidorsCount  = "humidors_count"
+        case rhCount        = "rh_count"
     }
 }
 

@@ -107,7 +107,7 @@ struct UserProfileView: View {
             ProfileSettingsView()
         }
         .sheet(isPresented: $showBadgeSheet) {
-            BadgeLevelSheet(createdAt: profile?.createdAt)
+            if let p = profile { MerkerView(profile: p) }
         }
         .sheet(isPresented: $showBioEditor) {
             BioEditorSheet(currentBio: profile?.bio ?? "") { newBio in
@@ -164,7 +164,7 @@ struct UserProfileView: View {
     private func heroSection(_ p: FriendProfile) -> some View {
         let displayAvatarURL = localAvatarURL ?? p.avatarUrl
         let displayCoverURL  = localCoverURL  ?? p.coverUrl
-        let badge = BadgeLevel.level(for: p.createdAt)
+        let badge = MemberLevel.current(p.memberStats)
 
         return VStack(spacing: 0) {
 
@@ -829,123 +829,217 @@ struct BioEditorSheet: View {
     }
 }
 
-// MARK: - BadgeLevelSheet
+// MARK: - Ansiennitet (Primary) — tid + handlinger
 
-struct BadgeLevelSheet: View {
-    let createdAt: Date?
-    @Environment(\.dismiss) private var dismiss
+struct MemberStats {
+    let months: Int
+    let journal: Int          // tasting_logs (røkt/loggført)
+    let humidorCigars: Int    // sigarer i humidorene
+    let humidors: Int         // antall humidor-beholdere
+    let rh: Int               // RH-målinger
+    let brands: Int           // unike merker
+}
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(BadgeLevel.allCases) { level in
-                        let current = BadgeLevel.level(for: createdAt)
-                        let isActive = level == current
-                        let isUnlocked = level.rawValue <= current.rawValue
-                        HStack(spacing: 14) {
-                            Text(level.icon)
-                                .font(.system(size: 24))
-                                .frame(width: 36)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(level.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(isUnlocked ? Color("TextPrimary") : Color("TextSecondary"))
-                                Text(level.description)
-                                    .font(.caption)
-                                    .foregroundColor(Color("TextSecondary"))
-                            }
-                            Spacer()
-                            if isActive {
-                                Image(systemName: "star.fill")
-                                    .foregroundColor(Color(hex: "#FFD97D"))
-                                    .font(.system(size: 16))
-                            } else if isUnlocked {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                    .font(.system(size: 16))
-                            } else {
-                                Image(systemName: "lock.fill")
-                                    .foregroundColor(Color("TextSecondary").opacity(0.4))
-                                    .font(.system(size: 14))
-                            }
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(isActive ? Color(hex: "#FFF3D6") : Color("Surface"))
-                        .overlay(RoundedRectangle(cornerRadius: 6)
-                            .stroke(isActive ? Color(hex: "#FFD97D") : Color.clear, lineWidth: 1.5))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .opacity(isUnlocked ? 1 : 0.45)
-                    }
-                }
-                .padding(16)
-            }
-            .background(Color("Background"))
-            .navigationTitle("Din status")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Ferdig") { dismiss() }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+extension FriendProfile {
+    var memberStats: MemberStats {
+        let months = createdAt.map {
+            Calendar.current.dateComponents([.month], from: $0, to: .now).month ?? 0
+        } ?? 0
+        return MemberStats(
+            months: months, journal: cigarCount, humidorCigars: humidorCount,
+            humidors: humidorsCount ?? 0, rh: rhCount ?? 0, brands: brandsTried
+        )
     }
 }
 
-// MARK: - Badge Level
-
-enum BadgeLevel: Int, CaseIterable, Identifiable {
-    case starter     = 0
-    case entusiast   = 1
-    case connoisseur = 2
-    case aficionado  = 3
-    case maestro     = 4
-
+enum MemberLevel: Int, CaseIterable, Identifiable {
+    case sigarentusiast = 0, kjenner, samler, kurator, aficionado
     var id: Int { rawValue }
-
-    var icon: String {
-        switch self {
-        case .starter:     return "🌱"
-        case .entusiast:   return "🔥"
-        case .connoisseur: return "💨"
-        case .aficionado:  return "🏆"
-        case .maestro:     return "👑"
-        }
-    }
 
     var title: String {
         switch self {
-        case .starter:     return "Sigar-entusiast"
-        case .entusiast:   return "Kjenner"
-        case .connoisseur: return "Veteran"
-        case .aficionado:  return "Mester"
-        case .maestro:     return "Legende"
+        case .sigarentusiast: return "Sigarentusiast"
+        case .kjenner:        return "Kjenner"
+        case .samler:         return "Samler"
+        case .kurator:        return "Kurator"
+        case .aficionado:     return "Sigaraficionado"
         }
     }
 
-    var description: String {
+    var icon: String {
         switch self {
-        case .starter:     return "Ny bruker · < 1 måned"
-        case .entusiast:   return "1–3 måneder"
-        case .connoisseur: return "3–12 måneder"
-        case .aficionado:  return "1–3 år"
-        case .maestro:     return "3+ år"
+        case .sigarentusiast: return "flame"
+        case .kjenner:        return "star"
+        case .samler:         return "square.stack.3d.up"
+        case .kurator:        return "rosette"
+        case .aficionado:     return "crown"
         }
     }
 
-    static func level(for date: Date?) -> BadgeLevel {
-        guard let date else { return .starter }
-        let months = Calendar.current.dateComponents([.month], from: date, to: .now).month ?? 0
-        switch months {
-        case ..<1:    return .starter
-        case 1..<3:   return .entusiast
-        case 3..<12:  return .connoisseur
-        case 12..<36: return .aficionado
-        default:      return .maestro
+    var criteria: String {
+        switch self {
+        case .sigarentusiast: return "Fra dag 1"
+        case .kjenner:        return "1 md · 5+ journalinnlegg"
+        case .samler:         return "3 md · 2 humidorer · 10 sigarer · RH-måling"
+        case .kurator:        return "6 md · 3 humidorer · 30 sigarer · 15 journalinnlegg"
+        case .aficionado:     return "12 md · 100+ røkt · 20+ merker"
         }
+    }
+
+    func achieved(_ s: MemberStats) -> Bool {
+        switch self {
+        case .sigarentusiast: return true
+        case .kjenner:        return s.months >= 1 && s.journal >= 5
+        case .samler:         return s.months >= 3 && s.humidors >= 2 && s.humidorCigars >= 10 && s.rh >= 1
+        case .kurator:        return s.months >= 6 && s.humidors >= 3 && s.humidorCigars >= 30 && s.journal >= 15
+        case .aficionado:     return s.months >= 12 && s.journal >= 100 && s.brands >= 20
+        }
+    }
+
+    /// Høyeste sammenhengende oppnådde nivå (stopper ved første hull).
+    static func current(_ s: MemberStats) -> MemberLevel {
+        var lvl: MemberLevel = .sigarentusiast
+        for l in allCases { if l.achieved(s) { lvl = l } else { break } }
+        return lvl
+    }
+}
+
+// MARK: - Opptjente merker (Secondary)
+
+struct SecondaryBadge: Identifiable {
+    let id: Int
+    let title: String
+    let subtitle: String
+    let icon: String
+    let earned: Bool
+}
+
+// MARK: - MerkerView (merke-oversikt)
+
+struct MerkerView: View {
+    let profile: FriendProfile
+    @Environment(\.dismiss) private var dismiss
+
+    private var stats: MemberStats { profile.memberStats }
+    private var current: MemberLevel { MemberLevel.current(stats) }
+
+    private var secondaryBadges: [SecondaryBadge] {
+        [
+            SecondaryBadge(id: 0, title: "Tidlig tester", subtitle: "Blant de første",
+                           icon: "seal", earned: profile.isFoundingMember == true),
+            SecondaryBadge(id: 1, title: "Anmelder", subtitle: "50+ vurderinger",
+                           icon: "pencil", earned: stats.journal >= 50),
+            SecondaryBadge(id: 2, title: "Bidragsyter", subtitle: "Godkjente rettelser",
+                           icon: "hand.thumbsup", earned: false),
+            SecondaryBadge(id: 3, title: "Pioner", subtitle: "Legg til nye sigarer",
+                           icon: "plus.circle", earned: false),
+            SecondaryBadge(id: 4, title: "Ambassadør", subtitle: "Verv 3 venner",
+                           icon: "person.2.badge.plus", earned: false),
+        ]
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 22) {
+
+                    // Ansiennitet
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionLabel("ANSIENNITET")
+                        VStack(spacing: 8) {
+                            ForEach(MemberLevel.allCases) { level in
+                                levelRow(level, earned: level.rawValue <= current.rawValue,
+                                         isCurrent: level == current)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    // Opptjente merker
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionLabel("OPPTJENTE MERKER").padding(.horizontal, 16)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(secondaryBadges) { secondaryCard($0) }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                }
+                .padding(.vertical, 16)
+            }
+            .background(Color("Background"))
+            .navigationTitle("Merker")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Ferdig") { dismiss() } }
+            }
+        }
+        .presentationDragIndicator(.visible)
+    }
+
+    private func sectionLabel(_ t: String) -> some View {
+        Text(t).font(.system(size: 12, weight: .semibold))
+            .foregroundColor(Color("TextSecondary")).tracking(0.6)
+    }
+
+    private func levelRow(_ level: MemberLevel, earned: Bool, isCurrent: Bool) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color("Accent").opacity(earned ? 0.14 : 0.06)).frame(width: 42, height: 42)
+                Image(systemName: level.icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(earned ? Color("Accent") : Color("TextSecondary").opacity(0.5))
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(level.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(earned ? Color("TextPrimary") : Color("TextSecondary"))
+                Text(level.criteria)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color("TextSecondary"))
+            }
+            Spacer(minLength: 8)
+            if earned {
+                Text("Samlet")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color("Accent"))
+                    .padding(.horizontal, 9).padding(.vertical, 3)
+                    .background(Capsule().fill(Color("Accent").opacity(0.12)))
+            } else {
+                Image(systemName: "lock").font(.system(size: 14)).foregroundColor(Color("TextSecondary").opacity(0.5))
+            }
+        }
+        .padding(12)
+        .background(Color("Card"))
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(isCurrent ? Color("Accent") : Color.clear, lineWidth: 1.5))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func secondaryCard(_ b: SecondaryBadge) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: b.icon)
+                .font(.system(size: 22))
+                .foregroundColor(b.earned ? Color("Accent") : Color("TextSecondary").opacity(0.5))
+            Text(b.title).font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color("TextPrimary"))
+            Text(b.subtitle).font(.system(size: 11))
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+            if b.earned {
+                Text("Samlet").font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(Color("Accent"))
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .background(Capsule().fill(Color("Accent").opacity(0.12)))
+            } else {
+                Image(systemName: "lock").font(.system(size: 12)).foregroundColor(Color("TextSecondary").opacity(0.5))
+            }
+        }
+        .frame(width: 128)
+        .padding(.vertical, 14).padding(.horizontal, 10)
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
