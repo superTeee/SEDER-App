@@ -21,6 +21,7 @@ data class Profile(
     val bio: String? = null,
     val city: String? = null,
     val country: String? = null,
+    @SerialName("is_founding_member") val isFoundingMember: Boolean = false,
 )
 
 data class ProfileStats(
@@ -51,7 +52,7 @@ object ProfileRepository {
     suspend fun myProfile(): Profile? {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: return null
         return Supa.client.from("profiles")
-            .select(columns = Columns.list("id", "display_name", "friend_code", "avatar_url", "cover_url", "bio", "city", "country")) {
+            .select(columns = Columns.list("id", "display_name", "friend_code", "avatar_url", "cover_url", "bio", "city", "country", "is_founding_member")) {
                 filter { eq("id", uid) }
             }
             .decodeList<Profile>()

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.FriendProfile
 import com.tomerikheggedal.vitola.data.FriendRepository
@@ -79,7 +81,22 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                     Avatar(p.avatarUrl)
                     Spacer(Modifier.height(14.dp))
                     Text(p.displayName ?: "SEDER-bruker", style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold)
+                        fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    if (p.isFoundingMember) {
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier.clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Outlined.WorkspacePremium, null,
+                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                            Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                     val place = listOfNotNull(p.city, p.country).joinToString(", ")
                     if (place.isNotBlank()) {
                         Spacer(Modifier.height(2.dp))

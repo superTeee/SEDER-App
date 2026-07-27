@@ -26,6 +26,9 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -173,8 +176,24 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                         horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             profile?.displayName ?: ProfileRepository.authName() ?: "SEDER-bruker",
-                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
                         )
+                        if (profile?.isFoundingMember == true) {
+                            Spacer(Modifier.height(6.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.clip(RoundedCornerShape(50))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Outlined.WorkspacePremium, null,
+                                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
                         val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")
                         if (place.isNotBlank()) {
                             Spacer(Modifier.height(2.dp))
@@ -296,10 +315,10 @@ private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () ->
         StatDivider()
         StatCell(Icons.Filled.LocalFireDepartment, stats.cigars, "Røkt", Modifier.weight(1f))
         StatDivider()
-        StatCell(Icons.Filled.Star, favoritesCount, "Favoritter",
+        StatCell(Icons.Outlined.Star, favoritesCount, "Favoritter",
             Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFavorites))
         StatDivider()
-        StatCell(Icons.Filled.Group, stats.friends, "Venner",
+        StatCell(Icons.Outlined.Group, stats.friends, "Venner",
             Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFriends))
     }
 }
