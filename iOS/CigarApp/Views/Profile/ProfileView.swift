@@ -206,6 +206,7 @@ struct ProfileSettingsView: View {
     @State private var showEditName              = false
     @State private var showEditLocation          = false
     @State private var showAdminSheet            = false
+    @State private var showPaywall               = false
 
     @StateObject private var adminService = AdminService()
     @State private var isDeletingAccount         = false
@@ -241,6 +242,31 @@ struct ProfileSettingsView: View {
                             }
                         }
                         .padding(.vertical, 4)
+                    }
+                }
+
+                Section {
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "seal.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(Color("Accent"))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Oppgrader til Pro")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(Color("TextPrimary"))
+                                Text("Ubegrenset humidor, eksport og innsikt")
+                                    .font(.caption)
+                                    .foregroundColor(Color("TextSecondary"))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color("TextSecondary").opacity(0.5))
+                        }
+                        .padding(.vertical, 2)
                     }
                 }
 
@@ -368,6 +394,9 @@ struct ProfileSettingsView: View {
             .sheet(isPresented: $showAdminSheet) {
                 AdminView()
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
             .task {
                 await adminService.refreshAdminStatus()
                 await adminService.loadQueue()
@@ -413,5 +442,196 @@ struct ProfileSettingsView: View {
                 Text(deleteAccountError ?? "")
             }
         }
+    }
+}
+
+// MARK: - PaywallView
+// SEDER Pro: ubegrenset humidor + journal-eksport + avansert statistikk + Pro-merke.
+// Ingen skann-grense (skanning er alltid gratis). Kjøps-knapp stubbes til RevenueCat
+// er koblet på — da bytter «Start Pro» ut placeholder-varselet med ekte kjøp.
+struct PaywallView: View {
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var yearly = true
+    @State private var showComingSoon = false
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                header
+                comparisonCard
+                Text("Skanning, journal og vurderinger er alltid gratis.")
+                    .font(.footnote)
+                    .foregroundColor(Color("TextSecondary"))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+                planSelector
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 40)
+            .padding(.bottom, 20)
+        }
+        .background(Color("Background").ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) { bottomBar }
+        .overlay(alignment: .topTrailing) {
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Color("TextSecondary"))
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(Color("TextSecondary").opacity(0.12)))
+            }
+            .padding(.trailing, 16)
+            .padding(.top, 12)
+        }
+        .alert("Kommer snart", isPresented: $showComingSoon) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Betaling kobles på i neste oppdatering. Da kan du bli Pro herfra.")
+        }
+    }
+
+    private var header: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "seal.fill")
+                Text("SEDER Pro").fontWeight(.semibold)
+            }
+            .font(.system(size: 12))
+            .foregroundColor(Color("Accent"))
+            .padding(.horizontal, 12).padding(.vertical, 5)
+            .background(Capsule().fill(Color("Accent").opacity(0.12)))
+
+            Text("Få mest ut av samlingen din")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundColor(Color("TextPrimary"))
+                .multilineTextAlignment(.center)
+            Text("Ubegrenset humidor, eksport og innsikt.")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private var comparisonCard: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("").frame(maxWidth: .infinity, alignment: .leading)
+                Text("Gratis").frame(width: 60)
+                Text("Pro").fontWeight(.semibold).foregroundColor(Color("Accent")).frame(width: 60)
+            }
+            .font(.caption)
+            .foregroundColor(Color("TextSecondary"))
+            .padding(.horizontal, 16).padding(.vertical, 11)
+            Divider()
+            compareRow(label: "Humidor-størrelse", free: .text("25"), pro: .text("∞"))
+            Divider().padding(.leading, 16)
+            compareRow(label: "Journal-eksport (PDF/CSV)", free: .no, pro: .yes)
+            Divider().padding(.leading, 16)
+            compareRow(label: "Avansert statistikk", free: .no, pro: .yes)
+            Divider().padding(.leading, 16)
+            compareRow(label: "Pro-merke på profil", free: .no, pro: .yes)
+        }
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private enum CellValue { case text(String), yes, no }
+
+    @ViewBuilder
+    private func compareRow(label: String, free: CellValue, pro: CellValue) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundColor(Color("TextPrimary"))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            cell(free, accent: false).frame(width: 60)
+            cell(pro, accent: true).frame(width: 60)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 13)
+    }
+
+    @ViewBuilder
+    private func cell(_ value: CellValue, accent: Bool) -> some View {
+        switch value {
+        case .text(let t):
+            Text(t)
+                .font(.system(size: 14, weight: accent ? .semibold : .regular))
+                .foregroundColor(accent ? Color("TextPrimary") : Color("TextSecondary"))
+        case .yes:
+            Image(systemName: "checkmark").font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color("Accent"))
+        case .no:
+            Image(systemName: "minus").font(.system(size: 13))
+                .foregroundColor(Color("TextSecondary").opacity(0.4))
+        }
+    }
+
+    private var planSelector: some View {
+        HStack(spacing: 10) {
+            planCard(title: "Årlig", price: "449 kr", note: "≈ 37 kr/mnd", badge: "Spar 37%", selected: yearly) { yearly = true }
+            planCard(title: "Månedlig", price: "59 kr", note: "per måned", badge: nil, selected: !yearly) { yearly = false }
+        }
+    }
+
+    @ViewBuilder
+    private func planCard(title: String, price: String, note: String, badge: String?, selected: Bool, tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            VStack(spacing: 2) {
+                Text(title).font(.system(size: 13, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                Text(price).font(.system(size: 18, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                Text(note).font(.system(size: 11)).foregroundColor(Color("TextSecondary"))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color("Card"))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? Color("Accent") : Color("TextSecondary").opacity(0.15),
+                            lineWidth: selected ? 2 : 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(alignment: .top) {
+                if let badge {
+                    Text(badge)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8).padding(.vertical, 2)
+                        .background(Capsule().fill(Color("Accent")))
+                        .offset(y: -9)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var bottomBar: some View {
+        VStack(spacing: 10) {
+            Button { showComingSoon = true } label: {
+                Text("Start Pro")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(Color("Accent"))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            Text("Gratis fortsetter alltid · avslutt når som helst")
+                .font(.system(size: 11))
+                .foregroundColor(Color("TextSecondary"))
+            HStack(spacing: 14) {
+                Button("Gjenopprett kjøp") { showComingSoon = true }
+                Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
+                Button("Vilkår") {}
+                Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
+                Button("Personvern") {}
+            }
+            .font(.system(size: 11))
+            .foregroundColor(Color("TextSecondary"))
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .background(Color("Background"))
     }
 }
