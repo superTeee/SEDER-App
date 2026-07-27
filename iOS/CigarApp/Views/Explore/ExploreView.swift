@@ -265,10 +265,12 @@ struct ExploreView: View {
                 appShell.pendingScan = nil
             }
             // Kvittering-flyt
-            .confirmationDialog("Legg til sigarer fra kvittering", isPresented: $showReceiptSource, titleVisibility: .visible) {
-                Button("Ta bilde av kvittering") { showReceiptCamera = true }
-                Button("Velg bilde fra bibliotek") { showReceiptLibrary = true }
-                Button("Avbryt", role: .cancel) {}
+            .sheet(isPresented: $showReceiptSource) {
+                ReceiptSourceSheet(
+                    onCamera: { showReceiptCamera = true },
+                    onLibrary: { showReceiptLibrary = true }
+                )
+                .presentationDetents([.height(230)])
             }
             .sheet(isPresented: $showReceiptCamera) {
                 ImagePicker(image: $receiptImage, sourceType: .camera) {
@@ -294,10 +296,10 @@ struct ExploreView: View {
                     ZStack {
                         Color.black.opacity(0.35).ignoresSafeArea()
                         VStack(spacing: 14) {
-                            ProgressView().tint(.white).scaleEffect(1.3)
+                            ProgressView().tint(Color("TextPrimary")).scaleEffect(1.3)
                             Text("Leser kvitteringen…")
                                 .font(.subheadline.weight(.medium))
-                                .foregroundColor(.white)
+                                .foregroundColor(Color("TextPrimary"))
                         }
                         .padding(28)
                         .background(RoundedRectangle(cornerRadius: 12).fill(Color("Card")))
@@ -1968,5 +1970,81 @@ struct BrandCigarRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)   // fyll bredden
         .padding(.vertical, 2)
         .contentShape(Rectangle())   // hele raden trykkbar
+    }
+}
+
+// MARK: - ReceiptSourceSheet
+// Bunn-ark for å velge kvittering-kilde (kamera / bibliotek). Erstatter en
+// confirmationDialog som feilaktig dukket opp øverst på siden. Samme stil som ScanSheet.
+struct ReceiptSourceSheet: View {
+
+    var onCamera: () -> Void
+    var onLibrary: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var sheetBackground: Color {
+        colorScheme == .light ? .white : Color("Card")
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("Fra kvittering")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(Color("TextPrimary"))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
+
+            VStack(spacing: 0) {
+                row(icon: "camera.fill", title: "Ta bilde av kvittering",
+                    subtitle: "Bruk kameraet", action: onCamera)
+                Rectangle()
+                    .fill(Color("TextSecondary").opacity(0.12))
+                    .frame(height: 0.5)
+                    .padding(.leading, 72)
+                row(icon: "photo.on.rectangle.angled", title: "Velg bilde fra bibliotek",
+                    subtitle: "Fra kamerarull", action: onLibrary)
+            }
+            .padding(.bottom, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(sheetBackground.ignoresSafeArea())
+    }
+
+    private func row(icon: String, title: String, subtitle: String, action: @escaping () -> Void) -> some View {
+        Button {
+            dismiss()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { action() }
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11)
+                        .fill(Color("Accent").opacity(0.14))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(Color("Accent"))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color("TextPrimary"))
+                    Text(subtitle)
+                        .font(.system(size: 14))
+                        .foregroundColor(Color("TextSecondary"))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color("TextSecondary").opacity(0.5))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

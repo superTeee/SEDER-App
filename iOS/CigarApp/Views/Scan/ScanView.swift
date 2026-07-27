@@ -227,15 +227,15 @@ struct ScanSheet: View {
                         .fill(Color("Accent").opacity(0.14))
                         .frame(width: 44, height: 44)
                     Image(systemName: icon)
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 24, weight: .medium))
                         .foregroundColor(Color("Accent"))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(Color("TextPrimary"))
                     Text(subtitle)
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundColor(Color("TextSecondary"))
                 }
                 Spacer()
