@@ -11,6 +11,7 @@ import UIKit
 struct JournalView: View {
 
     @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var proManager: ProManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var logs: [TastingLog] = []
     @State private var isLoading = true
@@ -19,8 +20,11 @@ struct JournalView: View {
     @State private var logToEdit: TastingLog? = nil
     @State private var showStats = false
     @State private var exportFile: ExportFile?
+    @State private var showPaywall = false
 
     private func export(_ kind: ExportKind) {
+        // Pro-funksjon — vis paywall for gratisbrukere.
+        guard proManager.isPro else { showPaywall = true; return }
         let url: URL? = (kind == .pdf) ? JournalExporter.writePDF(logs) : JournalExporter.writeCSV(logs)
         if let url { exportFile = ExportFile(url: url) }
     }
@@ -51,7 +55,7 @@ struct JournalView: View {
                     ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
-                            Button { showStats = true } label: {
+                            Button { if proManager.isPro { showStats = true } else { showPaywall = true } } label: {
                                 Label("Statistikk", systemImage: "chart.bar.xaxis")
                             }
                             Divider()
@@ -70,6 +74,9 @@ struct JournalView: View {
             .refreshable { await loadLogs() }
             .sheet(isPresented: $showStats) {
                 StatistikkView().environmentObject(authService)
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView().environmentObject(proManager)
             }
             .sheet(item: $exportFile) { file in
                 IOSShareSheet(items: [file.url])

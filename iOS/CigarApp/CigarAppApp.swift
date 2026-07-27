@@ -1,11 +1,102 @@
 import SwiftUI
 import GoogleSignIn
+import RevenueCat
+
+// MARK: - RevenueCat-konfigurasjon
+//
+// Alt Tom trenger å fylle inn står her. RevenueCat sin *public* SDK-nøkkel er
+// trygg i kildekode (samme som Supabase anon key / Google client ID).
+//
+//  SLIK GJØR DU DET NÅR KONTOEN ER KLAR:
+//  1. Opprett RevenueCat-konto → nytt prosjekt "SEDER".
+//  2. Koble til App Store Connect (App-spesifikk delt hemmelighet).
+//  3. Lag to produkter i App Store Connect:  seder_pro_yearly (449 kr/år),
+//     seder_pro_monthly (59 kr/mnd). Legg dem i RevenueCat under ett
+//     "Offering" (default) med pakketypene Annual + Monthly.
+//  4. Lag et Entitlement med ID "pro" og knytt begge produktene til det.
+//  5. Kopier "Apple"-API-nøkkelen (starter med appl_) inn under.
+//
+enum ProConfig {
+    /// RevenueCat public API-nøkkel (Apple). Lim inn her — starter med "appl_".
+    /// Så lenge denne inneholder «LIM_INN» er kjøp deaktivert og appen kjører
+    /// helt normalt (tidlige testere beholder livstids-Pro).
+    static let revenueCatAPIKey = "appl_LIM_INN_NØKKEL_HER"
+
+    /// Entitlement-ID satt opp i RevenueCat.
+    static let entitlementID = "pro"
+
+    /// Fallback-priser vist før ekte App Store-priser er lastet.
+    static let fallbackYearly  = "449 kr / år"
+    static let fallbackMonthly = "59 kr / mnd"
+
+    static var isConfigured: Bool { !revenueCatAPIKey.contains("LIM_INN") }
+}
+
+// MARK: - ProManager
+//
+// Én kilde til sannhet for «er brukeren Pro?». Pro = aktivt RevenueCat-abonnement
+// ELLER tidlig tester (livstids-Pro). Injiseres som EnvironmentObject.
+@MainActor
+final class ProManager: ObservableObject {
+    static let shared = ProManager()
+
+    @Published var isSubscriber = false       // aktivt RevenueCat-abonnement
+    @Published var isFoundingMember = false   // livstids-Pro for tidlige testere
+    @Published var offerings: Offerings?
+
+    /// Appens Pro-flagg — bruk denne overalt for å låse opp funksjoner.
+    var isPro: Bool { isSubscriber || isFoundingMember }
+
+    private var configured = false
+    private init() {}
+
+    /// Kalles én gang ved oppstart.
+    func configure() {
+        guard ProConfig.isConfigured, !configured else { return }
+        Purchases.logLevel = .warn
+        Purchases.configure(withAPIKey: ProConfig.revenueCatAPIKey)
+        configured = true
+        Task { await refresh() }
+        Task { await loadOfferings() }
+    }
+
+    /// Oppdater abonnementsstatus fra RevenueCat.
+    func refresh() async {
+        guard configured else { return }
+        let info = try? await Purchases.shared.customerInfo()
+        isSubscriber = info?.entitlements[ProConfig.entitlementID]?.isActive == true
+    }
+
+    func loadOfferings() async {
+        guard configured else { return }
+        offerings = try? await Purchases.shared.offerings()
+    }
+
+    /// Kjøp en pakke. Returnerer true ved suksess (eller allerede Pro).
+    func purchase(_ package: Package) async -> Bool {
+        guard configured else { return false }
+        do {
+            let result = try await Purchases.shared.purchase(package: package)
+            isSubscriber = result.customerInfo.entitlements[ProConfig.entitlementID]?.isActive == true
+            return isSubscriber
+        } catch { return false }
+    }
+
+    /// Gjenopprett tidligere kjøp.
+    func restore() async -> Bool {
+        guard configured else { return false }
+        let info = try? await Purchases.shared.restorePurchases()
+        isSubscriber = info?.entitlements[ProConfig.entitlementID]?.isActive == true
+        return isSubscriber
+    }
+}
 
 @main
 struct CigarAppApp: App {
 
     @StateObject private var authService = AuthService()
     @StateObject private var pinService = PINService()
+    @StateObject private var proManager = ProManager.shared
 
     init() {
         // Konfigurer Google Sign In med iOS client ID
@@ -59,9 +150,12 @@ struct CigarAppApp: App {
                     ContentView()
                         .environmentObject(authService)
                         .environmentObject(pinService)
+                        .environmentObject(proManager)
                 }
             }
             .onAppear {
+                // RevenueCat — konfigureres én gang (no-op til API-nøkkel er lagt inn).
+                proManager.configure()
                 // Splashen legges i sitt eget vindu over appen ved første render.
                 SplashOverlayWindow.shared.present()
                 // Utforsk-dataene hentes mens splashen spiller, så siden er
@@ -85,6 +179,9 @@ struct CigarAppApp: App {
                 let profile = try? await ProfileService().fetchOwnProfile(userId: userId)
                 let name = profile?.displayName ?? ""
                 showProfileOnboarding = name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                // Tidlige testere har livstids-Pro uten kjøp.
+                proManager.isFoundingMember = profile?.isFoundingMember ?? false
+                await proManager.refresh()
                 profileCheckInProgress = false
             }
             .preferredColorScheme(preferredScheme)

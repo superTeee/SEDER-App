@@ -1,4 +1,5 @@
 import SwiftUI
+import RevenueCat
 
 // MARK: - ProfileView
 // Profil-fane: viser rik UserProfileView for innloggede brukere,
@@ -197,6 +198,7 @@ struct ProfileSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var pinService: PINService
+    @EnvironmentObject var proManager: ProManager
 
     @State private var showPINSetup              = false
     @State private var showSignOutConfirm        = false
@@ -248,7 +250,7 @@ struct ProfileSettingsView: View {
                 }
 
                 Section {
-                    if isFoundingMember {
+                    if proManager.isPro {
                         HStack(spacing: 12) {
                             Image(systemName: "seal.fill")
                                 .font(.system(size: 22))
@@ -257,7 +259,7 @@ struct ProfileSettingsView: View {
                                 Text("SEDER Pro")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(Color("TextPrimary"))
-                                Text("Tidlig tester · livstid")
+                                Text(proManager.isFoundingMember ? "Tidlig tester · livstid" : "Abonnement aktivt")
                                     .font(.caption)
                                     .foregroundColor(Color("TextSecondary"))
                             }
@@ -417,7 +419,7 @@ struct ProfileSettingsView: View {
                 AdminView()
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView().environmentObject(proManager)
             }
             .task {
                 await adminService.refreshAdminStatus()
@@ -425,7 +427,9 @@ struct ProfileSettingsView: View {
                 if let uid = authService.userId,
                    let p = try? await profileService.fetchOwnProfile(userId: uid) {
                     isFoundingMember = p.isFoundingMember ?? false
+                    proManager.isFoundingMember = isFoundingMember
                 }
+                await proManager.refresh()
             }
             .alert("Logg ut?", isPresented: $showSignOutConfirm) {
                 Button("Avbryt", role: .cancel) {}
@@ -478,8 +482,23 @@ struct ProfileSettingsView: View {
 struct PaywallView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var proManager: ProManager
     @State private var yearly = true
     @State private var showComingSoon = false
+    @State private var purchasing = false
+    @State private var showError = false
+
+    // Ekte App Store-pakker (nil til produktene er lastet fra RevenueCat).
+    private var annualPackage: Package? {
+        proManager.offerings?.current?.availablePackages.first { $0.packageType == .annual }
+    }
+    private var monthlyPackage: Package? {
+        proManager.offerings?.current?.availablePackages.first { $0.packageType == .monthly }
+    }
+    private var selectedPackage: Package? { yearly ? annualPackage : monthlyPackage }
+
+    private var yearlyPrice: String { annualPackage?.storeProduct.localizedPriceString ?? "449 kr" }
+    private var monthlyPrice: String { monthlyPackage?.storeProduct.localizedPriceString ?? "59 kr" }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -515,6 +534,12 @@ struct PaywallView: View {
         } message: {
             Text("Betaling kobles på i neste oppdatering. Da kan du bli Pro herfra.")
         }
+        .alert("Kjøpet ble ikke fullført", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Prøv igjen, eller sjekk App Store-kontoen din.")
+        }
+        .task { await proManager.loadOfferings() }
     }
 
     private var header: some View {
@@ -595,8 +620,8 @@ struct PaywallView: View {
 
     private var planSelector: some View {
         HStack(spacing: 10) {
-            planCard(title: "Årlig", price: "449 kr", note: "≈ 37 kr/mnd", badge: "Spar 37%", selected: yearly) { yearly = true }
-            planCard(title: "Månedlig", price: "59 kr", note: "per måned", badge: nil, selected: !yearly) { yearly = false }
+            planCard(title: "Årlig", price: yearlyPrice, note: "≈ 37 kr/mnd", badge: "Spar 37%", selected: yearly) { yearly = true }
+            planCard(title: "Månedlig", price: monthlyPrice, note: "per måned", badge: nil, selected: !yearly) { yearly = false }
         }
     }
 
@@ -633,24 +658,48 @@ struct PaywallView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 10) {
-            Button { showComingSoon = true } label: {
-                Text("Start Pro")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Color("Accent"))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            Button {
+                if let pkg = selectedPackage {
+                    Task {
+                        purchasing = true
+                        let ok = await proManager.purchase(pkg)
+                        purchasing = false
+                        if ok { dismiss() } else { showError = true }
+                    }
+                } else {
+                    // RevenueCat ikke koblet på ennå (mangler API-nøkkel/produkter).
+                    showComingSoon = true
+                }
+            } label: {
+                Group {
+                    if purchasing {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Start Pro").font(.system(size: 16, weight: .semibold))
+                    }
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(Color("Accent"))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .disabled(purchasing)
+
             Text("Gratis fortsetter alltid · avslutt når som helst")
                 .font(.system(size: 11))
                 .foregroundColor(Color("TextSecondary"))
             HStack(spacing: 14) {
-                Button("Gjenopprett kjøp") { showComingSoon = true }
+                Button("Gjenopprett kjøp") {
+                    Task {
+                        let ok = await proManager.restore()
+                        if ok { dismiss() } else { showError = true }
+                    }
+                }
                 Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
-                Button("Vilkår") {}
+                Link("Vilkår", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                 Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
-                Button("Personvern") {}
+                Link("Personvern", destination: URL(string: "https://vitola.app/personvern")!)
             }
             .font(.system(size: 11))
             .foregroundColor(Color("TextSecondary"))

@@ -59,6 +59,7 @@
 		BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 333232B66274F8E65263E2F7 /* Supabase */; };
 		AA20KINGFISHERBUILD01000 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = AA20KINGFISHERPROD010000 /* Kingfisher */; };
 		AA20MANTISBUILD010000000 /* Mantis in Frameworks */ = {isa = PBXBuildFile; productRef = AA20MANTISPROD0100000000 /* Mantis */; };
+		AA20REVCATBUILD010000000 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = AA20REVCATPROD0100000000 /* RevenueCat */; };
 		C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831F95D91D3339D747199BE9 /* HumidorView.swift */; };
 		AA00000000000000000000B1 /* HumidorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B2 /* HumidorModels.swift */; };
 		AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000C2 /* CreateHumidorSheet.swift */; };
@@ -146,6 +147,7 @@
 				24594AE2F632DFBC7C23B7FB /* GoogleSignIn in Frameworks */,
 				AA20KINGFISHERBUILD01000 /* Kingfisher in Frameworks */,
 				AA20MANTISBUILD010000000 /* Mantis in Frameworks */,
+				AA20REVCATBUILD010000000 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,6 +379,7 @@
 				D1EEF6BE6627FFD5DE0C2C4B /* GoogleSignIn */,
 				AA20KINGFISHERPROD010000 /* Kingfisher */,
 				AA20MANTISPROD0100000000 /* Mantis */,
+				AA20REVCATPROD0100000000 /* RevenueCat */,
 			);
 			productName = Vitola;
 			productReference = B9F107D7AB9A439828124088 /* Vitola.app */;
@@ -411,6 +414,7 @@
 				C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				AA20KINGFISHERREMOTE0100 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				AA20MANTISREMOTE01000000 /* XCRemoteSwiftPackageReference "Mantis" */,
+				AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 74FB52B4C2F775FFE89822E3 /* Products */;
@@ -565,7 +569,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 266;
+				CURRENT_PROJECT_VERSION = 267;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -588,7 +592,7 @@
 				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 266;
+				CURRENT_PROJECT_VERSION = 267;
 				DEVELOPMENT_TEAM = H7NS3V5EFA;
 				INFOPLIST_FILE = CigarApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -723,6 +727,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -745,6 +757,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA20MANTISREMOTE01000000 /* XCRemoteSwiftPackageReference "Mantis" */;
 			productName = Mantis;
+		};
+		AA20REVCATPROD0100000000 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
