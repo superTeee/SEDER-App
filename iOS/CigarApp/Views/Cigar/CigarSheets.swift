@@ -893,17 +893,15 @@ struct ReceiptConfirmView: View {
                 if humidors.isEmpty {
                     noHumidorState
                 } else {
-                    List {
-                        defaultSection
-                        if groupByHumidor {
-                            groupedSummarySection
-                        } else {
+                    VStack(spacing: 0) {
+                        receiptHeader
+                        List {
                             matchedSection
+                            if !unmatched.isEmpty { unmatchedSection }
                         }
-                        if !unmatched.isEmpty { unmatchedSection }
+                        .listStyle(.insetGrouped)
+                        .scrollContentBackground(.hidden)
                     }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
                     .background(Color("Background"))
                     .safeAreaInset(edge: .bottom) { addBar }
                     .task { await applySmartHumidors() }
@@ -927,87 +925,30 @@ struct ReceiptConfirmView: View {
 
     // MARK: Seksjoner
 
-    private var defaultSection: some View {
-        Section {
-            HStack {
-                Text("Legg alle i")
-                Spacer()
-                Menu {
-                    ForEach(humidors) { h in
-                        Button(h.name) { setDefaultHumidor(h.id) }
-                    }
-                } label: {
-                    humidorChip(humidorName(defaultHumidorId))
-                }
-            }
-            HStack {
-                Text("Kjøpt hos")
-                Spacer()
-                TextField("Butikk (valgfritt)", text: $store)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundColor(Color("TextSecondary"))
-            }
-            Toggle("Grupper etter humidor", isOn: $groupByHumidor)
-                .tint(Color("Accent"))
-        } footer: {
-            Text("Velger du humidor her, flyttes alle sigarene dit. Du kan overstyre hver enkelt under.")
-        }
+    // Butikk (redigerbart) + dato som ren tekst i toppen — ikke i et kort.
+    private var todayString: String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "nb_NO")
+        df.dateFormat = "d. MMM yyyy"
+        return df.string(from: Date())
     }
 
-    // MARK: Gruppert oppsummering (se fordelingen + totalsum per humidor)
-
-    private struct HumidorGroup: Identifiable {
-        let id: UUID
-        let name: String
-        let lines: [EditableReceiptLine]
-        var count: Int { lines.reduce(0) { $0 + $1.quantity } }
-        var sum: Double { lines.reduce(0) { $0 + Double($1.quantity) * $1.priceValue } }
-    }
-
-    private var groups: [HumidorGroup] {
-        let included = lines.filter { $0.included }
-        var byId: [UUID: [EditableReceiptLine]] = [:]
-        for l in included {
-            guard let hid = l.humidorId ?? defaultHumidorId else { continue }
-            byId[hid, default: []].append(l)
+    private var receiptHeader: some View {
+        HStack(spacing: 6) {
+            Text("Kjøpt hos")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+            TextField("butikk", text: $store)
+                .font(.subheadline)
+                .foregroundColor(Color("TextPrimary"))
+            Text("· \(todayString)")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .fixedSize()
         }
-        return humidors.compactMap { h in
-            guard let ls = byId[h.id], !ls.isEmpty else { return nil }
-            return HumidorGroup(id: h.id, name: h.name, lines: ls)
-        }
-    }
-
-    private var groupedSummarySection: some View {
-        ForEach(groups) { g in
-            Section {
-                ForEach(g.lines) { l in
-                    HStack {
-                        Text(l.title.isEmpty ? l.receiptName : l.title)
-                            .font(.subheadline)
-                            .foregroundColor(Color("TextPrimary"))
-                        Spacer()
-                        Text("×\(l.quantity)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(Color("TextSecondary"))
-                    }
-                }
-            } header: {
-                HStack {
-                    Text("\(g.name) · \(g.count) sigarer")
-                    Spacer()
-                    Text("\(formatSum(g.sum)) kr")
-                        .foregroundColor(Color("Accent"))
-                }
-            }
-        }
-    }
-
-    private func formatSum(_ value: Double) -> String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.groupingSeparator = " "
-        f.maximumFractionDigits = 0
-        return f.string(from: NSNumber(value: value)) ?? "\(Int(value))"
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+        .padding(.bottom, 6)
     }
 
     private var matchedSection: some View {
@@ -1056,11 +997,6 @@ struct ReceiptConfirmView: View {
                     Text(line.wrappedValue.title.isEmpty ? line.wrappedValue.receiptName : line.wrappedValue.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(Color("TextPrimary"))
-                    if line.wrappedValue.title != line.wrappedValue.receiptName {
-                        Text("På kvittering: \(line.wrappedValue.receiptName)")
-                            .font(.caption2)
-                            .foregroundColor(Color("TextSecondary").opacity(0.8))
-                    }
                 }
                 Spacer()
             }
@@ -1097,7 +1033,6 @@ struct ReceiptConfirmView: View {
 
             // Humidor-overstyring per rad
             HStack {
-                Image(systemName: "archivebox").font(.caption).foregroundColor(Color("TextSecondary"))
                 Menu {
                     ForEach(humidors) { h in
                         Button(h.name) { line.wrappedValue.humidorId = h.id }

@@ -15,7 +15,7 @@ Sist oppdatert: 2026-07-26
 - ✅ Senter-skann åpner skann-ark (Sigarbånd / Bilde fra kamerarull) på Utforsk (scanTick → showScanChooser); gammel «Skann sigar»-FAB fjernet
 ### Kvittering-oppgradering + skann-ark (paritet — klynge C, 26. juli)
 - ✅ Smart forhåndsvalg: `HumidorRepository.lastHumidorByCigar` ruter hver sigar til sist-brukte humidor + «sist her»-hint; nullstilles ved manuell/standard-endring
-- ✅ «Grupper etter humidor»-bryter → read-only oppsummering med antall + totalsum kr per humidor
+- ✅ (27. juli, forenkling) Kvittering-arket ryddet: fjernet «Grupper etter humidor», «Legg alle i» og «På kvittering»-tekst + humidor-ikon per rad. «Kjøpt hos» er nå redigerbart inline sammen med dato i toppen (ikke i kort) — begge plattformer
 - ✅ Pris/stk per rad fantes fra før (→ purchase_price, vises på detalj)
 - ✅ «Kvittering» flyttet inn i skann-arket (senter-knapp) → navigerer til Humidor + åpner kilde-valg (receiptTick). Fortsatt også i Humidor-«+»-menyen.
 

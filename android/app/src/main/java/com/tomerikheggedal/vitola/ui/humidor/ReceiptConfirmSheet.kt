@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -77,12 +79,15 @@ fun ReceiptConfirmSheet(
         }
     }
     val unmatched = remember { mutableStateListOf<ReceiptUnmatchedLine>().apply { addAll(result.unmatched) } }
-    var defaultHumidorId by remember { mutableStateOf(humidors.firstOrNull()?.id) }
-    var store by remember { mutableStateOf(result.store ?: "") }
+    val defaultHumidorId = remember { humidors.firstOrNull()?.id }
+    var store by remember { mutableStateOf(result.store?.trim().orEmpty()) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var manualResolving by remember { mutableStateOf<ReceiptUnmatchedLine?>(null) }
-    var groupByHumidor by remember { mutableStateOf(false) }
+    val today = remember {
+        java.time.LocalDate.now().format(
+            java.time.format.DateTimeFormatter.ofPattern("d. MMM yyyy", java.util.Locale("nb", "NO")))
+    }
 
     // Smart forhåndsvalg: rut hver sigar til humidoren den lå i sist.
     LaunchedEffect(Unit) {
@@ -116,48 +121,27 @@ fun ReceiptConfirmSheet(
                 return@Column
             }
 
-            // Standard-humidor for alle
-            FieldLabelR("Legg alle i")
-            HumidorDropdown(humidors, defaultHumidorId) { id ->
-                defaultHumidorId = id
-                lines.forEach { it.humidorId = id; it.smartAssigned = false }
-            }
-            Text("Velger du humidor her, flyttes alle sigarene dit. Overstyr hver enkelt under.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-            // Grupper etter humidor (read-only oppsummering med totalsum).
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Grupper etter humidor", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                Switch(checked = groupByHumidor, onCheckedChange = { groupByHumidor = it })
-            }
-            if (groupByHumidor) {
-                Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.background).padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    lines.filter { it.included }.groupBy { it.humidorId }.forEach { (hid, ls) ->
-                        val name = humidors.firstOrNull { it.id == hid }?.name ?: "Ingen humidor"
-                        val qty = ls.sumOf { it.quantity }
-                        val sum = ls.sumOf {
-                            (it.priceText.trim().replace(',', '.').toDoubleOrNull() ?: 0.0) * it.quantity
-                        }
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("$name · $qty stk", Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text("${formatReceiptPrice(sum)} kr", fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.bodyMedium)
-                        }
+            // Butikk (redigerbart) + dato som ren tekst i toppen — ikke i et kort.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Kjøpt hos ", style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                BasicTextField(
+                    value = store,
+                    onValueChange = { store = it },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { inner ->
+                        if (store.isEmpty()) Text("butikk", style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                        inner()
                     }
-                }
+                )
+                Text(" · $today", style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            FieldLabelR("Kjøpt hos")
-            OutlinedTextField(
-                value = store, onValueChange = { store = it },
-                placeholder = { Text("Butikk (valgfritt)") }, singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Text("Funnet i basen (${lines.size})", style = MaterialTheme.typography.labelLarge,
@@ -247,11 +231,6 @@ private fun LineRow(line: EditableReceiptLine, humidors: List<HumidorRow>) {
             Column(Modifier.weight(1f)) {
                 Text(line.title.ifBlank { line.receiptName },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                if (line.title != line.receiptName) {
-                    Text("På kvittering: ${line.receiptName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
         }
 
@@ -305,7 +284,6 @@ private fun HumidorDropdown(
             onClick = { if (enabled) expanded = true },
             enabled = enabled,
             label = { Text(name) },
-            leadingIcon = { Icon(Icons.Filled.Inventory2, null, modifier = Modifier.size(16.dp)) },
             trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null) }
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
