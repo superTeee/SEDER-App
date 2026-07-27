@@ -17,10 +17,11 @@ import RevenueCat
 //  5. Kopier "Apple"-API-nøkkelen (starter med appl_) inn under.
 //
 enum ProConfig {
-    /// RevenueCat public API-nøkkel (Apple). Lim inn her — starter med "appl_".
-    /// Så lenge denne inneholder «LIM_INN» er kjøp deaktivert og appen kjører
-    /// helt normalt (tidlige testere beholder livstids-Pro).
-    static let revenueCatAPIKey = "appl_LIM_INN_NØKKEL_HER"
+    /// RevenueCat public SDK-nøkkel. NÅ: test-nøkkel (Test Store) for å verifisere
+    /// kjøpsflyten uten App Store. BYTT til produksjonsnøkkelen (starter med "appl_")
+    /// når appen er koblet til App Store Connect med ekte produkter.
+    /// Trygg i kildekode (public SDK-nøkkel, som Supabase anon key).
+    static let revenueCatAPIKey = "test_tweIdoRfwLwIBJdsiNPtcmXEJuQ"
 
     /// Entitlement-ID satt opp i RevenueCat.
     static let entitlementID = "pro"
