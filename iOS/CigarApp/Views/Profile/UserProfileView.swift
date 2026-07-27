@@ -237,29 +237,32 @@ struct UserProfileView: View {
 
                     // Navn
                     Text(bigName(for: p))
-                        .font(.title2.weight(.bold))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundColor(hasRealName(p) ? Color("TextPrimary") : Color("TextSecondary"))
 
-                    // Tidlig tester-merke (livstids Pro for de første brukerne)
-                    if p.isFoundingMember == true {
-                        HStack(spacing: 5) {
-                            Image(systemName: "seal.fill")
-                            Text("Tidlig tester")
+                    // Merker (pill-form). Nivå-merke + evt. Tidlig tester.
+                    HStack(spacing: 6) {
+                        Button { showBadgeSheet = true } label: {
+                            Text(badge.title)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color("Accent"))
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Capsule().fill(Color("Accent").opacity(0.12)))
                         }
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Color("Accent"))
-                        .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(Capsule().fill(Color("Accent").opacity(0.12)))
-                        .padding(.top, 2)
-                    }
+                        .buttonStyle(.plain)
 
-                    // Badge-nivå (amber tekst, trykk for nivå-ark)
-                    Button { showBadgeSheet = true } label: {
-                        Text(badge.title)
-                            .font(.subheadline.weight(.semibold))
+                        if p.isFoundingMember == true {
+                            HStack(spacing: 5) {
+                                Image(systemName: "seal")
+                                Text("Tidlig tester")
+                            }
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(Color("Accent"))
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Capsule().fill(Color("Accent").opacity(0.12)))
+                        }
                     }
-                    .buttonStyle(.plain)
+                    .padding(.top, 2)
 
                     // Bio
                     if let bio = p.bio, !bio.isEmpty {
@@ -350,7 +353,7 @@ struct UserProfileView: View {
                 NavigationLink {
                     HumidorView(initialTab: .favorites).environmentObject(authService)
                 } label: {
-                    statCell(icon: "star.fill", value: myFavorites.count, label: "Favoritter")
+                    statCell(icon: "star", value: myFavorites.count, label: "Favoritter")
                 }
                 .buttonStyle(.plain)
             } else {
@@ -364,7 +367,7 @@ struct UserProfileView: View {
                 NavigationLink {
                     VennerView().environmentObject(authService)
                 } label: {
-                    statCell(icon: "person.2.fill", value: p.friendCount, label: "Venner")
+                    statCell(icon: "person.2", value: p.friendCount, label: "Venner")
                 }
                 .buttonStyle(.plain)
             } else {
