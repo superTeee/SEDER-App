@@ -35,9 +35,10 @@ Aldersgrense 17+. Krever konto.
 Første versjon av SEDER. Skann sigarer, bygg humidor, følg luftfuktighet og før tasting-journal.
 
 ## Diverse felt
-- Support-URL: (fyll inn, f.eks. https://vitola.app)
+- Support-URL: https://sederappen.no/support
 - Markedsførings-URL: (valgfritt)
-- Personvern-URL: (kreves — pek på personvernerklæringen)
+- Personvern-URL: https://sederappen.no/personvern
+- Kontakt: support@sederappen.no · personvern@sederappen.no · post@sederappen.no
 - Aldersgrense: 17+ (frekvent/intens referanse til alkohol, tobakk eller narkotika)
 - Kategori: Livsstil (primær). Sekundær: valgfritt.
 
