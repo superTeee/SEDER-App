@@ -33,12 +33,11 @@ struct AuthView: View {
                 Spacer()
 
                 // Logo
-                VStack(spacing: 8) {
-                    Image("Logo")
+                VStack(spacing: 12) {
+                    Image("VitolaLogo")   // Ny SEDER-lockup
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .frame(maxWidth: 160, maxHeight: 120)
                     Text("Logg inn")
                         .font(.title.bold())
                         .foregroundColor(Color("TextPrimary"))

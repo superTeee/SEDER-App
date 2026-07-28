@@ -201,14 +201,10 @@ struct SplashView: View {
         ZStack {
             Color("Background").ignoresSafeArea()
             VStack(spacing: 16) {
-                Image("Logo")
+                Image("VitolaLogo")   // Ny SEDER-lockup (monogram + ordmerke)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 88, height: 88)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                Text("SEDER")
-                    .font(.largeTitle.bold())
-                    .foregroundColor(Color("TextPrimary"))
+                    .frame(maxWidth: 190, maxHeight: 140)
             }
         }
     }

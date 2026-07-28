@@ -19,14 +19,10 @@ struct AgeGateView: View {
                 Spacer()
 
                 VStack(spacing: 8) {
-                    Image("Logo")
+                    Image("VitolaLogo")   // Ny SEDER-lockup
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 96, height: 96)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                    Text("SEDER")
-                        .font(.largeTitle.bold())
-                        .foregroundColor(Color("TextPrimary"))
+                        .frame(maxWidth: 190, maxHeight: 150)
                     Text("Din digitale humidor")
                         .font(.subheadline)
                         .foregroundColor(Color("TextSecondary"))

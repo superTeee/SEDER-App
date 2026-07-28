@@ -20,11 +20,10 @@ struct PrivacyConsentView: View {
 
                 // MARK: Header
                 VStack(spacing: 8) {
-                    Image("Logo")
+                    Image("VitolaLogo")   // Ny SEDER-lockup
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 72, height: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .frame(maxWidth: 140, maxHeight: 104)
                         .padding(.top, 56)
 
                     Text("Før du fortsetter")

@@ -1032,16 +1032,10 @@ struct SEDERBrandedCard: View {
 
                 // ── SEDER-logo + forfatter ────────────────────
                 HStack {
-                    HStack(spacing: 6) {
-                        Image("Logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 22, height: 22)
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                        Text("SEDER")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.white)
-                    }
+                    Text("SEDER")
+                        .font(.system(size: 15, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundColor(.white)
                     Spacer()
                     Text(post.authorName)
                         .font(.system(size: 12, weight: .medium))

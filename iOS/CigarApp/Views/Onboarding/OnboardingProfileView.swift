@@ -24,11 +24,10 @@ struct OnboardingProfileView: View {
 
                 // MARK: - Header
                 VStack(spacing: 12) {
-                    Image("Logo")
+                    Image("VitolaLogo")   // Ny SEDER-lockup
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 72, height: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .frame(maxWidth: 140, maxHeight: 104)
                         .padding(.bottom, 4)
 
                     Text("Velkommen til SEDER")
