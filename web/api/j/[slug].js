@@ -1,4 +1,4 @@
-// vitola.app/j/<slug> — offentlig side for et delt journalinnlegg.
+// sederappen.no/j/<slug> — offentlig side for et delt journalinnlegg.
 // Serverless-funksjon (Vercel). Serveres som EKTE text/html (i motsetning til
 // Supabase-funksjons-domenet som tvinger text/plain), med Open Graph-tagger
 // for pent delings-kort på Facebook/sosiale medier.
@@ -125,6 +125,6 @@ module.exports = async (req, res) => {
   res.end(page(body, {
     title: ogTitle, desc,
     image: row.photo_url || null,
-    url: `https://seder-app-pearl.vercel.app/j/${slug}`,
+    url: `https://sederappen.no/j/${slug}`,
   }));
 };

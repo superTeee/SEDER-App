@@ -7,7 +7,7 @@
 // Krever en Facebook App-token i env: FB_APP_TOKEN = "<app-id>|<app-secret>".
 // App-secret ligger KUN her server-side (Vercel env), aldri i klient-appen.
 
-const BASE = "https://seder-app-pearl.vercel.app";
+const BASE = "https://sederappen.no";
 
 module.exports = async (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");

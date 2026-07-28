@@ -176,7 +176,7 @@ private fun sharePost(context: android.content.Context, post: FeedPost) {
         append(post.authorName).append(" på SEDER")
         post.content?.takeIf { it.isNotBlank() }?.let { append(":\n").append(it) }
         post.cigarDisplayName?.let { append("\n🚬 ").append(it) }
-        append("\n\nhttps://vitola.app")
+        append("\n\nhttps://sederappen.no")
     }
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"

@@ -8,7 +8,7 @@ import Kingfisher
 // Inneholder: FeedView, FeedPostCard, CreatePostView, PostDetailView, SEDERSharingCard
 
 /// Oppdater denne til App Store-lenken når appen er publisert
-private let vitolaShareURL = "https://vitola.app"
+private let vitolaShareURL = "https://sederappen.no"
 
 // ═══════════════════════════════════════════════════════════
 // MARK: FeedView — hoved-tab
@@ -1086,7 +1086,7 @@ struct SEDERBrandedCard: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                     Spacer()
-                    Text("vitola.app")
+                    Text("sederappen.no")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(Color(red: 0.95, green: 0.78, blue: 0.3))
                 }

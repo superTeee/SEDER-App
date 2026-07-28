@@ -728,7 +728,7 @@ struct PaywallView: View {
                 Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
                 Link("Vilkår", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                 Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
-                Link("Personvern", destination: URL(string: "https://vitola.app/personvern")!)
+                Link("Personvern", destination: URL(string: "https://sederappen.no/personvern")!)
             }
             .font(.system(size: 11))
             .foregroundColor(Color("TextSecondary"))

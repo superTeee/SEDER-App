@@ -63,5 +63,5 @@ object ShareRepository {
     /** Offentlig URL til en delt oppføring — pen side hostet på Vercel
      *  (rendrer som ekte HTML m/Open Graph-kort). */
     fun publicUrl(slug: String): String =
-        "https://seder-app-pearl.vercel.app/j/$slug"
+        "https://sederappen.no/j/$slug"
 }

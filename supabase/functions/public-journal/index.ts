@@ -4,7 +4,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const APP_STORE_URL = "https://vitola.app"; // TODO: bytt til App Store-lenke ved lansering
+const APP_STORE_URL = "https://sederappen.no"; // TODO: bytt til App Store-lenke ved lansering
 
 function esc(s: string | null | undefined): string {
   return (s ?? "").replace(/[&<>\"']/g, (c) =>

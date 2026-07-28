@@ -274,7 +274,7 @@ class ShareService: ObservableObject {
     /// Offentlig URL til en delt oppføring — pen side hostet på Vercel (rendrer som
     /// ekte HTML m/Open Graph-kort, i motsetning til Supabase-funksjons-domenet).
     func publicURL(slug: String) -> URL? {
-        URL(string: "https://seder-app-pearl.vercel.app/j/\(slug)")
+        URL(string: "https://sederappen.no/j/\(slug)")
     }
 
     /// «Primer» Facebooks cache i bakgrunnen — samme som å kjøre lenken i FB
@@ -282,7 +282,7 @@ class ShareService: ObservableObject {
     /// FØR brukeren limer inn lenken (FB-appen henter det ikke selv ved liming).
     /// Fire-and-forget: feiler stille, blokkerer aldri delings-flyten.
     func primeFacebook(slug: String) {
-        guard let url = URL(string: "https://seder-app-pearl.vercel.app/api/prime?slug=\(slug)") else { return }
+        guard let url = URL(string: "https://sederappen.no/api/prime?slug=\(slug)") else { return }
         Task.detached {
             _ = try? await URLSession.shared.data(from: url)
         }
