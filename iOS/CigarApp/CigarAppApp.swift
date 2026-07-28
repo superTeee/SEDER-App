@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import GoogleSignIn
 import RevenueCat
 
@@ -29,6 +30,10 @@ enum ProConfig {
     /// Fallback-priser vist før ekte App Store-priser er lastet.
     static let fallbackYearly  = "449 kr / år"
     static let fallbackMonthly = "59 kr / mnd"
+
+    /// Lanseringskampanje: de N første nye medlemmene får rabattkoden.
+    static let foundingCode = "SEDER100"
+    static let foundingCap  = 100
 
     static var isConfigured: Bool { !revenueCatAPIKey.contains("LIM_INN") }
 }
@@ -125,6 +130,22 @@ struct CigarAppApp: App {
     @State private var showProfileOnboarding = false
     @State private var profileCheckInProgress = false
 
+    // Lansering: founding-medlem-feiring (vises én gang etter onboarding)
+    @AppStorage("hasSeenFoundingWelcome") private var hasSeenFoundingWelcome = false
+    @State private var showFoundingWelcome = false
+    @State private var foundingNumber = 0
+
+    /// Tildel founding-nummer og vis feiringen én gang (ekskluderer tidlige testere).
+    @MainActor private func checkFoundingWelcome() async {
+        guard authService.isAuthenticated, !hasSeenFoundingWelcome else { return }
+        if let n = await ProfileService().claimFoundingNumber() {
+            foundingNumber = n
+            showFoundingWelcome = true
+        } else {
+            hasSeenFoundingWelcome = true   // tester/ekskludert — hopp over
+        }
+    }
+
     // Lys/mørk-modus valgt i innstillinger. nil = følg systemet.
     private var preferredScheme: ColorScheme? {
         switch appearance {
@@ -148,7 +169,10 @@ struct CigarAppApp: App {
                     PrivacyConsentView(onAccepted: { hasAcceptedPrivacy = true })
                 } else if showProfileOnboarding {
                     // Første gangs innlogging — samle visningsnavn
-                    OnboardingProfileView(onComplete: { showProfileOnboarding = false })
+                    OnboardingProfileView(onComplete: {
+                        showProfileOnboarding = false
+                        Task { await checkFoundingWelcome() }
+                    })
                         .environmentObject(authService)
                 } else if pinService.isPINSet && authService.isAuthenticated && !isUnlocked {
                     // Rask opplåsing med 4-sifret kode (kun når en sesjon faktisk finnes)
@@ -163,6 +187,13 @@ struct CigarAppApp: App {
                         .environmentObject(authService)
                         .environmentObject(pinService)
                         .environmentObject(proManager)
+                        .fullScreenCover(isPresented: $showFoundingWelcome) {
+                            FoundingWelcomeView(number: foundingNumber) {
+                                hasSeenFoundingWelcome = true
+                                showFoundingWelcome = false
+                            }
+                            .environmentObject(proManager)
+                        }
                 }
             }
             .onAppear {
@@ -195,9 +226,97 @@ struct CigarAppApp: App {
                 proManager.isFoundingMember = profile?.isFoundingMember ?? false
                 await proManager.refresh()
                 profileCheckInProgress = false
+                if !showProfileOnboarding { await checkFoundingWelcome() }
             }
             .preferredColorScheme(preferredScheme)
         }
+    }
+}
+
+// MARK: - Founding-medlem-feiring (lansering)
+struct FoundingWelcomeView: View {
+    let number: Int
+    var onClose: () -> Void
+    @EnvironmentObject private var proManager: ProManager
+    @State private var copied = false
+
+    private var isFounding: Bool { number <= ProConfig.foundingCap }
+
+    var body: some View {
+        ZStack {
+            Color("Background").ignoresSafeArea()
+            VStack(spacing: 16) {
+                Spacer()
+
+                ZStack {
+                    Circle().stroke(Color("Accent"), lineWidth: 1.5).frame(width: 96, height: 96)
+                    Image(systemName: isFounding ? "rosette" : "checkmark.seal")
+                        .font(.system(size: 40)).foregroundColor(Color("Accent"))
+                }
+
+                if isFounding {
+                    Text("Gratulerer")
+                        .font(.system(size: 14, weight: .semibold)).foregroundColor(Color("Accent"))
+                    (Text("\(number)").font(.system(size: 44, weight: .bold)).foregroundColor(Color("TextPrimary"))
+                     + Text(" / \(ProConfig.foundingCap)").font(.system(size: 26, weight: .semibold)).foregroundColor(Color("TextSecondary")))
+                    Text("Du er blant de \(ProConfig.foundingCap) første medlemmene i SEDER")
+                        .font(.subheadline).foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center).padding(.horizontal, 40)
+
+                    Button { copyCode() } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("DIN FOUNDING-KODE")
+                                .font(.system(size: 11, weight: .semibold)).tracking(0.5)
+                                .foregroundColor(Color("TextSecondary"))
+                            HStack {
+                                Text(ProConfig.foundingCode)
+                                    .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(Color("TextPrimary"))
+                                Spacer()
+                                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                                    .foregroundColor(Color("Accent"))
+                            }
+                            Text("100 kr av første år · 349 kr")
+                                .font(.system(size: 12)).foregroundColor(Color("TextSecondary"))
+                        }
+                        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color("Card")).clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain).padding(.horizontal, 28).padding(.top, 6)
+
+                    Button { copyCode(); proManager.redeemPromoCode() } label: {
+                        Text("Bruk koden nå")
+                            .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 15)
+                            .background(Color("Accent")).clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding(.horizontal, 28).padding(.top, 4)
+
+                    Button("Kanskje senere") { onClose() }
+                        .font(.system(size: 14)).foregroundColor(Color("TextSecondary")).padding(.top, 2)
+                } else {
+                    Text("Velkommen til SEDER")
+                        .font(.system(size: 24, weight: .bold)).foregroundColor(Color("TextPrimary"))
+                    Text("Din digitale humidor og sigarjournal")
+                        .font(.subheadline).foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center).padding(.horizontal, 40)
+                    Button { onClose() } label: {
+                        Text("Kom i gang")
+                            .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 15)
+                            .background(Color("Accent")).clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding(.horizontal, 28).padding(.top, 8)
+                }
+
+                Spacer()
+            }
+        }
+    }
+
+    private func copyCode() {
+        UIPasteboard.general.string = ProConfig.foundingCode
+        withAnimation { copied = true }
     }
 }
 
