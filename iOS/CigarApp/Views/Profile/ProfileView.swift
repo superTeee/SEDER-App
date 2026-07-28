@@ -581,7 +581,7 @@ struct PaywallView: View {
                 Text("Gratis").frame(width: 60)
                 Text("Pro").fontWeight(.semibold).foregroundColor(Color("Accent")).frame(width: 60)
             }
-            .font(.caption)
+            .font(.system(size: 13))
             .foregroundColor(Color("TextSecondary"))
             .padding(.horizontal, 16).padding(.vertical, 11)
             Divider()
@@ -603,7 +603,7 @@ struct PaywallView: View {
     private func compareRow(label: String, free: CellValue, pro: CellValue) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 14))
+                .font(.system(size: 16))
                 .foregroundColor(Color("TextPrimary"))
                 .frame(maxWidth: .infinity, alignment: .leading)
             cell(free, accent: false).frame(width: 60)
@@ -617,13 +617,13 @@ struct PaywallView: View {
         switch value {
         case .text(let t):
             Text(t)
-                .font(.system(size: 14, weight: accent ? .semibold : .regular))
+                .font(.system(size: 16, weight: accent ? .semibold : .regular))
                 .foregroundColor(accent ? Color("TextPrimary") : Color("TextSecondary"))
         case .yes:
-            Image(systemName: "checkmark").font(.system(size: 13, weight: .semibold))
+            Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold))
                 .foregroundColor(Color("Accent"))
         case .no:
-            Image(systemName: "minus").font(.system(size: 13))
+            Image(systemName: "minus").font(.system(size: 15))
                 .foregroundColor(Color("TextSecondary").opacity(0.4))
         }
     }
