@@ -83,14 +83,18 @@ final class ProManager: ObservableObject {
         offerings = try? await Purchases.shared.offerings()
     }
 
-    /// Kjøp en pakke. Returnerer true ved suksess (eller allerede Pro).
-    func purchase(_ package: Package) async -> Bool {
-        guard configured else { return false }
+    /// Utfall av et kjøp — skiller avbrutt (ikke en feil) fra ekte feil.
+    enum PurchaseOutcome { case success, cancelled, failed }
+
+    /// Kjøp en pakke.
+    func purchase(_ package: Package) async -> PurchaseOutcome {
+        guard configured else { return .failed }
         do {
             let result = try await Purchases.shared.purchase(package: package)
+            if result.userCancelled { return .cancelled }
             isSubscriber = result.customerInfo.entitlements[ProConfig.entitlementID]?.isActive == true
-            return isSubscriber
-        } catch { return false }
+            return isSubscriber ? .success : .failed
+        } catch { return .failed }
     }
 
     /// Åpne Apples ark for å løse inn en kampanje-/tilbudskode (f.eks. lanseringstilbud).
@@ -138,11 +142,15 @@ struct CigarAppApp: App {
     /// Tildel founding-nummer og vis feiringen én gang (ekskluderer tidlige testere).
     @MainActor private func checkFoundingWelcome() async {
         guard authService.isAuthenticated, !hasSeenFoundingWelcome else { return }
-        if let n = await ProfileService().claimFoundingNumber() {
-            foundingNumber = n
-            showFoundingWelcome = true
-        } else {
-            hasSeenFoundingWelcome = true   // tester/ekskludert — hopp over
+        do {
+            if let n = try await ProfileService().claimFoundingNumber() {
+                foundingNumber = n
+                showFoundingWelcome = true
+            } else {
+                hasSeenFoundingWelcome = true   // tester/ekskludert — hopp over
+            }
+        } catch {
+            // Nettverks-/serverfeil: la flagget stå, prøv igjen ved neste oppstart.
         }
     }
 

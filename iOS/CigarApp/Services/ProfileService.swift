@@ -62,12 +62,10 @@ class ProfileService: ObservableObject {
             .value
     }
 
-    /// Tildel/hent founding-medlemsnummer. nil = tidlig tester (utenfor de 100) eller feil.
-    func claimFoundingNumber() async -> Int? {
-        do {
-            let n: Int? = try await supabase.rpc("claim_founding_number").execute().value
-            return n
-        } catch { return nil }
+    /// Tildel/hent founding-medlemsnummer. nil = tidlig tester (utenfor de 100).
+    /// Kaster ved nettverks-/serverfeil (så kalleren kan prøve igjen senere).
+    func claimFoundingNumber() async throws -> Int? {
+        try await supabase.rpc("claim_founding_number").execute().value
     }
 
     // MARK: - Hent venn sin profil via RPC

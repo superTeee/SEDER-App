@@ -49,7 +49,7 @@ struct MailComposeView: UIViewControllerRepresentable {
 
 enum AppFeedback {
 
-    static let recipient = "theggedal@gmail.com"
+    static let recipient = "support@sederappen.no"
 
     static var subject: String { "Tilbakemelding på SEDER" }
 

@@ -166,7 +166,7 @@ struct PrivacyPolicySheet: View {
 
                     policySection(
                         title: "Kontakt",
-                        body: "Spørsmål om personvern? Send e-post til theggedal@gmail.com"
+                        body: "Spørsmål om personvern? Send e-post til personvern@sederappen.no"
                     )
 
                     Text("Sist oppdatert: juli 2026")

@@ -42,7 +42,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Vitola bruker kameraet til å scanne sigarbandet</string>
+	<string>SEDER bruker kameraet til å scanne sigarbandet</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Velg et bilde av et sigarband fra biblioteket ditt</string>
 	<key>UIApplicationSceneManifest</key>

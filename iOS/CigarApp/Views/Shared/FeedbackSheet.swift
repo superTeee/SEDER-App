@@ -3,7 +3,7 @@ import MessageUI
 
 // MARK: - FeedbackSheet
 // In-app tilbakemeldingsskjema. Brukeren skriver meldingen sin,
-// trykker "Send" og meldingen går til theggedal@gmail.com via
+// trykker "Send" og meldingen går til support@sederappen.no via
 // MFMailComposeViewController (eller mailto:-fallback).
 
 struct FeedbackSheet: View {

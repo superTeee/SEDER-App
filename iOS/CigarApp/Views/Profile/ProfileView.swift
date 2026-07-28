@@ -516,6 +516,7 @@ struct PaywallView: View {
     @State private var showComingSoon = false
     @State private var purchasing = false
     @State private var showError = false
+    @State private var showNoRestore = false
 
     // Ekte App Store-pakker (nil til produktene er lastet fra RevenueCat).
     private var annualPackage: Package? {
@@ -567,6 +568,11 @@ struct PaywallView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Prøv igjen, eller sjekk App Store-kontoen din.")
+        }
+        .alert("Ingen kjøp å gjenopprette", isPresented: $showNoRestore) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Vi fant ingen tidligere kjøp på denne Apple-ID-en.")
         }
         .task { await proManager.loadOfferings() }
     }
@@ -691,12 +697,19 @@ struct PaywallView: View {
                 if let pkg = selectedPackage {
                     Task {
                         purchasing = true
-                        let ok = await proManager.purchase(pkg)
+                        let outcome = await proManager.purchase(pkg)
                         purchasing = false
-                        if ok { dismiss() } else { showError = true }
+                        switch outcome {
+                        case .success:   dismiss()
+                        case .cancelled: break            // bruker avbrøt — ingen feil
+                        case .failed:    showError = true
+                        }
                     }
+                } else if ProConfig.isConfigured {
+                    // Konfigurert, men tilbud ikke lastet ennå — prøv igjen.
+                    Task { await proManager.loadOfferings() }
                 } else {
-                    // RevenueCat ikke koblet på ennå (mangler API-nøkkel/produkter).
+                    // RevenueCat ikke koblet på ennå (test-oppsett uten produkter).
                     showComingSoon = true
                 }
             } label: {
@@ -715,9 +728,12 @@ struct PaywallView: View {
             }
             .disabled(purchasing)
 
-            Text("Gratis fortsetter alltid · avslutt når som helst")
+            // Auto-fornyelses-info (App Store-krav, retningslinje 3.1.2).
+            Text("Abonnementet fornyes automatisk til \(yearly ? yearlyPrice : monthlyPrice) per \(yearly ? "år" : "måned") og belastes Apple-ID-en din. Si opp når som helst i App Store minst 24 timer før perioden er ute.")
                 .font(.system(size: 11))
                 .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             Button("Har du en kampanjekode?") { proManager.redeemPromoCode() }
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(Color("Accent"))
@@ -725,7 +741,7 @@ struct PaywallView: View {
                 Button("Gjenopprett kjøp") {
                     Task {
                         let ok = await proManager.restore()
-                        if ok { dismiss() } else { showError = true }
+                        if ok { dismiss() } else { showNoRestore = true }
                     }
                 }
                 Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
