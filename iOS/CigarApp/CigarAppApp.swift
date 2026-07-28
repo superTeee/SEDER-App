@@ -88,6 +88,12 @@ final class ProManager: ObservableObject {
         } catch { return false }
     }
 
+    /// Åpne Apples ark for å løse inn en kampanje-/tilbudskode (f.eks. lanseringstilbud).
+    func redeemPromoCode() {
+        guard configured else { return }
+        Purchases.shared.presentCodeRedemptionSheet()
+    }
+
     /// Gjenopprett tidligere kjøp.
     func restore() async -> Bool {
         guard configured else { return false }

@@ -718,6 +718,9 @@ struct PaywallView: View {
             Text("Gratis fortsetter alltid · avslutt når som helst")
                 .font(.system(size: 11))
                 .foregroundColor(Color("TextSecondary"))
+            Button("Har du en kampanjekode?") { proManager.redeemPromoCode() }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color("Accent"))
             HStack(spacing: 14) {
                 Button("Gjenopprett kjøp") {
                     Task {
