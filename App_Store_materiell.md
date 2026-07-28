@@ -37,7 +37,7 @@ Første versjon av SEDER. Skann sigarer, bygg humidor, følg luftfuktighet og f�
 ## Diverse felt
 - Support-URL: https://sederappen.no/support
 - Markedsførings-URL: (valgfritt)
-- Personvern-URL: https://sederappen.no/personvern
+- Personvern-URL: https://sederappen.no/personvern.html
 - Kontakt: support@sederappen.no · personvern@sederappen.no · post@sederappen.no
 - Aldersgrense: 17+ (frekvent/intens referanse til alkohol, tobakk eller narkotika)
 - Kategori: Livsstil (primær). Sekundær: valgfritt.
