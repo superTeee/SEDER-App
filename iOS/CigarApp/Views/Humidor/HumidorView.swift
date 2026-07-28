@@ -9,6 +9,7 @@ enum HumidorTab { case humidor, favorites, wishlist }
 struct HumidorView: View {
 
     @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var proManager: ProManager
     @Environment(\.colorScheme) private var colorScheme
 
     // Humidor-state
@@ -19,7 +20,20 @@ struct HumidorView: View {
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
     @State private var showCreateHumidor = false
+    @State private var showPaywall = false
     private let humidorService = HumidorService()
+
+    // Gratis-nivå: maks 2 humidorer. Pro (inkl. tidlige testere): ubegrenset.
+    private let freeHumidorLimit = 2
+
+    /// Åpne «ny humidor» hvis under grensen, ellers vis paywall.
+    private func attemptCreateHumidor() {
+        if proManager.isPro || humidors.count < freeHumidorLimit {
+            showCreateHumidor = true
+        } else {
+            showPaywall = true
+        }
+    }
 
     // Ønskeliste-state
     @State private var wishlistCigars: [Cigar] = []
@@ -125,7 +139,7 @@ struct HumidorView: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .background(Color("Background"))
                             } else if humidors.isEmpty {
-                                EmptyHumidorsView(onCreate: { showCreateHumidor = true })
+                                EmptyHumidorsView(onCreate: { attemptCreateHumidor() })
                                     .background(Color("Background"))
                             }
                         }
@@ -201,7 +215,7 @@ struct HumidorView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button {
-                                showCreateHumidor = true
+                                attemptCreateHumidor()
                             } label: {
                                 Label("Ny humidor", systemImage: "archivebox")
                             }
@@ -221,6 +235,9 @@ struct HumidorView: View {
                 if let userId = authService.userId {
                     CreateHumidorSheet(userId: userId, onSaved: { Task { await loadHumidor() } })
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView().environmentObject(proManager)
             }
             .onAppear {
                 humidorHasNew = false  // Fjern badge når bruker ser humidor-siden

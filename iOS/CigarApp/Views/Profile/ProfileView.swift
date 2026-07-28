@@ -604,7 +604,7 @@ struct PaywallView: View {
             .foregroundColor(Color("TextSecondary"))
             .padding(.horizontal, 16).padding(.vertical, 11)
             Divider()
-            compareRow(label: "Humidor-størrelse", free: .text("25"), pro: .text("∞"))
+            compareRow(label: "Antall humidorer", free: .text("2"), pro: .text("∞"))
             Divider().padding(.leading, 16)
             compareRow(label: "Journal-eksport (PDF/CSV)", free: .no, pro: .yes)
             Divider().padding(.leading, 16)

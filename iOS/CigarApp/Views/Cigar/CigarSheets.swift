@@ -70,6 +70,7 @@ struct AddToHumidorSheet: View {
     let onSave: (Date, Date, Int, UUID?, String, Double?) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var proManager: ProManager
     @State private var purchasedAt: Date = Date()
     @State private var addedAt: Date = Date()
     @State private var quantity: Int = 1
@@ -84,6 +85,16 @@ struct AddToHumidorSheet: View {
     @State private var humidors: [Humidor] = []
     @State private var selectedHumidorId: UUID? = nil
     @State private var showCreateHumidor = false
+    @State private var showPaywall = false
+
+    // Gratis-nivå: maks 2 humidorer. Pro: ubegrenset.
+    private func attemptCreateHumidor() {
+        if proManager.isPro || humidors.count < 2 {
+            showCreateHumidor = true
+        } else {
+            showPaywall = true
+        }
+    }
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -119,7 +130,7 @@ struct AddToHumidorSheet: View {
                         }
                     }
                     Button {
-                        showCreateHumidor = true
+                        attemptCreateHumidor()
                     } label: {
                         Label("Opprett ny humidor", systemImage: "plus.circle.fill")
                             .foregroundColor(Color("Accent"))
@@ -224,6 +235,9 @@ struct AddToHumidorSheet: View {
                         Task { await reloadAndSelectNewest() }
                     })
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView().environmentObject(proManager)
             }
             .task { await loadHumidors() }
         }
