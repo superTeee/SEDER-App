@@ -45,8 +45,13 @@ final class ProManager: ObservableObject {
     @Published var isFoundingMember = false   // livstids-Pro for tidlige testere
     @Published var offerings: Offerings?
 
+    /// Kun for testing i debug-builds: behandle meg som gratisbruker, så paywallen
+    /// vises selv om jeg er tidlig tester. Et ekte (test-)kjøp slår fortsatt på Pro.
+    /// Er alltid false i release (ingen UI flipper den der).
+    @Published var debugForceFree = false
+
     /// Appens Pro-flagg — bruk denne overalt for å låse opp funksjoner.
-    var isPro: Bool { isSubscriber || isFoundingMember }
+    var isPro: Bool { isSubscriber || (isFoundingMember && !debugForceFree) }
 
     private var configured = false
     private init() {}

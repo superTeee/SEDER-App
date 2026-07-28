@@ -294,6 +294,16 @@ struct ProfileSettingsView: View {
                     }
                 }
 
+                #if DEBUG
+                Section {
+                    Toggle(isOn: $proManager.debugForceFree) {
+                        Label("Test: simuler gratisbruker", systemImage: "ladybug")
+                    }
+                } footer: {
+                    Text("Kun i testbuilds. Skjuler tidlig tester-Pro så du kan se paywallen og teste kjøp. Et (test-)kjøp slår Pro på igjen.")
+                }
+                #endif
+
                 Section("Profil") {
                     Button {
                         showEditName = true
