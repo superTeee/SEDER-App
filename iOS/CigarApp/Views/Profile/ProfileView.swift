@@ -264,8 +264,6 @@ struct ProfileSettingsView: View {
                                     .foregroundColor(Color("TextSecondary"))
                             }
                             Spacer()
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundColor(Color("Accent"))
                         }
                         .padding(.vertical, 2)
                     } else {
