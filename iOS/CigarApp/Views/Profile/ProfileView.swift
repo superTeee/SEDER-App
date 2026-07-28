@@ -228,27 +228,51 @@ struct ProfileSettingsView: View {
         }
     }
 
+    // Ensartet innstillingsrad: grått ikon + primærtekst, eller helt rødt for destruktivt.
+    @ViewBuilder
+    private func settingsRow(_ title: String, icon: String, destructive: Bool = false,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(destructive ? .red : Color("TextSecondary"))
+                    .frame(width: 24)
+                Text(title)
+                    .font(.system(size: 16))
+                    .foregroundColor(destructive ? .red : Color("TextPrimary"))
+                Spacer()
+            }
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                if let email = authService.currentUser?.email {
-                    Section {
-                        HStack(spacing: 12) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 36))
+                // Konto
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 34))
+                            .foregroundColor(Color("TextSecondary"))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Innlogget som")
+                                .font(.system(size: 12))
                                 .foregroundColor(Color("TextSecondary"))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Innlogget som")
-                                    .font(.caption)
-                                    .foregroundColor(Color("TextSecondary"))
-                                Text(email)
-                                    .font(.subheadline.bold())
-                            }
+                            Text(authService.currentUser?.email ?? "—")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
                         }
-                        .padding(.vertical, 4)
+                        Spacer()
                     }
+                    .padding(.vertical, 4)
                 }
+                .listRowBackground(Color("Card"))
 
+                // SEDER Pro
                 Section {
                     if proManager.isPro {
                         HStack(spacing: 12) {
@@ -257,10 +281,10 @@ struct ProfileSettingsView: View {
                                 .foregroundColor(Color("Accent"))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("SEDER Pro")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(Color("TextPrimary"))
                                 Text(proManager.isFoundingMember ? "Tidlig tester · livstid" : "Abonnement aktivt")
-                                    .font(.caption)
+                                    .font(.system(size: 12))
                                     .foregroundColor(Color("TextSecondary"))
                             }
                             Spacer()
@@ -276,45 +300,47 @@ struct ProfileSettingsView: View {
                                     .foregroundColor(Color("Accent"))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Oppgrader til Pro")
-                                        .font(.subheadline.weight(.semibold))
+                                        .font(.system(size: 15, weight: .semibold))
                                         .foregroundColor(Color("TextPrimary"))
                                     Text("Ubegrenset humidor, eksport og innsikt")
-                                        .font(.caption)
+                                        .font(.system(size: 12))
                                         .foregroundColor(Color("TextSecondary"))
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(Color("TextSecondary").opacity(0.5))
+                                    .foregroundColor(Color("TextSecondary").opacity(0.4))
                             }
                             .padding(.vertical, 2)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 }
+                .listRowBackground(Color("Card"))
 
                 #if DEBUG
                 Section {
                     Toggle(isOn: $proManager.debugForceFree) {
-                        Label("Test: simuler gratisbruker", systemImage: "ladybug")
+                        Text("Test: simuler gratisbruker")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color("TextPrimary"))
                     }
+                    .tint(Color("Accent"))
                 } footer: {
-                    Text("Kun i testbuilds. Skjuler tidlig tester-Pro så du kan se paywallen og teste kjøp. Et (test-)kjøp slår Pro på igjen.")
+                    Text("Kun i testbuilds. Skjuler tidlig tester-Pro så du kan se paywallen og teste kjøp.")
                 }
+                .listRowBackground(Color("Card"))
                 #endif
 
+                // Profil
                 Section("Profil") {
-                    Button {
-                        showEditName = true
-                    } label: {
-                        Label("Endre navn", systemImage: "person.text.rectangle")
-                    }
-                    Button {
-                        showEditLocation = true
-                    } label: {
-                        Label("Endre by og land", systemImage: "mappin.circle")
-                    }
+                    settingsRow("Endre navn", icon: "person.text.rectangle") { showEditName = true }
+                    settingsRow("Endre by og land", icon: "mappin.and.ellipse") { showEditLocation = true }
                 }
+                .listRowBackground(Color("Card"))
 
+                // Utseende
                 Section("Utseende") {
                     Picker("Tema", selection: $appearance) {
                         Text("System").tag("system")
@@ -322,46 +348,43 @@ struct ProfileSettingsView: View {
                         Text("Lys").tag("light")
                     }
                     .pickerStyle(.segmented)
-                    .listRowBackground(Color("Card"))
                 }
+                .listRowBackground(Color("Card"))
 
+                // Sikkerhet
                 Section("Sikkerhet") {
                     if pinService.isPINSet {
-                        Button(role: .destructive) {
-                            showRemovePINConfirm = true
-                        } label: {
-                            Label("Fjern PIN-kode", systemImage: "lock.open.fill")
-                        }
+                        settingsRow("Fjern PIN-kode", icon: "lock.open", destructive: true) { showRemovePINConfirm = true }
                     } else {
-                        Button {
-                            showPINSetup = true
-                        } label: {
-                            Label("Sett opp 4-sifret kode", systemImage: "lock.fill")
-                        }
+                        settingsRow("Sett opp 4-sifret kode", icon: "lock") { showPINSetup = true }
                     }
                 }
+                .listRowBackground(Color("Card"))
 
+                // Tilbakemelding
                 Section("Tilbakemelding") {
-                    Button {
-                        showFeedbackSheet = true
-                    } label: {
-                        Label("Gi tilbakemelding på appen", systemImage: "bubble.left.and.exclamationmark.bubble.right")
-                    }
+                    settingsRow("Gi tilbakemelding på appen", icon: "bubble.left.and.bubble.right") { showFeedbackSheet = true }
                 }
+                .listRowBackground(Color("Card"))
 
-                // Vises kun for admin. `is_admin()` spørres i basen — vi stoler
-                // ikke på en lokal flagg-verdi for å skjule noe som betyr noe.
+                // Administrasjon (kun admin — is_admin() sjekkes i basen)
                 if adminService.isAdmin {
                     Section("Administrasjon") {
                         Button {
                             showAdminSheet = true
                         } label: {
-                            HStack {
-                                Label("Kø", systemImage: "tray.full")
+                            HStack(spacing: 12) {
+                                Image(systemName: "tray.full")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(Color("TextSecondary"))
+                                    .frame(width: 24)
+                                Text("Kø")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(Color("TextPrimary"))
                                 Spacer()
                                 if adminService.antallIKo > 0 {
                                     Text("\(adminService.antallIKo)")
-                                        .font(.caption.weight(.semibold))
+                                        .font(.system(size: 12, weight: .semibold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 7)
                                         .padding(.vertical, 2)
@@ -369,38 +392,36 @@ struct ProfileSettingsView: View {
                                         .clipShape(Capsule())
                                 }
                             }
+                            .padding(.vertical, 2)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
+                    .listRowBackground(Color("Card"))
                 }
 
+                // Konto-handlinger
                 Section {
-                    Button(role: .destructive) {
-                        showSignOutConfirm = true
-                    } label: {
-                        Label("Logg ut", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteAccountConfirm = true
-                    } label: {
-                        if isDeletingAccount {
-                            HStack {
-                                ProgressView().tint(.red)
-                                Text("Sletter konto…")
-                            }
-                        } else {
-                            Label("Slett konto", systemImage: "person.crop.circle.badge.minus")
+                    settingsRow("Logg ut", icon: "rectangle.portrait.and.arrow.right", destructive: true) { showSignOutConfirm = true }
+                    if isDeletingAccount {
+                        HStack(spacing: 12) {
+                            ProgressView().tint(.red)
+                            Text("Sletter konto…")
+                                .font(.system(size: 16))
+                                .foregroundColor(.red)
                         }
+                        .padding(.vertical, 2)
+                    } else {
+                        settingsRow("Slett konto", icon: "trash", destructive: true) { showDeleteAccountConfirm = true }
                     }
-                    .disabled(isDeletingAccount)
                 } footer: {
-                    Text("Dette sletter kontoen din og alle tilhørende data permanent. Handlingen kan ikke angres.")
-                        .font(.caption)
+                    Text("«Slett konto» fjerner kontoen din og alle data permanent. Kan ikke angres.")
+                        .font(.system(size: 12))
                         .foregroundColor(Color("TextSecondary"))
                 }
+                .listRowBackground(Color("Card"))
             }
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Color("Background"))
             .navigationTitle("Innstillinger")
