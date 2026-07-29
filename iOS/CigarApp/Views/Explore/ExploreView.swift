@@ -163,6 +163,7 @@ struct ExploreView: View {
                         .padding(.bottom, 24)
                     }
                     .scrollDismissesKeyboard(.immediately) // dra/scroll lukker tastaturet
+                    .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
                 }
             }
             .navigationTitle("Utforsk")

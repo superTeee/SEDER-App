@@ -129,6 +129,7 @@ struct HumidorView: View {
                             .padding(.top, 12)
                             .padding(.bottom, 32)
                         }
+                        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
                         .background(Color("Background"))
                         .overlay {
                             if authService.userId == nil {
@@ -160,6 +161,7 @@ struct HumidorView: View {
                             }
                         }
                         .scrollContentBackground(.hidden)
+                        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
                         .background(Color("Background"))
                         .overlay {
                             if isLoadingFavorites {
@@ -190,6 +192,7 @@ struct HumidorView: View {
                             }
                         }
                         .scrollContentBackground(.hidden)
+                        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
                         .background(Color("Background"))
                         .overlay {
                             if isLoadingWishlist {

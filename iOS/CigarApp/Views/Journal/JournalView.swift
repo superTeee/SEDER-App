@@ -152,6 +152,7 @@ struct JournalView: View {
             }
             .padding(.bottom, 32)
         }
+        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
         .background(Color("Background"))
     }
 

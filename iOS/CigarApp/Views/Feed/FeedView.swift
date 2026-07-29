@@ -1255,6 +1255,7 @@ struct ActivityView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
         .background(Color("Background"))
         .alert("Slette innlegget?", isPresented: Binding(
             get: { pendingDelete != nil },
