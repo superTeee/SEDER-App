@@ -666,11 +666,7 @@ struct EditLogSheet: View {
                     Button("Avbryt") { dismiss() }
                 }
             }
-            .confirmationDialog(
-                "Slett oppføring",
-                isPresented: $showDeleteConfirm,
-                titleVisibility: .visible
-            ) {
+            .alert("Slett oppføring", isPresented: $showDeleteConfirm) {
                 Button("Slett", role: .destructive) { deleteEntry() }
                 Button("Avbryt", role: .cancel) {}
             } message: {
