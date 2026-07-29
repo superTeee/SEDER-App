@@ -22,7 +22,7 @@ enum ProConfig {
     /// kjøpsflyten uten App Store. BYTT til produksjonsnøkkelen (starter med "appl_")
     /// når appen er koblet til App Store Connect med ekte produkter.
     /// Trygg i kildekode (public SDK-nøkkel, som Supabase anon key).
-    static let revenueCatAPIKey = "test_tweIdoRfwLwIBJdsiNPtcmXEJuQ"
+    static let revenueCatAPIKey = "appl_GAVyFgUUaIUwwHeDRiNoZNuUUIh"
 
     /// Entitlement-ID satt opp i RevenueCat (må matche identifieren nøyaktig).
     static let entitlementID = "SEDER Pro"
