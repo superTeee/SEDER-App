@@ -45,6 +45,15 @@
   .hidden{display:none}
   .note{font-size:13px;color:var(--muted);margin:8px 0 16px}
   @media(max-width:640px){.cards{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+  /* Smaksnote-multivalg */
+  .fl-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:8px;background:#FBFAF6;margin-top:8px}
+  .fchip{font-size:13px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;line-height:1.2}
+  .fchip.on{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
+  .fchip.miss{border-style:dashed;color:var(--muted)}
+  .fchip.on.miss{color:#fff}
+  .fl-add{display:flex;gap:8px;margin-top:8px}
+  .fl-add input{flex:1}
+  .fl-add button{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -196,7 +205,47 @@ function getDraft(id){ try { return JSON.parse(localStorage.getItem(draftKey(id)
 function saveDraft(id, k, v){ const d = getDraft(id); if (v) d[k] = v; else delete d[k]; localStorage.setItem(draftKey(id), JSON.stringify(d)); }
 function clearDraft(id){ localStorage.removeItem(draftKey(id)); }
 
+// ---- Smaksnote-multivalg ----
+// Noter som allerede har ikon i appen (FlavorIcon-mapping). Alt annet får «mangler ikon»-merke.
+const ICON_NOTES = new Set(["almond","almonds","anise","black pepper","butter","caramel","cardamom","cedar","chocolate","cinnamon","citrus","cocoa","coffee","cream","dark chocolate","dark cocoa","dark earth","dark fruit","dark roasted coffee","dark spice","dark tobacco","dried fruit","earth","espresso","floral","fruit","gentle earth","gentle floral","gentle pepper","gentle spice","grass","hay","honey","kremete","leather","light earth","light floral","light pepper","light spice","light wood","maple","mild coffee","mild cream","mild earth","mild krydder","mild pepper","mild spice","mineral","minerals","mint","minty","molasses","mynte","natural sweetness","nougat","nut","nuts","nøtter","oak","paprika","pepper","peppermint","roasted almonds","roasted aromas","roasted cashews","roasted coffee","roasted espresso","roasted nuts","sedertre","smoky wood","soft spice","spearmint","spice","sweet cream","sweet earth","sweet spice","sweet spices","toast","toasted bread","toasted cream","toasted nuts","toasted wood","tobacco","vanilla","whiskey","white pepper","wood"]);
+let ALL_NOTES = [];  // [{note, hasIcon}] fra admin_flavor_notes()
+async function loadFlavorVocab(){
+  const { data } = await db.rpc("admin_flavor_notes");
+  ALL_NOTES = (data || []).map(r => ({ note: r.note, hasIcon: ICON_NOTES.has(r.note) }));
+}
+function saveDraftArray(id, k, arr){ const d = getDraft(id); if (arr && arr.length) d[k] = arr; else delete d[k]; localStorage.setItem(draftKey(id), JSON.stringify(d)); }
+function flavorChipsFor(i, id, filter){
+  const sel = new Set(getDraft(id).flavor_notes || []);
+  const notes = ALL_NOTES.slice();
+  sel.forEach(s => { if (!notes.find(n => n.note === s)) notes.push({ note: s, hasIcon: ICON_NOTES.has(s) }); });
+  const f = (filter || "").toLowerCase().trim();
+  const chips = notes.filter(n => !f || n.note.includes(f)).map(n => {
+    const on = sel.has(n.note);
+    const q = n.note.replace(/'/g, "\\'");
+    return `<button type="button" class="fchip${on ? " on" : ""}${n.hasIcon ? "" : " miss"}" onclick="toggleFlavor(${i},'${id}','${q}')">${esc(n.note)}${n.hasIcon ? "" : " ⚠"}</button>`;
+  }).join("");
+  return chips || '<span class="muted">Ingen treff</span>';
+}
+function renderFlavorChips(i, id, filter){ const el = document.getElementById("fl-chips-" + i); if (el) el.innerHTML = flavorChipsFor(i, id, filter); }
+function toggleFlavor(i, id, note){
+  const arr = new Set(getDraft(id).flavor_notes || []);
+  if (arr.has(note)) arr.delete(note); else arr.add(note);
+  saveDraftArray(id, "flavor_notes", [...arr]);
+  const s = document.querySelector(`.flavor-ms[data-i="${i}"] .fl-search`);
+  renderFlavorChips(i, id, s ? s.value : "");
+}
+function addFlavorNote(i, id){
+  const inp = document.getElementById("fl-new-" + i); const v = (inp.value || "").trim().toLowerCase();
+  if (!v) return;
+  if (!ALL_NOTES.find(n => n.note === v)) ALL_NOTES.push({ note: v, hasIcon: ICON_NOTES.has(v) });
+  const arr = new Set(getDraft(id).flavor_notes || []); arr.add(v);
+  saveDraftArray(id, "flavor_notes", [...arr]);
+  inp.value = "";
+  renderFlavorChips(i, id, "");
+}
+
 async function loadDatahull() {
+  if (!ALL_NOTES.length) await loadFlavorVocab();
   const { data: gaps } = await db.rpc("admin_data_gaps");
   const box = $("gaps-data");
   if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen hull. 🎉</div>'; return; }
@@ -209,12 +258,24 @@ async function loadDatahull() {
     const shownFields = allowed.size ? FIELDS.filter(([k]) => allowed.has(k)) : FIELDS;
     const d = getDraft(g.id);
     const av = (k) => esc(d[k] || "");
-    const fields = shownFields.map(([k,label,type]) => `
+    const fields = shownFields.map(([k,label,type]) => {
+      if (k === "flavor_notes") return `
+        <div style="grid-column:1/-1"><label class="f">Smaksnoter</label>
+          <div class="flavor-ms" data-i="${i}" data-id="${g.id}">
+            <input class="fl-search" placeholder="Søk smaksnoter…" oninput="renderFlavorChips(${i},'${g.id}',this.value)" />
+            <div class="fl-chips" id="fl-chips-${i}"></div>
+            <div class="fl-add">
+              <input id="fl-new-${i}" placeholder="Ny note (tekst)" />
+              <button type="button" class="ghost" onclick="addFlavorNote(${i},'${g.id}')">+ Legg til</button>
+            </div>
+          </div></div>`;
+      return `
       <div><label class="f">${label}</label>${
         type === "textarea"
           ? `<textarea id="f-${i}-${k}" rows="2" oninput="saveDraft('${g.id}','${k}',this.value)">${av(k)}</textarea>`
           : `<input id="f-${i}-${k}" type="${type}" ${type==="number"?'step="any"':''} value="${av(k)}" oninput="saveDraft('${g.id}','${k}',this.value)" />`
-      }</div>`).join("");
+      }</div>`;
+    }).join("");
     const hasDraft = Object.keys(d).length > 0;
     return `<div class="card">
       <div class="row"><div><strong>${esc(navn)}</strong>
@@ -230,6 +291,7 @@ async function loadDatahull() {
       </details>
     </div>`;
   }).join("");
+  gaps.forEach((g, i) => renderFlavorChips(i, g.id, ""));
 }
 
 async function saveFill(i, cigarId) {
@@ -244,7 +306,8 @@ async function saveFill(i, cigarId) {
   if (g("wrapper_leaf"))   p.p_wrapper_leaf   = g("wrapper_leaf");
   if (g("strength"))       p.p_strength       = num(g("strength"));
   if (g("description"))    p.p_description    = g("description");
-  if (g("flavor_notes"))   p.p_flavor_notes   = g("flavor_notes").split(",").map(s=>s.trim()).filter(Boolean);
+  const draftNotes = getDraft(cigarId).flavor_notes || [];
+  if (draftNotes.length)   p.p_flavor_notes   = draftNotes;
 
   $(`msg-${i}`).textContent = "Lagrer…";
   const { error } = await db.rpc("admin_fill_cigar", p);
