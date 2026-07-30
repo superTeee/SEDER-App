@@ -245,7 +245,7 @@ private fun Cell(icon: ImageVector, value: Int, label: String, modifier: Modifie
         // Ikon ved siden av tallet → lavere celle enn stablet layout
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-            Text("$value", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text("$value", fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center)

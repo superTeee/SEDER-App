@@ -235,8 +235,8 @@ struct UserProfileView: View {
                     }
                 }
 
-                // --- Info (høyre) ---
-                VStack(alignment: .leading, spacing: 4) {
+                // --- Info (høyre) — 4px eksplisitt luft mellom hvert element ---
+                VStack(alignment: .leading, spacing: 0) {
 
                     // Navn
                     Text(bigName(for: p))
@@ -268,6 +268,7 @@ struct UserProfileView: View {
                             .background(Capsule().fill(badgeFill))
                         }
                     }
+                    .padding(.top, 4)
 
                     // Bio
                     if let bio = p.bio, !bio.isEmpty {
@@ -275,6 +276,7 @@ struct UserProfileView: View {
                             .font(.system(size: 14))
                             .foregroundColor(Color("TextPrimary").opacity(0.85))
                             .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 4)
                             .onTapGesture { if isOwnProfile { showBioEditor = true } }
                     } else if isOwnProfile {
                         Button { showBioEditor = true } label: {
@@ -283,6 +285,7 @@ struct UserProfileView: View {
                                 .foregroundColor(Color("TextSecondary").opacity(0.55))
                         }
                         .buttonStyle(.plain)
+                        .padding(.top, 4)
                     }
 
                     // Medlem siden + by + land
@@ -307,6 +310,7 @@ struct UserProfileView: View {
                     }
                     .font(.caption)
                     .foregroundColor(Color("TextSecondary"))
+                    .padding(.top, 4)
                 }
 
                 Spacer(minLength: 0)
@@ -376,6 +380,7 @@ struct UserProfileView: View {
                 statCell(icon: "person.2.fill", value: p.friendCount, label: "Venner")
             }
         }
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity)
         .background(Color("Card"))
     }
@@ -392,7 +397,7 @@ struct UserProfileView: View {
                     .font(.system(size: 13))
                     .foregroundColor(accentIconColor)
                 Text(showDash ? "–" : "\(value)")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(Color("TextPrimary"))
             }
             Text(label)
