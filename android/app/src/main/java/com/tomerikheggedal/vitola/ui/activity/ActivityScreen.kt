@@ -270,7 +270,7 @@ private fun ActivityCard(
                     color = MaterialTheme.colorScheme.onSurface)
             }
             Spacer(Modifier.width(6.dp))
-            Text(item.verbText, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+            Text(item.verbText, fontSize = 12.sp, fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.weight(1f))
             Box {

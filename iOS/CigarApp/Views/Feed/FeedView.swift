@@ -1547,7 +1547,7 @@ struct ActivityRow: View {
                     }
                 }
                 .buttonStyle(.borderless)
-                Text(verbText).font(.system(size: 13, weight: .medium)).foregroundColor(Color("TextSecondary"))
+                Text(verbText).font(.system(size: 12, weight: .medium)).foregroundColor(Color("TextSecondary"))
                 Spacer(minLength: 0)
                 // «...»-meny øverst til høyre
                 Menu {
