@@ -7,8 +7,6 @@ import SwiftUI
 
 struct AgeGateView: View {
 
-    @State private var birthYear = ""
-    @State private var showError = false
     var onVerified: () -> Void
 
     var body: some View {
@@ -30,7 +28,7 @@ struct AgeGateView: View {
 
                 Spacer()
 
-                AgeVerificationView(birthYear: $birthYear, showError: $showError, onVerify: verify)
+                AgeVerificationView(onVerify: onVerified)
 
                 Spacer()
 
@@ -43,27 +41,10 @@ struct AgeGateView: View {
             }
         }
     }
-
-    private func verify() {
-        guard let year = Int(birthYear) else {
-            showError = true
-            return
-        }
-        let currentYear = Calendar.current.component(.year, from: Date())
-        let age = currentYear - year
-
-        if age >= 18 {
-            onVerified()
-        } else {
-            showError = true
-        }
-    }
 }
 
-// MARK: - Aldersbekreftelse (skjema)
+// MARK: - Aldersbekreftelse (én-trykks egenerklæring)
 struct AgeVerificationView: View {
-    @Binding var birthYear: String
-    @Binding var showError: Bool
     var onVerify: () -> Void
 
     var body: some View {
@@ -75,21 +56,10 @@ struct AgeVerificationView: View {
                 .foregroundColor(Color("TextSecondary"))
                 .multilineTextAlignment(.center)
 
-            TextField("Fødselsår (f.eks. 1990)", text: $birthYear)
-                .keyboardType(.numberPad)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
-
-            if showError {
-                Text("Du må være over 18 år for å bruke appen.")
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-
             Button(action: onVerify) {
-                Text("Bekreft")
+                Text("Jeg er over 18 år")
                     .fontWeight(.semibold)
-                    .frame(width: 200)
+                    .frame(width: 240)
                     .padding()
                     .background(Color("Accent"))
                     .foregroundColor(.white)

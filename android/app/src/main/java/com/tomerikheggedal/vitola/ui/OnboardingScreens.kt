@@ -23,15 +23,6 @@ import kotlinx.coroutines.launch
 // ── Aldersbekreftelse (som iOS AgeGateView) ────────────────────────────────
 @Composable
 fun AgeGateScreen(onVerified: () -> Unit) {
-    var year by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf(false) }
-
-    fun verify() {
-        val y = year.toIntOrNull()
-        val current = java.time.Year.now().value
-        if (y != null && current - y >= 18) onVerified() else error = true
-    }
-
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState()).padding(24.dp),
@@ -48,21 +39,9 @@ fun AgeGateScreen(onVerified: () -> Unit) {
         Text("Du må være 18 år eller eldre for å bruke SEDER",
             style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = year, onValueChange = { year = it.filter(Char::isDigit).take(4); error = false },
-            label = { Text("Fødselsår (f.eks. 1990)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.width(240.dp)
-        )
-        if (error) {
-            Spacer(Modifier.height(8.dp))
-            Text("Du må være over 18 år for å bruke appen.",
-                color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
         Spacer(Modifier.height(20.dp))
-        Button(onClick = { verify() }, modifier = Modifier.width(240.dp)) { Text("Bekreft") }
+        // Én-trykks egenerklæring i stedet for fødselsår
+        Button(onClick = onVerified, modifier = Modifier.width(240.dp)) { Text("Jeg er over 18 år") }
 
         Spacer(Modifier.height(48.dp))
         Text("Appen er kun for personer over 18 år.\nKjøp og promotering av tobakk er ikke en del av appen.",
