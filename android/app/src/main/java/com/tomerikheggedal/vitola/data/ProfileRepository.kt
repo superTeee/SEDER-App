@@ -64,7 +64,7 @@ object ProfileRepository {
     // ekskludert / allerede tildelt). Samme RPC som iOS (migrasjon 121).
     suspend fun claimFoundingNumber(): Int? =
         runCatching {
-            Supa.client.postgrest.rpc("claim_founding_number").decodeAs<Int?>()
+            Supa.client.postgrest.rpc("claim_founding_number").decodeAs<Int>()
         }.getOrNull()
 
     suspend fun myStats(): ProfileStats {

@@ -32,6 +32,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true   // trengs for BuildConfig.DEBUG (DEBUG-bryter i innstillinger)
     }
 }
 
