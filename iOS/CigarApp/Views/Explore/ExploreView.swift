@@ -592,18 +592,13 @@ struct ExploreView: View {
 
             // Rating-badge
             if let rating = cigar.avgRating {
-                VStack(spacing: 2) {
-                    Text(String(format: "%.0f", rating * 10)) // 0–10 → 0–100 som resten av appen
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(Color("Accent"))
-                    Text("score")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(Color(.tertiaryLabel))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(Color("Accent").opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                Text(String(format: "%.0f", rating * 10)) // 0–10 → 0–100 som resten av appen
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Color("Accent"))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(Color("Accent").opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
             }
 
             Image(systemName: "chevron.right")

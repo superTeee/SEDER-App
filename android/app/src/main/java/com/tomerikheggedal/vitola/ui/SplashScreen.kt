@@ -23,28 +23,26 @@ import com.tomerikheggedal.vitola.R
 import com.tomerikheggedal.vitola.ui.theme.CreamBackground
 import kotlinx.coroutines.delay
 
-// Oppstartssekvens — speiler iOS (LaunchSplashView):
-//   0,0 → 1,0 s   fotoet alene
-//   1,0 → 2,0 s   sort lag fader inn til 10 %
-//   2,0 → 3,0 s   hold
-//   3,0 → 4,0 s   logoen fader inn
-//   4,0 → 6,5 s   hold
-//   6,5 s         splashen glir ut til venstre (0,3 s)
+// Oppstartssekvens — speiler iOS (LaunchSplashView), ca. 3,5 s:
+//   0,0 s         foto + overlay (#403E3B, 40 %) fra første frame
+//   0,3 → 1,3 s   logoen fader inn
+//   1,3 → 3,5 s   hold
+//   3,5 s         splashen glir ut til venstre (0,3 s)
+// (Starter bevisst med bilde + overlay — den gamle «foto alene»-fasen så ut som
+//  en glitch og tok lengre tid.)
 @Composable
 fun SplashScreen(onFinish: () -> Unit) {
     val screenWidthPx = with(LocalConfiguration.current) { screenWidthDp.toFloat() }
 
-    val dim = remember { Animatable(0f) }        // overlay #403E3B 0 → 0,40
+    val dim = remember { Animatable(0.40f) }     // overlay #403E3B til stede fra start
     val logoAlpha = remember { Animatable(0f) }  // logo 0 → 1
     val slideX = remember { Animatable(0f) }     // hele splashen glir ut
 
     LaunchedEffect(Unit) {
-        delay(1000)                                              // 1. foto alene
-        dim.animateTo(0.40f, tween(1500))                       // 2. overlay-lag fader rolig inn
-        delay(800)                                               // 3. hold
-        logoAlpha.animateTo(1f, tween(1000))                    // 4. logo inn
-        delay(2500)                                              // 5. hold
-        slideX.animateTo(-screenWidthPx, tween(300))            // 6. glir ut
+        delay(300)                                               // kort visning av bilde + overlay
+        logoAlpha.animateTo(1f, tween(1000))                    // logo inn
+        delay(2200)                                              // hold
+        slideX.animateTo(-screenWidthPx, tween(300))            // glir ut
         onFinish()
     }
 

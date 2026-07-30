@@ -223,23 +223,31 @@ struct HumidorDetailView: View {
                 .padding(.horizontal, 20)
 
             VStack(alignment: .leading, spacing: 14) {
+                let status = humidor.rhStatus(for: latest?.rh)
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        if let latest {
-                            Text("\(rhString(latest.rh)) % RH")
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundColor(Color("TextPrimary"))
-                        } else {
-                            Text("— % RH")
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundColor(Color("TextSecondary"))
+                        HStack(spacing: 8) {
+                            if let latest {
+                                Text("\(rhString(latest.rh)) % RH")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(Color("TextPrimary"))
+                            } else {
+                                Text("— % RH")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(Color("TextSecondary"))
+                            }
+                            // Farget boble ved siden av verdien: grønn = ok, gul = litt
+                            // utenfor, rød = utenfor, grå = ingen måling.
+                            Circle()
+                                .fill(rhDotColor(status))
+                                .frame(width: 11, height: 11)
                         }
                         if let target = humidor.rhTargetLabel {
                             Text("Mål: \(target)").font(.caption).foregroundColor(Color("TextSecondary"))
                         }
                     }
                     Spacer()
-                    statusBadge(humidor.rhStatus(for: latest?.rh))
+                    statusBadge(status)
                 }
 
                 if let latest {
@@ -300,6 +308,16 @@ struct HumidorDetailView: View {
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(color.opacity(0.12))
             .clipShape(Capsule())
+    }
+
+    // Semantisk farge for status-boblen ved siden av RH-verdien.
+    private func rhDotColor(_ status: RHStatus) -> Color {
+        switch status {
+        case .stable:                     return .green
+        case .slightlyLow, .slightlyHigh: return .yellow
+        case .tooDry, .tooWet:            return .red
+        case .none:                       return Color(.systemGray3)
+        }
     }
 
     private func rhString(_ v: Double) -> String {

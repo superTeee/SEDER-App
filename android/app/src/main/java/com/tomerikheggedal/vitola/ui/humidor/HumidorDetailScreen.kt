@@ -353,6 +353,14 @@ private fun MoveHumidorPickerSheet(currentId: String, onPick: (String) -> Unit, 
     }
 }
 
+// Semantisk farge for status-boblen ved siden av RH-verdien.
+private fun rhDotColor(status: RhStatus): androidx.compose.ui.graphics.Color = when (status) {
+    RhStatus.STABLE -> androidx.compose.ui.graphics.Color(0xFF34C759)                       // grønn
+    RhStatus.SLIGHTLY_LOW, RhStatus.SLIGHTLY_HIGH -> androidx.compose.ui.graphics.Color(0xFFFFCC00) // gul
+    RhStatus.TOO_DRY, RhStatus.TOO_WET -> androidx.compose.ui.graphics.Color(0xFFFF3B30)    // rød
+    RhStatus.NONE -> androidx.compose.ui.graphics.Color(0xFFBFBFBF)                          // grå
+}
+
 // RH-kort: sist målte RH + mål/status + to knapper (registrer måling + historikk).
 @Composable
 private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: () -> Unit, onHistory: () -> Unit) {
@@ -378,12 +386,19 @@ private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: (
         ) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        if (latest != null) "${rhStr(latest.rh)} % RH" else "— % RH",
-                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
-                        color = if (latest != null) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            if (latest != null) "${rhStr(latest.rh)} % RH" else "— % RH",
+                            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                            color = if (latest != null) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        // Farget boble: grønn = ok, gul = litt utenfor, rød = utenfor, grå = ingen måling.
+                        Box(Modifier.size(11.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(rhDotColor(status)))
+                    }
                     humidor.rhTargetLabel?.let {
                         Text("Mål: $it", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)

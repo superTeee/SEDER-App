@@ -3,13 +3,14 @@ import UIKit
 
 // MARK: - Oppstartssekvens
 //
-// Tidslinje (totalt ca. 6,5 s):
-//   0,0 → 1,0 s   fotoet alene, uten overlay
-//   1,0 → 2,5 s   overlay-laget (#403E3B) fader rolig inn til 40 % dekning
-//   2,0 → 3,0 s   hold   ← splash uten logo er nå 3 sekunder
-//   3,0 → 4,0 s   logoen fader inn
-//   4,0 → 6,5 s   hold   ← splash med logo er nå 3,5 sekunder
-//   6,5 s         splash glir ut til venstre (0,3 s)
+// Tidslinje (totalt ca. 3,5 s):
+//   0,0 s         foto + overlay (#403E3B, 40 %) er til stede fra første frame
+//   0,3 → 1,3 s   logoen fader inn
+//   1,3 → 3,5 s   hold
+//   3,5 s         splash glir ut til venstre (0,3 s)
+//
+// (Vi starter bevisst med bilde + overlay — den gamle «foto alene»-fasen så ut
+//  som en glitch og tok lengre tid.)
 //
 // Hvorfor eget UIWindow (se SplashOverlayWindow nederst):
 // SwiftUI driver .offset-animasjoner frame for frame på hovedtråden. Når appen
@@ -21,7 +22,6 @@ import UIKit
 struct SplashCanvas: View {
     let onFinish: () -> Void
 
-    @State private var dimmed = false
     @State private var logoVisible = false
 
     /// Dekning på overlay-laget: #403E3B ved 40 %.
@@ -38,8 +38,9 @@ struct SplashCanvas: View {
                 .scaledToFill()
                 .ignoresSafeArea()
 
+            // Overlay-laget er til stede fra første frame (ingen inn-fade).
             dimColor
-                .opacity(dimmed ? dimOpacity : 0)
+                .opacity(dimOpacity)
                 .ignoresSafeArea()
 
             Image("VitolaLogo")
@@ -50,19 +51,10 @@ struct SplashCanvas: View {
                 .opacity(logoVisible ? 1 : 0)
         }
         .task {
-            // 1. Fotoet står alene i 1 sekund.
-            try? await Task.sleep(for: .seconds(1.0))
-
-            // 2. Overlay-laget fader rolig inn over 1,5 sekund.
-            withAnimation(.easeInOut(duration: 1.5)) { dimmed = true }
-            try? await Task.sleep(for: .seconds(1.5))
-
-            // 3. Hold i 1 sekund — splash uten logo er nå 3 sekunder totalt.
-            try? await Task.sleep(for: .seconds(1.0))
-
-            // 4. Logoen fader inn over 1 sekund, så 2,5 sekunders hold.
+            // Bilde + overlay vises umiddelbart; logoen fader inn nesten med en gang.
+            try? await Task.sleep(for: .seconds(0.3))
             withAnimation(.easeInOut(duration: 1.0)) { logoVisible = true }
-            try? await Task.sleep(for: .seconds(3.5))
+            try? await Task.sleep(for: .seconds(2.2))
 
             onFinish()
         }

@@ -805,17 +805,12 @@ private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         cigar.avgRating?.let { rating ->
-            Column(
-                Modifier.clip(RoundedCornerShape(6.dp))
+            Text(String.format("%.0f", rating * 10), // 0–10 → 0–100 som resten av appen
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(horizontal = 10.dp, vertical = 7.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(String.format("%.0f", rating * 10), style = MaterialTheme.typography.labelLarge, // 0–10 → 0–100 som resten av appen
-                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text("score", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+                    .padding(horizontal = 10.dp, vertical = 7.dp))
         }
         Spacer(Modifier.width(8.dp))
         ChevronIcon()
