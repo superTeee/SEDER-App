@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -85,22 +86,28 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                     Spacer(Modifier.height(14.dp))
                     Text(p.displayName ?: "SEDER-bruker", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(4.dp))
+                    val badgeBg = Color(0xFFE0D2BA)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         val level = com.tomerikheggedal.vitola.data.MemberLevel.current(p.memberStats())
-                        Text(level.title, style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clip(RoundedCornerShape(50))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
                                 .clickable { showMerker = true }
-                                .padding(horizontal = 10.dp, vertical = 4.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Icon(levelIcon(level), null, tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp))
+                            Text(level.title, style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        }
                         if (p.isFoundingMember) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.clip(RoundedCornerShape(50))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Icon(Icons.Outlined.WorkspacePremium, null,
@@ -110,15 +117,15 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                             }
                         }
                     }
+                    p.bio?.takeIf { it.isNotBlank() }?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                    }
                     val place = listOfNotNull(p.city, p.country).joinToString(", ")
                     if (place.isNotBlank()) {
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(4.dp))
                         Text(place, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    p.bio?.takeIf { it.isNotBlank() }?.let {
-                        Spacer(Modifier.height(10.dp))
-                        Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                     }
 
                     Spacer(Modifier.height(20.dp))

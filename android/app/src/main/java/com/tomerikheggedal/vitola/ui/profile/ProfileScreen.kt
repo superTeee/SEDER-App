@@ -34,6 +34,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -185,24 +186,30 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
                         )
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
+                        val badgeBg = Color(0xFFE0D2BA)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             selfProfile?.let { sp ->
                                 val level = com.tomerikheggedal.vitola.data.MemberLevel.current(sp.memberStats())
-                                Text(level.title, style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.clip(RoundedCornerShape(50))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
                                         .clickable { showMerker = true }
-                                        .padding(horizontal = 10.dp, vertical = 4.dp))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(levelIcon(level), null, tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(14.dp))
+                                    Text(level.title, style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                }
                             }
                             if (profile?.isFoundingMember == true) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                    modifier = Modifier.clip(RoundedCornerShape(50))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                    modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(Icons.Outlined.WorkspacePremium, null,
@@ -212,13 +219,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                                 }
                             }
                         }
-                        val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")
-                        if (place.isNotBlank()) {
-                            Spacer(Modifier.height(2.dp))
-                            Text(place, style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(4.dp))
                         val bio = profile?.bio
                         Text(
                             if (bio.isNullOrBlank()) "Legg til bio…" else bio,
@@ -228,6 +229,12 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                             modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showBioEditor = true }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         )
+                        val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")
+                        if (place.isNotBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(place, style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
 
                     // Stats
@@ -461,6 +468,15 @@ private fun FavoriteCell(icon: ImageVector, label: String, value: String?, modif
             color = if (value.isNullOrBlank()) MaterialTheme.colorScheme.onSurfaceVariant
                     else MaterialTheme.colorScheme.onSurface, maxLines = 1)
     }
+}
+
+// Nivå-ikon for merke-pill (speiler iOS MemberLevel.icon). Brukes også i UserProfileScreen.
+internal fun levelIcon(level: com.tomerikheggedal.vitola.data.MemberLevel): ImageVector = when (level) {
+    com.tomerikheggedal.vitola.data.MemberLevel.SIGARENTUSIAST -> Icons.Filled.LocalFireDepartment
+    com.tomerikheggedal.vitola.data.MemberLevel.KJENNER        -> Icons.Filled.Star
+    com.tomerikheggedal.vitola.data.MemberLevel.SAMLER         -> Icons.Filled.Layers
+    com.tomerikheggedal.vitola.data.MemberLevel.KURATOR        -> Icons.Outlined.WorkspacePremium
+    com.tomerikheggedal.vitola.data.MemberLevel.SIGARAFICIONADO -> Icons.Filled.EmojiEvents
 }
 
 // ── Sist røkt ──

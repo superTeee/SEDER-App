@@ -53,6 +53,9 @@ struct UserProfileView: View {
         colorScheme == .dark ? Color("Accent") : Color(hex: "#8F7B51")
     }
 
+    // Bakgrunn for merke-pills (mellom-brun beige)
+    private var badgeFill: Color { Color(hex: "#E0D2BA") }
+
     var body: some View {
         ScrollView {
             if isLoading {
@@ -240,29 +243,31 @@ struct UserProfileView: View {
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(hasRealName(p) ? Color("TextPrimary") : Color("TextSecondary"))
 
-                    // Merker (pill-form). Nivå-merke + evt. Tidlig tester.
+                    // Merker (pill-form) med ikon. Nivå-merke + evt. Tidlig tester.
                     HStack(spacing: 6) {
                         Button { showBadgeSheet = true } label: {
-                            Text(badge.title)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(Color("Accent"))
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .background(Capsule().fill(Color("Accent").opacity(0.12)))
+                            HStack(spacing: 5) {
+                                Image(systemName: badge.icon)
+                                Text(badge.title)
+                            }
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(Color("Accent"))
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Capsule().fill(badgeFill))
                         }
                         .buttonStyle(.plain)
 
                         if p.isFoundingMember == true {
                             HStack(spacing: 5) {
-                                Image(systemName: "seal")
+                                Image(systemName: "sparkles")
                                 Text("Tidlig tester")
                             }
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(Color("Accent"))
                             .padding(.horizontal, 10).padding(.vertical, 4)
-                            .background(Capsule().fill(Color("Accent").opacity(0.12)))
+                            .background(Capsule().fill(badgeFill))
                         }
                     }
-                    .padding(.top, 2)
 
                     // Bio
                     if let bio = p.bio, !bio.isEmpty {
@@ -270,7 +275,6 @@ struct UserProfileView: View {
                             .font(.system(size: 14))
                             .foregroundColor(Color("TextPrimary").opacity(0.85))
                             .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 3)
                             .onTapGesture { if isOwnProfile { showBioEditor = true } }
                     } else if isOwnProfile {
                         Button { showBioEditor = true } label: {
@@ -279,7 +283,6 @@ struct UserProfileView: View {
                                 .foregroundColor(Color("TextSecondary").opacity(0.55))
                         }
                         .buttonStyle(.plain)
-                        .padding(.top, 3)
                     }
 
                     // Medlem siden + by + land
@@ -304,7 +307,6 @@ struct UserProfileView: View {
                     }
                     .font(.caption)
                     .foregroundColor(Color("TextSecondary"))
-                    .padding(.top, 5)
                 }
 
                 Spacer(minLength: 0)
