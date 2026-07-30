@@ -25,7 +25,10 @@ struct ResultsView: View {
 
     // Fant hverken scan eller søk sigaren, legger brukeren den inn selv.
     @State private var showAddCigar = false
-    @State private var createdCigar: Cigar?
+    // Én felles item-drevet destinasjon for både treff, søketreff og ny sigar.
+    // (NavigationLink + simultaneousGesture inne i navigationDestination(isPresented:)
+    // pushet ikke — item-drevet navigasjon er robust og virker allerede lenger nede.)
+    @State private var selectedCigar: Cigar?
 
     var body: some View {
         List {
@@ -33,10 +36,13 @@ struct ResultsView: View {
             if !results.isEmpty {
                 Section {
                     ForEach(results) { result in
-                        NavigationLink(destination: CigarDetailViewDesign(cigar: result.cigar, onScanNext: onScanNext)) {
+                        Button {
+                            recordResolution(for: result.cigar)
+                            selectedCigar = result.cigar
+                        } label: {
                             ResultRow(result: result)
                         }
-                        .simultaneousGesture(TapGesture().onEnded { recordResolution(for: result.cigar) })
+                        .buttonStyle(.plain)
                     }
                 }
             } else {
@@ -75,10 +81,13 @@ struct ResultsView: View {
                 }
 
                 ForEach(searchResults) { cigar in
-                    NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext)) {
+                    Button {
+                        recordResolution(for: cigar)
+                        selectedCigar = cigar
+                    } label: {
                         CigarRow(cigar: cigar)
                     }
-                    .simultaneousGesture(TapGesture().onEnded { recordResolution(for: cigar) })
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -106,11 +115,11 @@ struct ResultsView: View {
         .sheet(isPresented: $showAddCigar) {
             AddCigarSheet(prefillBrand: searchQuery) { cigar in
                 recordResolution(for: cigar)
-                createdCigar = cigar
+                selectedCigar = cigar
             }
             .environmentObject(authService)
         }
-        .navigationDestination(item: $createdCigar) { cigar in
+        .navigationDestination(item: $selectedCigar) { cigar in
             CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext)
         }
     }
