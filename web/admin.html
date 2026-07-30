@@ -189,6 +189,13 @@ const MISSING_TO_FIELDS = {
   description: ["description"],
 };
 
+// Utkast-lagring: behold felt-verdier når man navigerer bort (f.eks. for å slå
+// opp info) og tilbake — lagres i localStorage per sigar-id, ikke per kort-indeks.
+const draftKey = (id) => "datahull_draft_" + id;
+function getDraft(id){ try { return JSON.parse(localStorage.getItem(draftKey(id)) || "{}"); } catch(e){ return {}; } }
+function saveDraft(id, k, v){ const d = getDraft(id); if (v) d[k] = v; else delete d[k]; localStorage.setItem(draftKey(id), JSON.stringify(d)); }
+function clearDraft(id){ localStorage.removeItem(draftKey(id)); }
+
 async function loadDatahull() {
   const { data: gaps } = await db.rpc("admin_data_gaps");
   const box = $("gaps-data");
@@ -200,21 +207,24 @@ async function loadDatahull() {
     const allowed = new Set();
     (g.missing || []).forEach(m => (MISSING_TO_FIELDS[m] || []).forEach(k => allowed.add(k)));
     const shownFields = allowed.size ? FIELDS.filter(([k]) => allowed.has(k)) : FIELDS;
+    const d = getDraft(g.id);
+    const av = (k) => esc(d[k] || "");
     const fields = shownFields.map(([k,label,type]) => `
       <div><label class="f">${label}</label>${
         type === "textarea"
-          ? `<textarea id="f-${i}-${k}" rows="2"></textarea>`
-          : `<input id="f-${i}-${k}" type="${type}" ${type==="number"?'step="any"':''} />`
+          ? `<textarea id="f-${i}-${k}" rows="2" oninput="saveDraft('${g.id}','${k}',this.value)">${av(k)}</textarea>`
+          : `<input id="f-${i}-${k}" type="${type}" ${type==="number"?'step="any"':''} value="${av(k)}" oninput="saveDraft('${g.id}','${k}',this.value)" />`
       }</div>`).join("");
+    const hasDraft = Object.keys(d).length > 0;
     return `<div class="card">
       <div class="row"><div><strong>${esc(navn)}</strong>
         <span class="muted"> · ${esc(g.brand)}</span></div>
         <div class="count">${g.gap_count} mangler</div></div>
       <div style="margin-top:6px">${chips}</div>
-      <details><summary>Fyll inn</summary>
+      <details ${hasDraft ? "open" : ""}><summary>Fyll inn</summary>
         <div class="grid2">${fields}</div>
         <div style="margin-top:10px"><label class="f">Kilde-URL (produsentens side) *</label>
-          <input id="f-${i}-src" type="url" placeholder="https://..." /></div>
+          <input id="f-${i}-src" type="url" placeholder="https://..." value="${av("src")}" oninput="saveDraft('${g.id}','src',this.value)" /></div>
         <div id="msg-${i}" class="note"></div>
         <button class="primary" onclick="saveFill(${i}, '${g.id}')">Lagre</button>
       </details>
@@ -239,6 +249,7 @@ async function saveFill(i, cigarId) {
   $(`msg-${i}`).textContent = "Lagrer…";
   const { error } = await db.rpc("admin_fill_cigar", p);
   if (error) { $(`msg-${i}`).textContent = "Feil: " + error.message; return; }
+  clearDraft(cigarId);   // lagret OK → fjern utkastet
   loadDatahull();
 }
 
