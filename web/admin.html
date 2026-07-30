@@ -85,6 +85,7 @@
     <div class="tabs">
       <button data-tab="dekning" class="active">Dekning</button>
       <button data-tab="datahull">Datahull</button>
+      <button data-tab="publisert">Publisert</button>
     </div>
 
     <section id="tab-dekning">
@@ -100,6 +101,12 @@
     <section id="tab-datahull" class="hidden">
       <div class="note">Offentlige sigarer som mangler felt appen viser. Fyll bare tomme felt — oppgi alltid kilde-URL (produsentens side).</div>
       <div id="gaps-data"></div>
+    </section>
+
+    <section id="tab-publisert" class="hidden">
+      <div class="note">Sigarer som er publisert i appen. Rediger for å rette feil — her <strong>overskrives</strong> feltene (i motsetning til Datahull, som bare fyller tomme).</div>
+      <input id="pub-search" placeholder="Søk merke / navn…" oninput="renderPublisert(this.value)" style="margin-bottom:12px" />
+      <div id="pub-list"><div class="card muted">Laster…</div></div>
     </section>
   </main>
 </div>
@@ -140,10 +147,11 @@ $("logout").onclick = $("logout2").onclick = async () => { await db.auth.signOut
 db.auth.onAuthStateChange((_e, session) => { if (session) boot(); });
 
 // ---- Tabs ----
+const TABS = ["dekning", "datahull", "publisert"];
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("active", x === b));
-  $("tab-dekning").classList.toggle("hidden", b.dataset.tab !== "dekning");
-  $("tab-datahull").classList.toggle("hidden", b.dataset.tab !== "datahull");
+  TABS.forEach(t => $("tab-" + t).classList.toggle("hidden", b.dataset.tab !== t));
+  if (b.dataset.tab === "publisert" && !pubLoaded) { pubLoaded = true; loadPublisert(); }
 });
 
 // ---- Dekning ----
@@ -208,21 +216,20 @@ function clearDraft(id){ localStorage.removeItem(draftKey(id)); }
 // ---- Smaksnote-multivalg ----
 // Noter som allerede har ikon i appen (FlavorIcon-mapping). Alt annet får «mangler ikon»-merke.
 const ICON_NOTES = new Set(["almond","almonds","anise","black pepper","butter","caramel","cardamom","cedar","chocolate","cinnamon","citrus","cocoa","coffee","cream","dark chocolate","dark cocoa","dark earth","dark fruit","dark roasted coffee","dark spice","dark tobacco","dried fruit","earth","espresso","floral","fruit","gentle earth","gentle floral","gentle pepper","gentle spice","grass","hay","honey","kremete","leather","light earth","light floral","light pepper","light spice","light wood","maple","mild coffee","mild cream","mild earth","mild krydder","mild pepper","mild spice","mineral","minerals","mint","minty","molasses","mynte","natural sweetness","nougat","nut","nuts","nøtter","oak","paprika","pepper","peppermint","roasted almonds","roasted aromas","roasted cashews","roasted coffee","roasted espresso","roasted nuts","sedertre","smoky wood","soft spice","spearmint","spice","sweet cream","sweet earth","sweet spice","sweet spices","toast","toasted bread","toasted cream","toasted nuts","toasted wood","tobacco","vanilla","whiskey","white pepper","wood"]);
-let ALL_NOTES = [];  // [{note, hasIcon}] fra admin_flavor_notes()
-async function loadFlavorVocab(){
-  const { data } = await db.rpc("admin_flavor_notes");
-  ALL_NOTES = (data || []).map(r => ({ note: r.note, hasIcon: ICON_NOTES.has(r.note) }));
-}
 function saveDraftArray(id, k, arr){ const d = getDraft(id); if (arr && arr.length) d[k] = arr; else delete d[k]; localStorage.setItem(draftKey(id), JSON.stringify(d)); }
+// Kanoniske smaksnote-familier (matcher appens ikoner). Vises på NORSK, lagres på
+// engelsk (kanonisk) — akkurat som appen: den samler noter til ~22 ikon-familier.
+const FLAVOR_FAMILIES = [["cedar","Sedertre"],["cocoa","Kakao"],["coffee","Kaffe"],["leather","Lær"],["earth","Jord"],["pepper","Pepper"],["spice","Krydder"],["cream","Kremete"],["nuts","Nøtter"],["wood","Tre"],["hay","Høy"],["honey","Honning"],["fruit","Frukt"],["citrus","Sitrus"],["floral","Blomst"],["vanilla","Vanilje"],["cinnamon","Kanel"],["toast","Toast"],["tobacco","Tobakk"],["mint","Mynte"],["minerals","Mineral"],["whiskey","Whisky"]];
+const FAMILY_NO = Object.fromEntries(FLAVOR_FAMILIES.map(([en,no]) => [en, no]));
 function flavorChipsFor(i, id, filter){
   const sel = new Set(getDraft(id).flavor_notes || []);
-  const notes = ALL_NOTES.slice();
-  sel.forEach(s => { if (!notes.find(n => n.note === s)) notes.push({ note: s, hasIcon: ICON_NOTES.has(s) }); });
+  const items = FLAVOR_FAMILIES.map(([en,no]) => ({ en, no, custom:false }));
+  sel.forEach(s => { if (!FAMILY_NO[s]) items.push({ en:s, no:s, custom:true }); });
   const f = (filter || "").toLowerCase().trim();
-  const chips = notes.filter(n => !f || n.note.includes(f)).map(n => {
-    const on = sel.has(n.note);
-    const q = n.note.replace(/'/g, "\\'");
-    return `<button type="button" class="fchip${on ? " on" : ""}${n.hasIcon ? "" : " miss"}" onclick="toggleFlavor(${i},'${id}','${q}')">${esc(n.note)}${n.hasIcon ? "" : " ⚠"}</button>`;
+  const chips = items.filter(it => !f || it.no.toLowerCase().includes(f) || it.en.includes(f)).map(it => {
+    const on = sel.has(it.en);
+    const q = it.en.replace(/'/g, "\\'");
+    return `<button type="button" class="fchip${on ? " on" : ""}${it.custom ? " miss" : ""}" onclick="toggleFlavor(${i},'${id}','${q}')">${esc(it.no)}${it.custom ? " ⚠" : ""}</button>`;
   }).join("");
   return chips || '<span class="muted">Ingen treff</span>';
 }
@@ -237,7 +244,6 @@ function toggleFlavor(i, id, note){
 function addFlavorNote(i, id){
   const inp = document.getElementById("fl-new-" + i); const v = (inp.value || "").trim().toLowerCase();
   if (!v) return;
-  if (!ALL_NOTES.find(n => n.note === v)) ALL_NOTES.push({ note: v, hasIcon: ICON_NOTES.has(v) });
   const arr = new Set(getDraft(id).flavor_notes || []); arr.add(v);
   saveDraftArray(id, "flavor_notes", [...arr]);
   inp.value = "";
@@ -245,7 +251,6 @@ function addFlavorNote(i, id){
 }
 
 async function loadDatahull() {
-  if (!ALL_NOTES.length) await loadFlavorVocab();
   const { data: gaps } = await db.rpc("admin_data_gaps");
   const box = $("gaps-data");
   if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen hull. 🎉</div>'; return; }
@@ -287,11 +292,23 @@ async function loadDatahull() {
         <div style="margin-top:10px"><label class="f">Kilde-URL (produsentens side) *</label>
           <input id="f-${i}-src" type="url" placeholder="https://..." value="${av("src")}" oninput="saveDraft('${g.id}','src',this.value)" /></div>
         <div id="msg-${i}" class="note"></div>
-        <button class="primary" onclick="saveFill(${i}, '${g.id}')">Lagre</button>
+        <div style="display:flex;gap:8px">
+          <button onclick="saveLocal(${i}, '${g.id}')">Lagre</button>
+          <button class="primary" onclick="saveFill(${i}, '${g.id}')">Publiser i app</button>
+        </div>
       </details>
     </div>`;
   }).join("");
   gaps.forEach((g, i) => renderFlavorChips(i, g.id, ""));
+}
+
+// «Lagre» = behold lokalt utkast (feltene autolagres allerede løpende; dette
+// bekrefter og fanger evt. verdier, slik at de beholdes til du publiserer).
+function saveLocal(i, cigarId) {
+  ["ring_gauge","length_inches","country_origin","wrapper_leaf","strength","description","src"].forEach(k => {
+    const el = $(`f-${i}-${k}`); if (el) saveDraft(cigarId, k, el.value.trim());
+  });
+  $(`msg-${i}`).textContent = "Lagret lokalt ✓ (beholdes til du publiserer)";
 }
 
 async function saveFill(i, cigarId) {
@@ -314,6 +331,91 @@ async function saveFill(i, cigarId) {
   if (error) { $(`msg-${i}`).textContent = "Feil: " + error.message; return; }
   clearDraft(cigarId);   // lagret OK → fjern utkastet
   loadDatahull();
+}
+
+// ---- Publisert (rediger allerede publiserte sigarer) ----
+let pubLoaded = false;
+let PUB_LIST = [];
+let PUB_SEED = {};   // id -> eksisterende flavor_notes (kanonisk)
+const PUB = {};      // id -> { flavor_notes: [...] } arbeidskopi
+function pubNotes(id){ if (!PUB[id]) PUB[id] = { flavor_notes: (PUB_SEED[id] || []).slice() }; return PUB[id].flavor_notes; }
+
+async function loadPublisert(){
+  const { data, error } = await db.rpc("admin_published_cigars");
+  if (error){ $("pub-list").innerHTML = '<div class="card muted">Feil: ' + esc(error.message) + '</div>'; return; }
+  PUB_LIST = data || [];
+  PUB_SEED = {};
+  PUB_LIST.forEach(c => { PUB_SEED[c.id] = c.flavor_notes || []; });
+  renderPublisert($("pub-search").value);
+}
+
+function renderPublisert(filter){
+  const f = (filter || "").toLowerCase().trim();
+  const list = PUB_LIST.filter(c => !f || (c.cigar_navn || "").toLowerCase().includes(f) || (c.brand || "").toLowerCase().includes(f));
+  const box = $("pub-list");
+  if (!list.length){ box.innerHTML = '<div class="card muted">Ingen treff.</div>'; return; }
+  const capped = list.slice(0, 300);
+  box.innerHTML = `<div class="note">${list.length} publiserte${list.length > capped.length ? " (viser 300 — søk for å snevre inn)" : ""}</div>` + capped.map(c => {
+    const v = (k) => esc(c[k] ?? "");
+    return `<div class="card">
+      <div class="row"><div><strong>${esc(c.cigar_navn || c.brand)}</strong>
+        <span class="muted"> · ${esc(c.brand)}</span></div></div>
+      <details ontoggle="if(this.open) pubRenderChips('${c.id}','')"><summary>Rediger</summary>
+        <div class="grid2">
+          <div><label class="f">Ring gauge</label><input id="pf-${c.id}-ring_gauge" type="number" step="any" value="${v("ring_gauge")}" /></div>
+          <div><label class="f">Lengde (tommer)</label><input id="pf-${c.id}-length_inches" type="number" step="any" value="${v("length_inches")}" /></div>
+          <div><label class="f">Opprinnelsesland</label><input id="pf-${c.id}-country_origin" value="${v("country_origin")}" /></div>
+          <div><label class="f">Wrapper</label><input id="pf-${c.id}-wrapper_leaf" value="${v("wrapper_leaf")}" /></div>
+          <div><label class="f">Styrke (1–5)</label><input id="pf-${c.id}-strength" type="number" step="any" value="${v("strength")}" /></div>
+          <div style="grid-column:1/-1"><label class="f">Smaksnoter</label>
+            <input class="fl-search" placeholder="Søk smaksnoter…" oninput="pubRenderChips('${c.id}',this.value)" />
+            <div class="fl-chips" id="pub-fl-${c.id}"></div>
+            <div class="fl-add"><input id="pub-new-${c.id}" placeholder="Ny note (tekst)" />
+              <button type="button" onclick="pubAddFlavor('${c.id}')">+ Legg til</button></div></div>
+          <div style="grid-column:1/-1"><label class="f">Beskrivelse</label><textarea id="pf-${c.id}-description" rows="2">${v("description")}</textarea></div>
+        </div>
+        <div style="margin-top:10px"><label class="f">Kilde-URL</label><input id="pf-${c.id}-src" type="url" value="${v("source_url")}" /></div>
+        <div id="pmsg-${c.id}" class="note"></div>
+        <button class="primary" onclick="savePublishedEdit('${c.id}')">Lagre endringer</button>
+      </details>
+    </div>`;
+  }).join("");
+}
+
+function pubFlavorChips(id, filter){
+  const sel = new Set(pubNotes(id));
+  const items = FLAVOR_FAMILIES.map(([en,no]) => ({ en, no, custom:false }));
+  sel.forEach(s => { if (!FAMILY_NO[s]) items.push({ en:s, no:s, custom:true }); });
+  const f = (filter || "").toLowerCase().trim();
+  return items.filter(it => !f || it.no.toLowerCase().includes(f) || it.en.includes(f)).map(it => {
+    const on = sel.has(it.en); const q = it.en.replace(/'/g, "\\'");
+    return `<button type="button" class="fchip${on ? " on" : ""}${it.custom ? " miss" : ""}" onclick="pubToggleFlavor('${id}','${q}')">${esc(it.no)}${it.custom ? " ⚠" : ""}</button>`;
+  }).join("") || '<span class="muted">Ingen treff</span>';
+}
+function pubRenderChips(id, filter){ const el = document.getElementById("pub-fl-" + id); if (el) el.innerHTML = pubFlavorChips(id, filter); }
+function pubToggleFlavor(id, note){ const a = pubNotes(id); const idx = a.indexOf(note); if (idx >= 0) a.splice(idx,1); else a.push(note); pubRenderChips(id, ""); }
+function pubAddFlavor(id){ const inp = document.getElementById("pub-new-" + id); const val = (inp.value || "").trim().toLowerCase(); if (!val) return; const a = pubNotes(id); if (!a.includes(val)) a.push(val); inp.value = ""; pubRenderChips(id, ""); }
+
+async function savePublishedEdit(id){
+  const g = (k) => document.getElementById(`pf-${id}-${k}`);
+  const num = (v) => v === "" ? null : Number(v);
+  const val = (k) => { const el = g(k); return el ? el.value.trim() : ""; };
+  const notes = pubNotes(id);
+  const p = {
+    p_cigar_id: id,
+    p_ring_gauge: num(val("ring_gauge")),
+    p_length_inches: num(val("length_inches")),
+    p_country_origin: val("country_origin") || null,
+    p_wrapper_leaf: val("wrapper_leaf") || null,
+    p_strength: num(val("strength")),
+    p_flavor_notes: notes.length ? notes : null,
+    p_description: val("description") || null,
+    p_source_url: val("src") || null,
+  };
+  const msg = $(`pmsg-${id}`); msg.textContent = "Lagrer…";
+  const { error } = await db.rpc("admin_edit_cigar", p);
+  msg.textContent = error ? ("Feil: " + error.message) : "Lagret ✓";
+  if (!error){ const row = PUB_LIST.find(c => c.id === id); if (row){ row.flavor_notes = notes.slice(); PUB_SEED[id] = notes.slice(); } }
 }
 
 boot();
