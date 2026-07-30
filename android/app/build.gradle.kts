@@ -7,13 +7,13 @@ plugins {
 
 android {
     namespace = "com.tomerikheggedal.vitola"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.tomerikheggedal.vitola"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 5
+        targetSdk = 35   // Google Play krever API 35 for nye apper (siden aug. 2025)
+        versionCode = 6
         versionName = "1.0"
     }
 

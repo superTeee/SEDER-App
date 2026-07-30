@@ -391,7 +391,7 @@ fun ExploreScreen(
                     }
 
                     // Alfabetisk merkeliste, ett kort per bokstav (som iOS).
-                    val byLetter = vm.brands.groupBy { it.brand.first().uppercaseChar() }.toSortedMap()
+                    val byLetter = vm.brands.groupBy { it.brand.firstOrNull()?.uppercaseChar() ?: '#' }.toSortedMap()
                     item { SectionLabel("Alle merker") }
                     byLetter.forEach { (letter, brands) ->
                         item(key = "l_$letter") { SectionLabel(letter.toString(), topPadding = 10) }

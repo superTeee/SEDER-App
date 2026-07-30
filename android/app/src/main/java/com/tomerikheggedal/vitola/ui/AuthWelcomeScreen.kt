@@ -86,19 +86,28 @@ fun AuthWelcomeScreen(onSkip: () -> Unit) {
 
             Spacer(Modifier.height(36.dp))
 
+            // Google + Apple: like knapper (fylt, samme vekt) med merke-ikoner, som iOS.
             Button(
                 onClick = { oauth { Supa.client.auth.signInWith(Google) } },
                 enabled = !busy, shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
-            ) { Text("Fortsett med Google", fontWeight = FontWeight.SemiBold) }
+            ) {
+                Image(painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Fortsett med Google", fontWeight = FontWeight.SemiBold)
+            }
 
             Spacer(Modifier.height(10.dp))
 
-            OutlinedButton(
+            Button(
                 onClick = { oauth { Supa.client.auth.signInWith(Apple) } },
                 enabled = !busy, shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
-            ) { Text("Fortsett med Apple", fontWeight = FontWeight.SemiBold) }
+            ) {
+                Icon(painterResource(R.drawable.ic_apple), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Fortsett med Apple", fontWeight = FontWeight.SemiBold)
+            }
 
             Spacer(Modifier.height(10.dp))
 

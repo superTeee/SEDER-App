@@ -197,7 +197,7 @@ fun PaywallScreen(onBack: () -> Unit) {
             val renewPrice = (if (yearlySelected) annual else monthly)?.product?.price?.formatted ?: ""
             val period = if (yearlySelected) "år" else "måned"
             Text(
-                "Abonnementet fornyes automatisk til $renewPrice per $period og belastes Google-kontoen din. Si opp når som helst i Google Play minst 24 timer før perioden er ute.",
+                "Abonnementet fornyes automatisk til $renewPrice per $period og belastes Google-kontoen din. Du kan si opp når som helst i Google Play; fornyelsen stanser ved slutten av inneværende periode.",
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
