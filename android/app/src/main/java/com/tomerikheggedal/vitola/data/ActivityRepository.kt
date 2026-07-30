@@ -26,6 +26,8 @@ data class ActivityItem(
     @SerialName("cigar_rating") val cigarRating: Int? = null,
     @SerialName("shared_at") val sharedAt: String? = null,
     @SerialName("public_slug") val publicSlug: String? = null,
+    @SerialName("like_count") val likeCount: Int = 0,
+    @SerialName("liked_by_me") val likedByMe: Boolean = false,
 ) {
     val cigarMeta: String get() = listOfNotNull(cigarSeries, cigarVitola).joinToString(" · ")
     val verbText: String get() = if (verb == "wishlist") "vil prøve" else "delte en sigar"
@@ -48,6 +50,12 @@ object ActivityRepository {
             put("p_limit", limit)
             if (before != null) put("p_before", before)
         }).decodeList()
+
+    /** Toggler like på en aktivitets-oppføring. Returnerer ny liked-status. */
+    suspend fun toggleLike(entryId: String): Boolean =
+        Supa.client.postgrest.rpc("toggle_entry_like", buildJsonObject {
+            put("p_entry_id", entryId)
+        }).decodeAs()
 }
 
 object ShareRepository {

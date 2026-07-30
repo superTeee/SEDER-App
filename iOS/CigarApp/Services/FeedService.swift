@@ -185,6 +185,8 @@ struct ActivityItem: Decodable, Identifiable, Hashable {
     let cigarRating: Int?
     let sharedAt: Date?
     let publicSlug: String?
+    var likeCount: Int
+    var likedByMe: Bool
 
     var id: UUID { entryId }
 
@@ -208,6 +210,8 @@ struct ActivityItem: Decodable, Identifiable, Hashable {
         case cigarRating = "cigar_rating"
         case sharedAt = "shared_at"
         case publicSlug = "public_slug"
+        case likeCount = "like_count"
+        case likedByMe = "liked_by_me"
     }
 }
 
@@ -244,6 +248,14 @@ class ActivityService: ObservableObject {
             .rpc("get_activity", params: Params(p_limit: limit, p_before: before))
             .execute()
         return try Self.decoder.decode([ActivityItem].self, from: response.data)
+    }
+
+    /// Toggler en like på en aktivitets-oppføring. Returnerer ny liked-status.
+    func toggleLike(entryId: UUID) async throws -> Bool {
+        let response = try await supabase
+            .rpc("toggle_entry_like", params: ["p_entry_id": entryId.uuidString])
+            .execute()
+        return try Self.decoder.decode(Bool.self, from: response.data)
     }
 }
 

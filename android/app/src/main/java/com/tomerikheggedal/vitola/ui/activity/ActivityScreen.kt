@@ -11,10 +11,12 @@ import androidx.compose.material.icons.Icons
 import android.content.Intent
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -139,6 +141,26 @@ fun ActivityScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit, onUser
                             onAddFriend = { addFriend(item) },
                             onShare = { shareItem(item) },
                             onDelete = { pendingDelete = item },
+                            onLike = {
+                                val wasLiked = item.likedByMe
+                                items = items.map {
+                                    if (it.entryId == item.entryId)
+                                        it.copy(likedByMe = !wasLiked,
+                                                likeCount = it.likeCount + if (wasLiked) -1 else 1)
+                                    else it
+                                }
+                                scope.launch {
+                                    runCatching { ActivityRepository.toggleLike(item.entryId) }
+                                        .onFailure {
+                                            items = items.map {
+                                                if (it.entryId == item.entryId)
+                                                    it.copy(likedByMe = wasLiked,
+                                                            likeCount = it.likeCount + if (wasLiked) 1 else -1)
+                                                else it
+                                            }
+                                        }
+                                }
+                            },
                             onWishlist = {
                                 if (!wishlisted.contains(item.cigarId)) {
                                     wishlisted = wishlisted + item.cigarId
@@ -218,6 +240,7 @@ private fun ActivityCard(
     onAddFriend: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
+    onLike: () -> Unit,
     onWishlist: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -240,10 +263,10 @@ private fun ActivityCard(
                     Modifier.size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(initials(item.authorName), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                    Text(initials(item.authorName), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
                 Spacer(Modifier.width(8.dp))
-                Text(item.authorName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                Text(item.authorName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface)
             }
             Spacer(Modifier.width(6.dp))
@@ -277,27 +300,38 @@ private fun ActivityCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(item.cigarBrand, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                Text(item.cigarBrand, fontSize = 17.sp, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface)
                 if (item.cigarMeta.isNotBlank()) {
-                    Text(item.cigarMeta, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                    Text(item.cigarMeta, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.width(8.dp))
+            // Like — hjerte + antall like tett inntil ikonet
             Row(
-                Modifier.clickable(enabled = !isWishlisted, onClick = onWishlist),
+                Modifier.clickable(onClick = onLike),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (isWishlisted) "Lagret" else "Lagre i liste", fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.width(5.dp))
                 Icon(
-                    if (isWishlisted) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                    contentDescription = "Lagre i liste", modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
+                    if (item.likedByMe) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Lik", modifier = Modifier.size(26.dp),
+                    tint = if (item.likedByMe) Color(0xFFFF3B30) else MaterialTheme.colorScheme.onSurface
                 )
+                if (item.likeCount > 0) {
+                    Spacer(Modifier.width(5.dp))
+                    Text("${item.likeCount}", fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
+            Spacer(Modifier.width(14.dp))
+            // Bokmerke — ikon uten label, 2px større
+            Icon(
+                if (isWishlisted) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                contentDescription = "Lagre i liste",
+                modifier = Modifier.size(26.dp).clickable(enabled = !isWishlisted, onClick = onWishlist),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
 
         // 3. bilde — kant-til-kant
@@ -315,14 +349,14 @@ private fun ActivityCard(
                 Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Min vurdering ($starCount/5)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                Text("Min vurdering ($starCount/5)", fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.weight(1f))
                 Row {
                     repeat(5) { i ->
                         Icon(
                             if (i < starCount) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                            contentDescription = null, modifier = Modifier.size(18.dp),
+                            contentDescription = null, modifier = Modifier.size(19.dp),
                             tint = if (i < starCount) MaterialTheme.colorScheme.primary
                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
                         )
@@ -334,7 +368,7 @@ private fun ActivityCard(
         // 5. notat
         if (!item.personalNotes.isNullOrBlank()) {
             Text(
-                item.personalNotes!!, fontSize = 13.sp, lineHeight = 17.sp,
+                item.personalNotes!!, fontSize = 14.sp, lineHeight = 18.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 2.dp, bottom = 16.dp)
             )

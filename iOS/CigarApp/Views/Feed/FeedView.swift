@@ -1239,6 +1239,7 @@ struct ActivityView: View {
                         item: item,
                         isWishlisted: wishlisted.contains(item.cigarId),
                         onWishlist: { addToWishlist(item) },
+                        onLike: { toggleLike(item) },
                         onAuthor: { selectedAuthor = AuthorRef(id: item.userId) },
                         onShare: { sharePost(item) },
                         onAddFriend: item.userId == authService.userId ? nil : { addFriend(item) },
@@ -1297,6 +1298,31 @@ struct ActivityView: View {
         Task {
             do { try await wishlistService.addToWishlist(userId: userId, cigarId: item.cigarId) }
             catch { await MainActor.run { wishlisted.remove(item.cigarId) } }
+        }
+    }
+
+    /// Liker / fjerner like — optimistisk oppdatering, rulles tilbake ved feil.
+    private func toggleLike(_ item: ActivityItem) {
+        guard let idx = items.firstIndex(where: { $0.entryId == item.entryId }) else { return }
+        let wasLiked = items[idx].likedByMe
+        items[idx].likedByMe = !wasLiked
+        items[idx].likeCount += wasLiked ? -1 : 1
+        Task {
+            do {
+                let liked = try await activityService.toggleLike(entryId: item.entryId)
+                await MainActor.run {
+                    if let i = items.firstIndex(where: { $0.entryId == item.entryId }) {
+                        items[i].likedByMe = liked
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    if let i = items.firstIndex(where: { $0.entryId == item.entryId }) {
+                        items[i].likedByMe = wasLiked
+                        items[i].likeCount += wasLiked ? 1 : -1
+                    }
+                }
+            }
         }
     }
 
@@ -1490,6 +1516,7 @@ struct ActivityRow: View {
     let item: ActivityItem
     var isWishlisted: Bool
     var onWishlist: () -> Void
+    var onLike: () -> Void = {}
     var onAuthor: () -> Void = {}
     var onShare: () -> Void = {}
     var onAddFriend: (() -> Void)? = nil   // nil = eget innlegg (skjul «Legg til som venn»)
@@ -1513,10 +1540,10 @@ struct ActivityRow: View {
                     HStack(spacing: 8) {
                         ZStack {
                             Circle().fill(Color("Accent"))
-                            Text(initials).font(.system(size: 12, weight: .medium)).foregroundColor(.white)
+                            Text(initials).font(.system(size: 13, weight: .medium)).foregroundColor(.white)
                         }
                         .frame(width: 28, height: 28)
-                        Text(item.authorName).font(.system(size: 13, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                        Text(item.authorName).font(.system(size: 14, weight: .semibold)).foregroundColor(Color("TextPrimary"))
                     }
                 }
                 .buttonStyle(.borderless)
@@ -1553,21 +1580,33 @@ struct ActivityRow: View {
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.cigarBrand)
-                        .font(.system(size: 16, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                        .font(.system(size: 17, weight: .semibold)).foregroundColor(Color("TextPrimary"))
                     if !item.cigarMetaLine.isEmpty {
                         Text(item.cigarMetaLine)
-                            .font(.system(size: 12, weight: .medium)).foregroundColor(Color("TextSecondary"))
+                            .font(.system(size: 13, weight: .medium)).foregroundColor(Color("TextSecondary"))
                     }
                 }
                 Spacer(minLength: 8)
-                Button(action: onWishlist) {
+                // Like — hjerte + antall like tett inntil ikonet
+                Button(action: onLike) {
                     HStack(spacing: 5) {
-                        Text(isWishlisted ? "Lagret" : "Lagre i liste").font(.system(size: 13, weight: .medium))
-                        Image(systemName: isWishlisted ? "bookmark.fill" : "bookmark").font(.system(size: 18))
+                        Image(systemName: item.likedByMe ? "heart.fill" : "heart").font(.system(size: 20))
+                            .foregroundColor(item.likedByMe ? .red : Color("TextPrimary"))
+                        if item.likeCount > 0 {
+                            Text("\(item.likeCount)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color("TextSecondary"))
+                        }
                     }
-                    .foregroundColor(Color("TextPrimary"))
                 }
                 .buttonStyle(.borderless)
+                // Bokmerke — ikon uten label, 2px større
+                Button(action: onWishlist) {
+                    Image(systemName: isWishlisted ? "bookmark.fill" : "bookmark").font(.system(size: 20))
+                        .foregroundColor(Color("TextPrimary"))
+                }
+                .buttonStyle(.borderless)
+                .padding(.leading, 14)
             }
             .padding(.horizontal, 14).padding(.vertical, 12)
 
@@ -1588,7 +1627,7 @@ struct ActivityRow: View {
             if item.verb != "wishlist", let r = item.cigarRating, r > 0 {
                 HStack {
                     Text("Min vurdering (\(stars)/5)")
-                        .font(.system(size: 14, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                        .font(.system(size: 15, weight: .semibold)).foregroundColor(Color("TextPrimary"))
                     Spacer(minLength: 0)
                     StarRow(filled: stars)
                 }
@@ -1599,7 +1638,7 @@ struct ActivityRow: View {
             if let note = item.personalNotes, !note.isEmpty {
                 HStack {
                     Text(note)
-                        .font(.system(size: 13)).lineSpacing(2).foregroundColor(Color("TextPrimary"))
+                        .font(.system(size: 14)).lineSpacing(2).foregroundColor(Color("TextPrimary"))
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 14).padding(.top, 2).padding(.bottom, 16)
@@ -1622,7 +1661,7 @@ private struct StarRow: View {
         HStack(spacing: 3) {
             ForEach(0..<5, id: \.self) { i in
                 Image(systemName: i < filled ? "star.fill" : "star")
-                    .font(.system(size: 15))
+                    .font(.system(size: 16))
                     .foregroundColor(i < filled ? Color("Accent") : Color("TextSecondary").opacity(0.35))
             }
         }
