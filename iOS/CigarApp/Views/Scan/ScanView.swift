@@ -419,19 +419,24 @@ private struct ScanTip: View {
 
 // MARK: - Scanning Overlay
 struct ScanningOverlay: View {
+    @Environment(\.colorScheme) private var colorScheme
+    // Light: hvitt kort med tekstfarge på spinner/tekst (latte-bg ga uleselig hvit tekst).
+    // Dark: mørkt kort. TextPrimary tilpasser seg begge moduser automatisk.
+    private var cardBackground: Color { colorScheme == .light ? .white : Color("Card") }
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.5).ignoresSafeArea()
             VStack(spacing: 16) {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .progressViewStyle(CircularProgressViewStyle(tint: Color("TextPrimary")))
                     .scaleEffect(1.5)
                 Text("Analyserer bandet...")
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("TextPrimary"))
                     .font(.headline)
             }
             .padding(32)
-            .background(Color("Surface").opacity(0.9))
+            .background(cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
