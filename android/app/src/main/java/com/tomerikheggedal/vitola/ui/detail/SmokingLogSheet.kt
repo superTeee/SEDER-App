@@ -46,7 +46,13 @@ fun SmokingLogSheet(
     var smokeAgain by remember { mutableStateOf<Boolean?>(null) }
     var notes by remember { mutableStateOf("") }
     var store by remember { mutableStateOf("") }
+    var storeSuggestions by remember { mutableStateOf(com.tomerikheggedal.vitola.ui.KnownStores.norway) }
     var showSub by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val mine = runCatching { com.tomerikheggedal.vitola.data.HumidorRepository.storeSuggestions() }.getOrDefault(emptyList())
+        storeSuggestions = com.tomerikheggedal.vitola.ui.KnownStores.merged(mine)
+    }
     var drawRating by remember { mutableStateOf(0) }   // 0 = ikke satt, 1–5
     var burnRating by remember { mutableStateOf(0) }
     var flavorRating by remember { mutableStateOf(0) }
@@ -148,6 +154,7 @@ fun SmokingLogSheet(
                 label = { Text("Kjøpt hos (valgfritt)") },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
+            com.tomerikheggedal.vitola.ui.StoreChips(storeSuggestions, store) { store = it }
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
 

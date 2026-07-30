@@ -10,11 +10,16 @@ object AppPrefs {
     private const val KEY_AGE = "hasVerifiedAge"
     private const val KEY_PRIVACY = "hasAcceptedPrivacy"
     private const val KEY_PIN = "pinHash"
+    private const val KEY_FOUNDING_WELCOME = "hasSeenFoundingWelcome"
 
     private fun p(ctx: Context) = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     fun hasVerifiedAge(ctx: Context) = p(ctx).getBoolean(KEY_AGE, false)
     fun setAgeVerified(ctx: Context) = p(ctx).edit().putBoolean(KEY_AGE, true).apply()
+
+    // Founding-medlem-feiringen vises kun én gang (som iOS' hasSeenFoundingWelcome).
+    fun hasSeenFoundingWelcome(ctx: Context) = p(ctx).getBoolean(KEY_FOUNDING_WELCOME, false)
+    fun setFoundingWelcomeSeen(ctx: Context) = p(ctx).edit().putBoolean(KEY_FOUNDING_WELCOME, true).apply()
 
     fun hasAcceptedPrivacy(ctx: Context) = p(ctx).getBoolean(KEY_PRIVACY, false)
     fun setPrivacyAccepted(ctx: Context) = p(ctx).edit().putBoolean(KEY_PRIVACY, true).apply()

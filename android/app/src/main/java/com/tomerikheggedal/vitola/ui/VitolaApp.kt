@@ -85,12 +85,32 @@ fun VitolaApp() {
         }
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Founding-medlem-feiring: vises kun én gang (som iOS).
+    var foundingNumber by remember { mutableIntStateOf(0) }
+    var showFoundingWelcome by remember { mutableStateOf(false) }
+
     // Hent Pro-status ved oppstart: abonnement fra RevenueCat (no-op til goog_-nøkkel
     // er satt) + founding member fra profilen (is_founding_member → livstids-Pro).
     LaunchedEffect(Unit) {
         com.tomerikheggedal.vitola.data.ProManager.refresh()
         val p = runCatching { com.tomerikheggedal.vitola.data.ProfileRepository.myProfile() }.getOrNull()
         com.tomerikheggedal.vitola.data.ProManager.setFoundingMember(p?.isFoundingMember == true)
+
+        // Tildel founding-nummer og feire én gang (ekskluderer tidlige testere: RPC
+        // returnerer null for tester/ekskludert/allerede tildelt → hopp over).
+        if (!com.tomerikheggedal.vitola.AppPrefs.hasSeenFoundingWelcome(context)) {
+            val n = com.tomerikheggedal.vitola.data.ProfileRepository.claimFoundingNumber()
+            if (n != null) { foundingNumber = n; showFoundingWelcome = true }
+            else com.tomerikheggedal.vitola.AppPrefs.setFoundingWelcomeSeen(context)
+        }
+    }
+
+    if (showFoundingWelcome) {
+        FoundingWelcomeDialog(number = foundingNumber) {
+            com.tomerikheggedal.vitola.AppPrefs.setFoundingWelcomeSeen(context)
+            showFoundingWelcome = false
+        }
     }
 
     Scaffold(

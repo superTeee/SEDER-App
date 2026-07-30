@@ -337,7 +337,27 @@ object HumidorRepository {
             .select(Columns.list("photo_url")) { filter { eq("id", entryId) } }
             .decodeList<PhotoUrlRow>()
             .firstOrNull()?.photoUrl
+
+    /** Brukerens egne tidligere butikker (distinkt) fra humidor + tasting_logs — til
+     *  «Kjøpt hos»-forslag (som iOS). Tom liste ved feil/ikke innlogget. */
+    suspend fun storeSuggestions(): List<String> {
+        val uid = Supa.client.auth.currentUserOrNull()?.id ?: return emptyList()
+        val fromHumidor = runCatching {
+            Supa.client.from("humidor").select(Columns.list("store")) { filter { eq("user_id", uid) } }
+                .decodeList<StoreRow>()
+        }.getOrNull().orEmpty()
+        val fromLogs = runCatching {
+            Supa.client.from("tasting_logs").select(Columns.list("store")) { filter { eq("user_id", uid) } }
+                .decodeList<StoreRow>()
+        }.getOrNull().orEmpty()
+        return (fromHumidor + fromLogs)
+            .mapNotNull { it.store?.trim()?.ifBlank { null } }
+            .distinctBy { it.lowercase() }
+    }
 }
+
+@Serializable
+private data class StoreRow(val store: String? = null)
 
 @Serializable
 private data class PhotoUrlRow(@SerialName("photo_url") val photoUrl: String? = null)

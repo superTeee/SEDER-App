@@ -36,10 +36,15 @@ fun AddToHumidorSheet(
     var error by remember { mutableStateOf<String?>(null) }
     var showCreate by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
+    var storeSuggestions by remember { mutableStateOf(com.tomerikheggedal.vitola.ui.KnownStores.norway) }
 
     LaunchedEffect(reloadKey) {
         humidors = runCatching { HumidorRepository.myHumidors().map { it.row } }.getOrDefault(emptyList())
         if (selected == null || humidors.none { it.id == selected?.id }) selected = humidors.firstOrNull()
+    }
+    LaunchedEffect(Unit) {
+        val mine = runCatching { HumidorRepository.storeSuggestions() }.getOrDefault(emptyList())
+        storeSuggestions = com.tomerikheggedal.vitola.ui.KnownStores.merged(mine)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = MaterialTheme.colorScheme.surface) {
@@ -105,6 +110,7 @@ fun AddToHumidorSheet(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier = Modifier.fillMaxWidth()
             )
+            com.tomerikheggedal.vitola.ui.StoreChips(storeSuggestions, store) { store = it }
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
 
