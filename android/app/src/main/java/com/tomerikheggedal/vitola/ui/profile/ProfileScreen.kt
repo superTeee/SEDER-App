@@ -335,7 +335,7 @@ private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () ->
     ) {
         StatCell(Icons.Filled.Inventory2, stats.humidorEntries, "I humidor", Modifier.weight(1f))
         StatDivider()
-        StatCell(Icons.Filled.LocalFireDepartment, stats.cigars, "Røkt", Modifier.weight(1f))
+        StatCell(Icons.Filled.LocalFireDepartment, stats.cigars, "I journal", Modifier.weight(1f))
         StatDivider()
         StatCell(Icons.Outlined.Star, favoritesCount, "Favoritter",
             Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFavorites))
@@ -500,10 +500,13 @@ private fun LastSmokedCard(log: TastingLog) {
         }
         log.rating?.let { r ->
             Spacer(Modifier.width(8.dp))
-            Text("$r", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.primary)
-                    .padding(horizontal = 10.dp, vertical = 6.dp))
+            // Score-badge — lik som alle andre steder + vertikalt sentrert
+            Text("$r", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterVertically)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                    .padding(horizontal = 10.dp, vertical = 5.dp))
         }
     }
 }

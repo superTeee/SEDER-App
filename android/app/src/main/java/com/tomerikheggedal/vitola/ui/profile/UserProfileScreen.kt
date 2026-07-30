@@ -221,7 +221,7 @@ private fun StatsCard(p: FriendProfile, favoritesCount: Int) {
         .padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Cell(Icons.Filled.Inventory2, p.humidorCount, "I humidor", Modifier.weight(1f))
         Divider()
-        Cell(Icons.Filled.LocalFireDepartment, p.cigarCount, "Røkt", Modifier.weight(1f))
+        Cell(Icons.Filled.LocalFireDepartment, p.cigarCount, "I journal", Modifier.weight(1f))
         Divider()
         Cell(Icons.Filled.Star, favoritesCount, "Favoritter", Modifier.weight(1f))
         Divider()

@@ -339,11 +339,11 @@ struct UserProfileView: View {
                 NavigationLink {
                     JournalView().environmentObject(authService)
                 } label: {
-                    statCell(icon: "smoke", value: p.cigarCount, label: "Røkt")
+                    statCell(icon: "smoke", value: p.cigarCount, label: "I journal")
                 }
                 .buttonStyle(.plain)
             } else {
-                statCell(icon: "smoke", value: p.cigarCount, label: "Røkt")
+                statCell(icon: "smoke", value: p.cigarCount, label: "I journal")
             }
 
             statDivider()
@@ -603,15 +603,16 @@ struct UserProfileView: View {
 
                     Spacer(minLength: 4)
 
-                    // Rating-badge
+                    // Score-badge — lik som alle andre steder + vertikalt sentrert
                     if let rating = log.rating {
                         Text("\(rating)")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color("Accent"))
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color("Accent"))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .padding(.vertical, 5)
+                            .background(Color("Accent").opacity(0.1))
+                            .clipShape(Capsule())
+                            .frame(maxHeight: .infinity, alignment: .center)
                     }
                 }
                 .padding(.horizontal, 14)
