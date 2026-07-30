@@ -270,7 +270,7 @@
         <div class="card" data-reveal><span class="num">02</span><span class="ic" style="--icon:url('assets/feature-icons/02-humidor-med-rf.svg')"></span><h3>Humidor med RF</h3><p>Loggfør relativ fuktighet per humidor, sett et mål og et område, og les av en rolig trafikklys-status med et blikk.</p></div>
         <div class="card" data-reveal><span class="num">03</span><span class="ic" style="--icon:url('assets/feature-icons/03-smaksjournal.svg')"></span><h3>Smaksjournal</h3><p>Vurder trekk, brann og smak, legg til en poengsum og notater, og se din egen smaksprofil ta form over tid.</p></div>
         <div class="card" data-reveal><span class="num">04</span><span class="ic" style="--icon:url('assets/feature-icons/04-utforsk.svg')"></span><h3>Utforsk</h3><p>Søk blant tusenvis av sigarer på merke, serie, format og smaksnoter — med toppvalg fra fellesskapet og en dagens sigar.</p></div>
-        <div class="card" data-reveal><span class="num">05</span><span class="ic" style="--icon:url('assets/feature-icons/05-feed-og-venner.svg')"></span><h3>Feed &amp; venner</h3><p>Del røyker i en sosial feed, følg venner, kommenter og lik — og oppdag nye favoritter gjennom folk du stoler på.</p></div>
+        <div class="card" data-reveal><span class="num">05</span><span class="ic" style="--icon:url('assets/feature-icons/05-feed-og-venner.svg')"></span><h3>Aktivitet</h3><p>Følg venners aktivitet, del egne røyker, kommenter og lik — og oppdag nye favoritter gjennom folk du stoler på.</p></div>
         <div class="card" data-reveal><span class="num">06</span><span class="ic" style="--icon:url('assets/feature-icons/06-samlingshandtering.svg')"></span><h3>Samlingshåndtering</h3><p>Ha flere humidorer, flytt sigarer mellom dem, tell ned etter hvert som du røyker, og hold orden uten anstrengelse.</p></div>
       </div>
     </div>
@@ -412,7 +412,7 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ---- Screenshots: drop 1.png … 5.png into web/screenshots/. Missing ones show a placeholder. ----
-const shotLabels = ["Utforsk","Humidor & RF","Smaksjournal","Feed","Sigardetalj"];
+const shotLabels = ["Utforsk","Humidor & RF","Smaksjournal","Aktivitet","Sigardetalj"];
 document.getElementById('shots').innerHTML = shotLabels.map((label,i)=>{
   const n=i+1;
   return `<div class="phone"><div class="screen">
