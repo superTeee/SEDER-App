@@ -593,7 +593,7 @@ struct ExploreView: View {
             // Rating-badge
             if let rating = cigar.avgRating {
                 VStack(spacing: 2) {
-                    Text(String(format: "%.1f", rating))
+                    Text(String(format: "%.0f", rating * 10)) // 0–10 → 0–100 som resten av appen
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(Color("Accent"))
                     Text("score")
@@ -1893,7 +1893,8 @@ struct TopCigarRow: View {
 
     private var scoreText: String {
         guard let score = cigar.avgRating else { return "" }
-        return String(format: "%.1f", score)
+        // avg_rating lagres på 0–10; vis 0–100 som resten av appen (logg/deling).
+        return String(format: "%.0f", score * 10)
     }
 
     var body: some View {

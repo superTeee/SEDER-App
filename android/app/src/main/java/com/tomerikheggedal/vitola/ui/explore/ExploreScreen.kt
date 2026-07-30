@@ -811,7 +811,7 @@ private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
                     .padding(horizontal = 10.dp, vertical = 7.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(String.format("%.1f", rating), style = MaterialTheme.typography.labelLarge,
+                Text(String.format("%.0f", rating * 10), style = MaterialTheme.typography.labelLarge, // 0–10 → 0–100 som resten av appen
                     fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 Text("score", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -863,7 +863,7 @@ private fun RankBadge(rank: Int) {
 @Composable
 private fun ScoreBadge(rating: Double) {
     Text(
-        String.format("%.1f", rating),
+        String.format("%.0f", rating * 10), // 0–10 → 0–100 som resten av appen
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
