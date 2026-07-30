@@ -274,10 +274,11 @@ private fun TabItem(label: String, icon: ImageVector, selected: Boolean, modifie
     ) {
         Box(
             Modifier.size(width = 46.dp, height = 32.dp).clip(RoundedCornerShape(10.dp))
-                .background(if (selected) accent else androidx.compose.ui.graphics.Color.Transparent),
+                .background(if (selected) androidx.compose.ui.graphics.Color(0xFFE0D2BA)
+                            else androidx.compose.ui.graphics.Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, label, tint = if (selected) MaterialTheme.colorScheme.onPrimary else inactive,
+            Icon(icon, label, tint = if (selected) accent else inactive,
                 modifier = Modifier.size(24.dp))
         }
         Text(label, fontSize = 11.sp, color = if (selected) accent else inactive)

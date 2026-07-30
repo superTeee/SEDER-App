@@ -159,14 +159,14 @@ struct ContentView: View {
                 // Aktivt ikon får en avrundet flate i skann-knappens farge, hvitt ikon
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(selected ? Color("Accent") : Color.clear)
+                        .fill(selected ? Color(red: 224/255, green: 210/255, blue: 186/255) : Color.clear)
                         .frame(width: 46, height: 34)
                     Image(image)
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 26, height: 26)
-                        .foregroundColor(selected ? .white : inactive)
+                        .foregroundColor(selected ? Color("Accent") : inactive)
                         .overlay(alignment: .topTrailing) {
                             if showBadge {
                                 Circle()
