@@ -380,9 +380,13 @@ private fun StatDivider() {
 @Composable
 private fun StatCell(icon: ImageVector, value: Int, label: String, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-        Text("$value", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // Ikon ved siden av tallet → lavere celle enn stablet layout
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+            Text("$value", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        }
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }

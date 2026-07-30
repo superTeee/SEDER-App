@@ -383,13 +383,16 @@ struct UserProfileView: View {
     }
 
     private func statCell(icon: String, value: Int, label: String, showDash: Bool = false) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 19))
-                .foregroundColor(accentIconColor)
-            Text(showDash ? "–" : "\(value)")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(Color("TextPrimary"))
+        VStack(spacing: 4) {
+            // Ikon ved siden av tallet → lavere celle enn stablet layout
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundColor(accentIconColor)
+                Text(showDash ? "–" : "\(value)")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(Color("TextPrimary"))
+            }
             Text(label)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundColor(Color("TextSecondary"))
@@ -398,7 +401,7 @@ struct UserProfileView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
+        .padding(.vertical, 12)
         .padding(.horizontal, 2)
         .contentShape(Rectangle())   // hele cellen trykkbar
     }
