@@ -62,11 +62,15 @@ fun HumidorScreen(
     onTabConsumed: () -> Unit = {},
     onHumidor: (String) -> Unit = {},
     onCigar: (String) -> Unit = {},
+    onPaywall: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
+    val isPro by com.tomerikheggedal.vitola.data.ProManager.isPro.collectAsState()
+    // Gratis-grense: 2 humidorer. Pro = ubegrenset.
+    val freeHumidorLimit = 2
 
     var humidors by remember { mutableStateOf<List<HumidorUi>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
@@ -162,7 +166,10 @@ fun HumidorScreen(
                                 DropdownMenuItem(
                                     text = { Text("Ny humidor") },
                                     leadingIcon = { Icon(Icons.Filled.Inventory2, null) },
-                                    onClick = { showAddMenu = false; showAdd = true }
+                                    onClick = {
+                                        showAddMenu = false
+                                        if (isPro || humidors.size < freeHumidorLimit) showAdd = true else onPaywall()
+                                    }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Legg til sigarer fra kvittering") },

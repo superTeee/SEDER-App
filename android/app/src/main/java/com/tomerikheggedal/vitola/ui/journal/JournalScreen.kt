@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.JournalRepository
+import com.tomerikheggedal.vitola.data.ProManager
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.TastingLog
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
@@ -50,11 +51,12 @@ private fun parseInstant(s: String): Instant? =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit) {
+fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit, onPaywall: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
     val isAuthed = status is SessionStatus.Authenticated
+    val isPro by ProManager.isPro.collectAsState()
 
     var logs by remember { mutableStateOf<List<TastingLog>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
@@ -85,19 +87,19 @@ fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit) {
                                 DropdownMenuItem(
                                     text = { Text("Statistikk") },
                                     leadingIcon = { Icon(Icons.Outlined.BarChart, null) },
-                                    onClick = { menuOpen = false; showStats = true }
+                                    onClick = { menuOpen = false; if (isPro) showStats = true else onPaywall() }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Eksporter som PDF") },
                                     leadingIcon = { Icon(Icons.Outlined.PictureAsPdf, null) },
                                     enabled = logs.isNotEmpty(),
-                                    onClick = { menuOpen = false; runCatching { JournalExport.exportPdf(context, logs) } }
+                                    onClick = { menuOpen = false; if (isPro) runCatching { JournalExport.exportPdf(context, logs) } else onPaywall() }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Eksporter som CSV") },
                                     leadingIcon = { Icon(Icons.Outlined.Description, null) },
                                     enabled = logs.isNotEmpty(),
-                                    onClick = { menuOpen = false; runCatching { JournalExport.exportCsv(context, logs) } }
+                                    onClick = { menuOpen = false; if (isPro) runCatching { JournalExport.exportCsv(context, logs) } else onPaywall() }
                                 )
                             }
                         }

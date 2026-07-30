@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.tomerikheggedal.vitola.AppPrefs
 import com.tomerikheggedal.vitola.data.Profile
 import com.tomerikheggedal.vitola.data.ProfileRepository
+import com.tomerikheggedal.vitola.data.ProManager
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.ui.PinSetupSheet
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
@@ -37,7 +38,9 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onPaywall: () -> Unit = {}) {
+    val isPro by ProManager.isPro.collectAsState()
+    var forceFree by remember { mutableStateOf(ProManager.debugForceFree) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val email = Supa.client.auth.currentUserOrNull()?.email
@@ -71,6 +74,46 @@ fun SettingsScreen(onBack: () -> Unit) {
             Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
                 .padding(bottom = 32.dp)
         ) {
+            // SEDER Pro / medlemskap
+            if (email != null) {
+                SectionLabel("Medlemskap")
+                SettingsCard {
+                    if (isPro) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Badge, null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("SEDER Pro", fontWeight = FontWeight.Medium)
+                                Text("Aktiv", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    } else {
+                        ActionRow(
+                            icon = { Icon(Icons.Filled.Badge, null, tint = MaterialTheme.colorScheme.primary) },
+                            text = "Oppgrader til Pro",
+                            onClick = onPaywall
+                        )
+                    }
+                    if (com.tomerikheggedal.vitola.BuildConfig.DEBUG) {
+                        HorizontalDivider(Modifier.padding(start = 52.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("DEBUG: simuler gratisbruker", Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Switch(checked = forceFree, onCheckedChange = {
+                                forceFree = it; ProManager.debugForceFree = it
+                            })
+                        }
+                    }
+                }
+            }
+
             // Konto
             if (email != null) {
                 SectionLabel("Konto")

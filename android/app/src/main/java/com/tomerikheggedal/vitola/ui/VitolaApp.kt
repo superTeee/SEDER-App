@@ -85,6 +85,9 @@ fun VitolaApp() {
         }
     }
 
+    // Hent Pro-status ved oppstart (no-op til goog_-nøkkel er satt i ProConfig).
+    LaunchedEffect(Unit) { com.tomerikheggedal.vitola.data.ProManager.refresh() }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
@@ -143,7 +146,8 @@ fun VitolaApp() {
                     requestedTab = humidorTabRequest,
                     onTabConsumed = { humidorTabRequest = null },
                     onHumidor = { nav.navigate("humidorDetail/${it}") },
-                    onCigar = { nav.navigate("cigar/${it}") }
+                    onCigar = { nav.navigate("cigar/${it}") },
+                    onPaywall = { nav.navigate("paywall") }
                 )
             }
             composable("humidorDetail/{id}") { entry ->
@@ -161,7 +165,11 @@ fun VitolaApp() {
                 )
             }
             composable("journal") {
-                JournalScreen(onProfile = toProfile, onCigar = { nav.navigate("cigar/${it}") })
+                JournalScreen(
+                    onProfile = toProfile,
+                    onCigar = { nav.navigate("cigar/${it}") },
+                    onPaywall = { nav.navigate("paywall") }
+                )
             }
             composable("profile") {
                 ProfileScreen(
@@ -176,7 +184,15 @@ fun VitolaApp() {
                     }
                 )
             }
-            composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
+            composable("settings") {
+                SettingsScreen(
+                    onBack = { nav.popBackStack() },
+                    onPaywall = { nav.navigate("paywall") }
+                )
+            }
+            composable("paywall") {
+                PaywallScreen(onBack = { nav.popBackStack() })
+            }
             composable("friends") {
                 FriendsScreen(
                     onBack = { nav.popBackStack() },
