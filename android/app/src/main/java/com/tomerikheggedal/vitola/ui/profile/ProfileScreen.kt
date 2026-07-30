@@ -186,7 +186,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(8.dp))
                         val badgeBg = Color(0xFFE0D2BA)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically) {
@@ -219,7 +219,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                                 }
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(8.dp))
                         val bio = profile?.bio
                         Text(
                             if (bio.isNullOrBlank()) "Legg til bio…" else bio,
@@ -231,7 +231,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                         )
                         val place = listOfNotNull(profile?.city, profile?.country).joinToString(", ")
                         if (place.isNotBlank()) {
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(8.dp))
                             Text(place, style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }

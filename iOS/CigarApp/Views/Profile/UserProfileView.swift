@@ -268,7 +268,7 @@ struct UserProfileView: View {
                             .background(Capsule().fill(badgeFill))
                         }
                     }
-                    .padding(.top, 4)
+                    .padding(.top, 8)
 
                     // Bio
                     if let bio = p.bio, !bio.isEmpty {
@@ -276,7 +276,7 @@ struct UserProfileView: View {
                             .font(.system(size: 14))
                             .foregroundColor(Color("TextPrimary").opacity(0.85))
                             .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 4)
+                            .padding(.top, 8)
                             .onTapGesture { if isOwnProfile { showBioEditor = true } }
                     } else if isOwnProfile {
                         Button { showBioEditor = true } label: {
@@ -285,7 +285,7 @@ struct UserProfileView: View {
                                 .foregroundColor(Color("TextSecondary").opacity(0.55))
                         }
                         .buttonStyle(.plain)
-                        .padding(.top, 4)
+                        .padding(.top, 8)
                     }
 
                     // Medlem siden + by + land
@@ -310,7 +310,7 @@ struct UserProfileView: View {
                     }
                     .font(.caption)
                     .foregroundColor(Color("TextSecondary"))
-                    .padding(.top, 4)
+                    .padding(.top, 8)
                 }
 
                 Spacer(minLength: 0)
