@@ -93,13 +93,13 @@ fun JournalScreen(onProfile: () -> Unit = {}, onCigar: (String) -> Unit, onPaywa
                                     text = { Text("Eksporter som PDF") },
                                     leadingIcon = { Icon(Icons.Outlined.PictureAsPdf, null) },
                                     enabled = logs.isNotEmpty(),
-                                    onClick = { menuOpen = false; if (isPro) runCatching { JournalExport.exportPdf(context, logs) } else onPaywall() }
+                                    onClick = { menuOpen = false; if (isPro) scope.launch { runCatching { JournalExport.exportPdf(context, logs) } } else onPaywall() }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Eksporter som CSV") },
                                     leadingIcon = { Icon(Icons.Outlined.Description, null) },
                                     enabled = logs.isNotEmpty(),
-                                    onClick = { menuOpen = false; if (isPro) runCatching { JournalExport.exportCsv(context, logs) } else onPaywall() }
+                                    onClick = { menuOpen = false; if (isPro) scope.launch { runCatching { JournalExport.exportCsv(context, logs) } } else onPaywall() }
                                 )
                             }
                         }

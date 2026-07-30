@@ -8,6 +8,8 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import com.tomerikheggedal.vitola.data.TastingLog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -49,8 +51,13 @@ object JournalExport {
         context.startActivity(Intent.createChooser(send, "Del journal"))
     }
 
-    // CSV — UTF-8 med BOM (så Excel viser æøå riktig).
-    fun exportCsv(context: Context, logs: List<TastingLog>) {
+    // CSV — UTF-8 med BOM (så Excel viser æøå riktig). Fil-arbeid på IO-tråd, deling på hovedtråd.
+    suspend fun exportCsv(context: Context, logs: List<TastingLog>) {
+        val file = withContext(Dispatchers.IO) { buildCsv(context, logs) }
+        withContext(Dispatchers.Main) { share(context, file, "text/csv") }
+    }
+
+    private fun buildCsv(context: Context, logs: List<TastingLog>): File {
         fun esc(s: String?): String = "\"" + (s ?: "").replace("\"", "\"\"") + "\""
         val header = "Dato,Merke,Serie,Vitola,Score,Røyk igjen,Trekk,Brenning,Smak,Kutt,Kjøpt hos,Notat"
         val rows = StringBuilder("﻿").append(header)
@@ -66,11 +73,16 @@ object JournalExport {
         }
         val file = File(exportDir(context), "seder-journal.csv")
         file.writeText(rows.toString(), Charsets.UTF_8)
-        share(context, file, "text/csv")
+        return file
     }
 
-    // PDF — enkel, lesbar liste (A4).
-    fun exportPdf(context: Context, logs: List<TastingLog>) {
+    // PDF — enkel, lesbar liste (A4). Fil-arbeid på IO-tråd, deling på hovedtråd.
+    suspend fun exportPdf(context: Context, logs: List<TastingLog>) {
+        val file = withContext(Dispatchers.IO) { buildPdf(context, logs) }
+        withContext(Dispatchers.Main) { share(context, file, "application/pdf") }
+    }
+
+    private fun buildPdf(context: Context, logs: List<TastingLog>): File {
         val pageW = 595; val pageH = 842; val margin = 40f
         val doc = PdfDocument()
         val sorted = logs.sortedByDescending { it.smokedAt }
@@ -138,6 +150,6 @@ object JournalExport {
         val file = File(exportDir(context), "seder-journal.pdf")
         file.outputStream().use { doc.writeTo(it) }
         doc.close()
-        share(context, file, "application/pdf")
+        return file
     }
 }

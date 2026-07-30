@@ -10,6 +10,8 @@ import com.revenuecat.purchases.Purchases
 import com.revenuecat.purchases.PurchasesConfiguration
 import com.revenuecat.purchases.PurchasesTransactionException
 import com.revenuecat.purchases.awaitCustomerInfo
+import com.revenuecat.purchases.awaitLogIn
+import com.revenuecat.purchases.awaitLogOut
 import com.revenuecat.purchases.awaitOfferings
 import com.revenuecat.purchases.awaitPurchase
 import com.revenuecat.purchases.awaitRestore
@@ -65,6 +67,31 @@ object ProManager {
     fun setFoundingMember(value: Boolean) {
         isFoundingMember = value
         recompute()
+    }
+
+    /// Knytt RevenueCat-kunden til Supabase-bruker-ID (kall ved innlogging).
+    /// Slår sammen anonyme kjøp med brukeren, så Pro følger kontoen på tvers av enheter.
+    suspend fun logIn(userId: String) {
+        if (!ProConfig.isConfigured) return
+        try {
+            val result = Purchases.sharedInstance.awaitLogIn(userId)
+            isSubscriber = result.customerInfo.entitlements[ProConfig.entitlementId]?.isActive == true
+            recompute()
+        } catch (_: Exception) {
+            // Nettverksfeil o.l. — behold forrige status.
+        }
+    }
+
+    /// Nullstill RevenueCat-kunden til anonym (kall ved utlogging).
+    suspend fun logOut() {
+        if (!ProConfig.isConfigured) return
+        try {
+            val info = Purchases.sharedInstance.awaitLogOut()
+            isSubscriber = info.entitlements[ProConfig.entitlementId]?.isActive == true
+            recompute()
+        } catch (_: Exception) {
+            // Ignorer (f.eks. allerede anonym).
+        }
     }
 
     /// Oppdater abonnementsstatus fra RevenueCat (kall ved oppstart + etter kjøp).

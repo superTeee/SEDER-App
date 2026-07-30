@@ -19,7 +19,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import io.github.jan.supabase.gotrue.auth
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,6 +106,15 @@ fun VitolaApp() {
             if (n != null) { foundingNumber = n; showFoundingWelcome = true }
             else com.tomerikheggedal.vitola.AppPrefs.setFoundingWelcomeSeen(context)
         }
+    }
+
+    // Knytt RevenueCat-kunden til Supabase-bruker-ID: logIn ved innlogging,
+    // logOut ved utlogging. Reagerer på session-endringer (no-op til goog_-nøkkel er satt).
+    val session by com.tomerikheggedal.vitola.data.Supa.client.auth.sessionStatus.collectAsState()
+    LaunchedEffect(session) {
+        val uid = com.tomerikheggedal.vitola.data.Supa.client.auth.currentUserOrNull()?.id
+        if (uid != null) com.tomerikheggedal.vitola.data.ProManager.logIn(uid)
+        else com.tomerikheggedal.vitola.data.ProManager.logOut()
     }
 
     if (showFoundingWelcome) {
