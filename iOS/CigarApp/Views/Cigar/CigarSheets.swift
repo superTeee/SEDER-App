@@ -13,7 +13,7 @@ import UIKit
 // og konsistent for det vanlige norske kjøpet.
 
 enum KnownStores {
-    static let norway = ["Sol Cigar", "Augusto Cigars", "M. Sørensen", "No Smoke", "Nordic Cigars"]
+    static let norway = ["Sol Cigar", "Augusto Cigars", "M. Sørensen", "No Smoke", "Nordic Cigars", "Fuego Cigars"]
 
     /// Brukerens egne butikker først (mest relevant), så de norske som ikke alt er med.
     static func merged(withUser userStores: [String]) -> [String] {
