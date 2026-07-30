@@ -72,6 +72,11 @@ dependencies {
     // Bilde-beskjæring ved opplasting (iOS bruker Mantis; dette er Android-motparten).
     implementation("com.vanniktech:android-image-cropper:4.6.0")
 
+    // Pro-abonnement via RevenueCat (Google Play Billing). Samme entitlement
+    // «SEDER Pro» og offering «default» som iOS. goog_-nøkkel settes i ProConfig
+    // når Android-appen er lagt til i RevenueCat (etter Play-oppsett).
+    implementation("com.revenuecat.purchases:purchases:8.10.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
 }
