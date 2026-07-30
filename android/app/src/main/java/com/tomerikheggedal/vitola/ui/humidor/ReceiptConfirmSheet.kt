@@ -3,6 +3,8 @@ package com.tomerikheggedal.vitola.ui.humidor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -11,8 +13,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +27,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.tomerikheggedal.vitola.data.Cigar
+import com.tomerikheggedal.vitola.data.CigarRepository
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.HumidorRow
 import com.tomerikheggedal.vitola.data.ReceiptParseResult
@@ -36,13 +43,17 @@ private fun formatReceiptPrice(value: Double): String =
 
 // Én redigerbar rad (matchet ELLER manuelt løst). State-backet så UI oppdateres.
 private class EditableReceiptLine(
-    val cigarId: String,
-    val title: String,
+    cigarId: String,
+    title: String,
+    brand: String,
     val receiptName: String,
     quantity: Int,
     priceText: String,
     humidorId: String?,
 ) {
+    var cigarId by mutableStateOf(cigarId)
+    var title by mutableStateOf(title)
+    var brand by mutableStateOf(brand)
     var quantity by mutableStateOf(quantity)
     var priceText by mutableStateOf(priceText)
     var humidorId by mutableStateOf(humidorId)
@@ -70,6 +81,7 @@ fun ReceiptConfirmSheet(
                 EditableReceiptLine(
                     cigarId = m.cigarId,
                     title = listOfNotNull(m.brand, m.series, m.vitola).joinToString(" · "),
+                    brand = m.brand,
                     receiptName = m.receiptName,
                     quantity = m.quantity.coerceAtLeast(1),
                     priceText = m.unitPrice?.let { formatReceiptPrice(it) } ?: "",
@@ -84,6 +96,7 @@ fun ReceiptConfirmSheet(
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var manualResolving by remember { mutableStateOf<ReceiptUnmatchedLine?>(null) }
+    var swapTarget by remember { mutableStateOf<EditableReceiptLine?>(null) }
     val today = remember {
         java.time.LocalDate.now().format(
             java.time.format.DateTimeFormatter.ofPattern("d. MMM yyyy", java.util.Locale("nb", "NO")))
@@ -147,7 +160,7 @@ fun ReceiptConfirmSheet(
             Text("Funnet i basen (${lines.size})", style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            lines.forEach { line -> LineRow(line, humidors) }
+            lines.forEach { line -> LineRow(line, humidors, onSwap = { swapTarget = line }) }
 
             if (unmatched.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
@@ -203,12 +216,28 @@ fun ReceiptConfirmSheet(
             lines.add(EditableReceiptLine(
                 cigarId = newId,
                 title = pending.name,
+                brand = "",
                 receiptName = pending.name,
                 quantity = pending.quantity.coerceAtLeast(1),
                 priceText = pending.unitPrice?.let { formatReceiptPrice(it) } ?: "",
                 humidorId = defaultHumidorId,
             ))
         }
+    }
+
+    // Feil vitola? Velg riktig sigar fra samme merke.
+    swapTarget?.let { line ->
+        BrandCigarPickerSheet(
+            brand = line.brand,
+            currentCigarId = line.cigarId,
+            onDismiss = { swapTarget = null },
+            onPick = { cigar ->
+                line.cigarId = cigar.id
+                line.title = listOfNotNull(cigar.brand, cigar.series, cigar.vitola).joinToString(" · ")
+                line.brand = cigar.brand
+                swapTarget = null
+            }
+        )
     }
 }
 
@@ -220,7 +249,7 @@ private fun FieldLabelR(text: String) {
 
 // Én matchet rad: avkrysning, tittel, antall-stepper, pris, humidor-overstyring.
 @Composable
-private fun LineRow(line: EditableReceiptLine, humidors: List<HumidorRow>) {
+private fun LineRow(line: EditableReceiptLine, humidors: List<HumidorRow>, onSwap: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.background).padding(10.dp),
@@ -231,6 +260,15 @@ private fun LineRow(line: EditableReceiptLine, humidors: List<HumidorRow>) {
             Column(Modifier.weight(1f)) {
                 Text(line.title.ifBlank { line.receiptName },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text("«${line.receiptName}»", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+            // Feil vitola? Bytt til en annen sigar fra samme merke.
+            if (line.brand.isNotBlank()) {
+                IconButton(onClick = onSwap) {
+                    Icon(Icons.Filled.SwapHoriz, "Bytt vitola",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
             }
         }
 
@@ -289,6 +327,87 @@ private fun HumidorDropdown(
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             humidors.forEach { h ->
                 DropdownMenuItem(text = { Text(h.name) }, onClick = { onSelect(h.id); expanded = false })
+            }
+        }
+    }
+}
+
+// Bytt vitola-ark: lister alle sigarer fra samme merke slik at brukeren kan
+// velge riktig vitola/variant hvis skanneren traff feil.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BrandCigarPickerSheet(
+    brand: String,
+    currentCigarId: String,
+    onDismiss: () -> Unit,
+    onPick: (Cigar) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var cigars by remember { mutableStateOf<List<Cigar>?>(null) }
+    var query by remember { mutableStateOf("") }
+
+    LaunchedEffect(brand) {
+        cigars = runCatching { CigarRepository.byBrand(brand) }.getOrDefault(emptyList())
+    }
+
+    val filtered = remember(cigars, query) {
+        val list = cigars ?: emptyList()
+        if (query.isBlank()) list
+        else list.filter {
+            listOfNotNull(it.brand, it.series, it.vitola)
+                .joinToString(" ").contains(query, ignoreCase = true)
+        }
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(brand, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+            OutlinedTextField(
+                value = query, onValueChange = { query = it },
+                placeholder = { Text("Søk serie eller vitola") }, singleLine = true,
+                leadingIcon = { Icon(Icons.Filled.Search, null) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            when {
+                cigars == null ->
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
+                    }
+                filtered.isEmpty() ->
+                    Text("Fant ingen andre sigarer fra $brand",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 24.dp))
+                else ->
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        items(filtered, key = { it.id }) { c ->
+                            Row(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                                    .clickable { onPick(c) }.padding(vertical = 10.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(listOfNotNull(c.series, c.vitola).joinToString(" · ")
+                                        .ifBlank { c.brand },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold)
+                                    if (c.id == currentCigarId) {
+                                        Text("Nåværende treff", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                                if (c.id == currentCigarId) {
+                                    Icon(Icons.Filled.Check, null,
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
             }
         }
     }

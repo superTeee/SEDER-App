@@ -832,8 +832,9 @@ struct ShareAfterSaveSheet: View {
 /// Én redigerbar rad (matchet ELLER manuelt løst fra en ukjent linje).
 private struct EditableReceiptLine: Identifiable {
     let id = UUID()
-    let cigarId: UUID
-    let title: String
+    var cigarId: UUID
+    var title: String
+    var brand: String
     let receiptName: String
     var quantity: Int
     var priceText: String
@@ -845,6 +846,14 @@ private struct EditableReceiptLine: Identifiable {
         Double(priceText.replacingOccurrences(of: ",", with: ".")
             .trimmingCharacters(in: .whitespaces)) ?? 0
     }
+}
+
+/// Kontekst for «bytt vitola»-arket: hvilken linje og hvilket merke.
+private struct BrandSwapContext: Identifiable {
+    let id = UUID()
+    let lineId: UUID
+    let brand: String
+    let currentCigarId: UUID
 }
 
 /// «250» for hele tall, «249,5» ellers — norsk visning av enhetspris.
@@ -870,6 +879,7 @@ struct ReceiptConfirmView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var manualResolving: ReceiptUnmatchedLine?
+    @State private var swapContext: BrandSwapContext?
     @State private var groupByHumidor = false
     @State private var smartApplied = false
 
@@ -884,6 +894,7 @@ struct ReceiptConfirmView: View {
             EditableReceiptLine(
                 cigarId: m.cigarId,
                 title: [m.brand, m.series, m.vitola].compactMap { $0 }.joined(separator: " · "),
+                brand: m.brand,
                 receiptName: m.receiptName,
                 quantity: m.quantity,
                 priceText: m.unitPrice.map(formatReceiptPrice) ?? "",
@@ -933,6 +944,12 @@ struct ReceiptConfirmView: View {
                     resolveManually(pending: pending, cigar: cigar)
                 }
                 .environmentObject(authService)
+            }
+            .sheet(item: $swapContext) { ctx in
+                BrandCigarPickerSheet(brand: ctx.brand, currentCigarId: ctx.currentCigarId) { cigar in
+                    swapCigar(lineId: ctx.lineId, to: cigar)
+                    swapContext = nil
+                }
             }
         }
     }
@@ -1011,8 +1028,25 @@ struct ReceiptConfirmView: View {
                     Text(line.wrappedValue.title.isEmpty ? line.wrappedValue.receiptName : line.wrappedValue.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(Color("TextPrimary"))
+                    Text("«\(line.wrappedValue.receiptName)»")
+                        .font(.caption2)
+                        .foregroundColor(Color("TextSecondary"))
+                        .lineLimit(1)
                 }
                 Spacer()
+                // Feil vitola? Bytt til en annen sigar fra samme merke.
+                Button {
+                    swapContext = BrandSwapContext(
+                        lineId: line.wrappedValue.id,
+                        brand: line.wrappedValue.brand,
+                        currentCigarId: line.wrappedValue.cigarId
+                    )
+                } label: {
+                    Image(systemName: "arrow.left.arrow.right.circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(Color("Accent"))
+                }
+                .buttonStyle(.borderless)
             }
 
             HStack(spacing: 14) {
@@ -1155,11 +1189,22 @@ struct ReceiptConfirmView: View {
         lines.append(EditableReceiptLine(
             cigarId: cigar.id,
             title: [cigar.brand, cigar.series, cigar.vitola].compactMap { $0 }.joined(separator: " · "),
+            brand: cigar.brand,
             receiptName: pending.name,
             quantity: pending.quantity,
             priceText: pending.unitPrice.map(formatReceiptPrice) ?? "",
             humidorId: defaultHumidorId
         ))
+    }
+
+    // Feil vitola matchet fra kvitteringen — bytt linjen til en annen sigar
+    // fra samme merke (beholder antall, pris og humidor).
+    private func swapCigar(lineId: UUID, to cigar: Cigar) {
+        guard let idx = lines.firstIndex(where: { $0.id == lineId }) else { return }
+        lines[idx].cigarId = cigar.id
+        lines[idx].title = [cigar.brand, cigar.series, cigar.vitola]
+            .compactMap { $0 }.joined(separator: " · ")
+        lines[idx].brand = cigar.brand
     }
 
     private func save() async {
@@ -1187,6 +1232,112 @@ struct ReceiptConfirmView: View {
         } catch {
             errorMessage = "Kunne ikke legge til alt. Prøv igjen."
             isSaving = false
+        }
+    }
+}
+
+// MARK: - Bytt vitola-ark
+// Åpnes fra en kvittering-linje: lister alle sigarer fra samme merke slik at
+// brukeren kan velge riktig vitola/variant hvis skanneren traff feil.
+private struct BrandCigarPickerSheet: View {
+    let brand: String
+    let currentCigarId: UUID
+    var onPick: (Cigar) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    private let cigarService = CigarService()
+
+    @State private var cigars: [Cigar] = []
+    @State private var isLoading = true
+    @State private var query = ""
+
+    private var filtered: [Cigar] {
+        guard !query.isEmpty else { return cigars }
+        let q = query.lowercased()
+        return cigars.filter {
+            [$0.brand, $0.series, $0.vitola].compactMap { $0 }
+                .joined(separator: " ").lowercased().contains(q)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if cigars.isEmpty {
+                    emptyState
+                } else {
+                    List {
+                        ForEach(filtered) { c in
+                            Button { onPick(c) } label: { row(c) }
+                                .buttonStyle(.plain)
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .searchable(text: $query, prompt: "Søk serie eller vitola")
+                }
+            }
+            .background(Color("Background"))
+            .navigationTitle(brand)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Avbryt") { dismiss() }
+                }
+            }
+            .task { await load() }
+        }
+    }
+
+    private func row(_ c: Cigar) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text([c.series, c.vitola].compactMap { $0 }.joined(separator: " · "))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Color("TextPrimary"))
+                if c.id == currentCigarId {
+                    Text("Nåværende treff")
+                        .font(.caption2)
+                        .foregroundColor(Color("Accent"))
+                }
+            }
+            Spacer()
+            if c.id == currentCigarId {
+                Image(systemName: "checkmark")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(Color("Accent"))
+            }
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 2)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 40))
+                .foregroundColor(Color("TextSecondary").opacity(0.5))
+            Text("Fant ingen andre sigarer fra \(brand)")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(32)
+    }
+
+    private func load() async {
+        do {
+            let list = try await cigarService.fetchCigarsByBrand(brand)
+            await MainActor.run {
+                cigars = list
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run { isLoading = false }
         }
     }
 }
