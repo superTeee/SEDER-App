@@ -238,7 +238,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                     }
 
                     // Stats
-                    Box(Modifier.padding(horizontal = 16.dp)) { StatsCard(stats, myFavorites.size, onFriends, onFavorites) }
+                    Box(Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)) { StatsCard(stats, myFavorites.size, onFriends, onFavorites) }
 
                     // Sist røkt
                     lastLog?.let { log ->

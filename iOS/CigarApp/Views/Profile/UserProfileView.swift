@@ -66,6 +66,7 @@ struct UserProfileView: View {
                 VStack(spacing: 0) {
                     heroSection(p)
                     statsRow(p)
+                        .padding(.top, 8)
                     lastSmokedSection
                     favoritesSection
                     if isOwnProfile {
