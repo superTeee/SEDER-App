@@ -59,6 +59,14 @@ object ProfileRepository {
             .firstOrNull()
     }
 
+    // Founding member: tildeler medlemsnummer (1–100) ved første kall. Returnerer
+    // nummeret hvis brukeren nettopp ble founding member, ellers null (tester /
+    // ekskludert / allerede tildelt). Samme RPC som iOS (migrasjon 121).
+    suspend fun claimFoundingNumber(): Int? =
+        runCatching {
+            Supa.client.postgrest.rpc("claim_founding_number").decodeAs<Int?>()
+        }.getOrNull()
+
     suspend fun myStats(): ProfileStats {
         val uid = Supa.client.auth.currentUserOrNull()?.id ?: return ProfileStats(0, 0, 0, 0)
 

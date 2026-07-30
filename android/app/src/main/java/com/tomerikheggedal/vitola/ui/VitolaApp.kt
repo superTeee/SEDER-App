@@ -85,8 +85,13 @@ fun VitolaApp() {
         }
     }
 
-    // Hent Pro-status ved oppstart (no-op til goog_-nøkkel er satt i ProConfig).
-    LaunchedEffect(Unit) { com.tomerikheggedal.vitola.data.ProManager.refresh() }
+    // Hent Pro-status ved oppstart: abonnement fra RevenueCat (no-op til goog_-nøkkel
+    // er satt) + founding member fra profilen (is_founding_member → livstids-Pro).
+    LaunchedEffect(Unit) {
+        com.tomerikheggedal.vitola.data.ProManager.refresh()
+        val p = runCatching { com.tomerikheggedal.vitola.data.ProfileRepository.myProfile() }.getOrNull()
+        com.tomerikheggedal.vitola.data.ProManager.setFoundingMember(p?.isFoundingMember == true)
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
