@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.tomerikheggedal.vitola.ui.components.ScoreBadge
 import com.tomerikheggedal.vitola.data.JournalRepository
 import com.tomerikheggedal.vitola.data.Profile
 import com.tomerikheggedal.vitola.data.memberStats
@@ -516,13 +517,8 @@ private fun LastSmokedCard(log: TastingLog) {
         }
         log.rating?.let { r ->
             Spacer(Modifier.width(8.dp))
-            // Score-badge — lik som alle andre steder + vertikalt sentrert
-            Text("$r", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterVertically)
-                    .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(horizontal = 10.dp, vertical = 5.dp))
+            // Score-badge (samkjørt) — vertikalt sentrert
+            ScoreBadge("$r", modifier = Modifier.align(Alignment.CenterVertically))
         }
     }
 }

@@ -79,3 +79,26 @@ struct CropRequest: Identifiable {
     let image: UIImage
     let ratio: Double?
 }
+
+// MARK: - ScoreBadge
+// ÉN samkjørt scoring-badge for hele appen: firkantet med 2px radius og lys
+// latte bakgrunn. Brukes overalt en poengsum vises (Utforsk, profil, journal,
+// humidor, skann osv.) så de aldri ser forskjellige ut igjen.
+struct ScoreBadge: View {
+    let text: String
+    var size: CGFloat = 14
+
+    // Lys latte bakgrunn + mørk kaffebrun tekst (fast, uavhengig av tema).
+    static let latte = Color(hex: "#EADFC9")
+    static let ink   = Color(hex: "#5C4A2C")
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: size, weight: .semibold))
+            .foregroundColor(ScoreBadge.ink)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(ScoreBadge.latte)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+    }
+}

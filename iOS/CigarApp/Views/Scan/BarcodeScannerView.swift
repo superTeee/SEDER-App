@@ -342,14 +342,7 @@ private struct BarcodeResultSheet: View {
             Spacer()
 
             if let rating = cigar.avgRating {
-                VStack(spacing: 2) {
-                    Text(String(format: "%.1f", rating))
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(Color("Accent"))
-                    Text("/ 10")
-                        .font(.caption2)
-                        .foregroundColor(Color(.tertiaryLabel))
-                }
+                ScoreBadge(text: String(format: "%.0f", rating * 10), size: 15)
             }
         }
         .padding(14)

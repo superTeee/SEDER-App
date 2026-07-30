@@ -611,15 +611,9 @@ struct UserProfileView: View {
 
                     Spacer(minLength: 4)
 
-                    // Score-badge — lik som alle andre steder + vertikalt sentrert
+                    // Score-badge (samkjørt) — vertikalt sentrert
                     if let rating = log.rating {
-                        Text("\(rating)")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color("Accent"))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color("Accent").opacity(0.1))
-                            .clipShape(Capsule())
+                        ScoreBadge(text: "\(rating)")
                             .frame(maxHeight: .infinity, alignment: .center)
                     }
                 }

@@ -590,15 +590,9 @@ struct ExploreView: View {
 
             Spacer()
 
-            // Rating-badge
+            // Score-badge (samkjørt)
             if let rating = cigar.avgRating {
-                Text(String(format: "%.0f", rating * 10)) // 0–10 → 0–100 som resten av appen
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(Color("Accent"))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(Color("Accent").opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                ScoreBadge(text: String(format: "%.0f", rating * 10), size: 15)
             }
 
             Image(systemName: "chevron.right")
@@ -1919,15 +1913,9 @@ struct TopCigarRow: View {
 
             Spacer()
 
-            // Score-badge
+            // Score-badge (samkjørt)
             if !scoreText.isEmpty {
-                Text(scoreText)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color("Accent"))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color("Accent").opacity(0.1))
-                    .clipShape(Capsule())
+                ScoreBadge(text: scoreText)
             }
 
             Image(systemName: "chevron.right")

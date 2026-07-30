@@ -57,6 +57,7 @@ import com.tomerikheggedal.vitola.ui.detail.SmokingLogSheet
 import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
 import com.tomerikheggedal.vitola.ui.components.ListCard
 import com.tomerikheggedal.vitola.ui.components.NavRow
+import com.tomerikheggedal.vitola.ui.components.ScoreBadge
 import com.tomerikheggedal.vitola.ui.components.RowDivider
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
 import kotlinx.coroutines.Job
@@ -768,7 +769,7 @@ private fun TopCigarRow(rank: Int, cigar: Cigar, onClick: () -> Unit) {
             cigar.vitola?.let { Text(it, style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        cigar.avgRating?.let { ScoreBadge(it) }
+        cigar.avgRating?.let { ScoreBadge(String.format("%.0f", it * 10)) }
         Spacer(Modifier.width(8.dp))
         ChevronIcon()
     }
@@ -805,12 +806,7 @@ private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         cigar.avgRating?.let { rating ->
-            Text(String.format("%.0f", rating * 10), // 0–10 → 0–100 som resten av appen
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(horizontal = 10.dp, vertical = 7.dp))
+            ScoreBadge(String.format("%.0f", rating * 10), fontSize = 15.sp)
         }
         Spacer(Modifier.width(8.dp))
         ChevronIcon()
@@ -855,19 +851,6 @@ private fun RankBadge(rank: Int) {
     }
 }
 
-@Composable
-private fun ScoreBadge(rating: Double) {
-    Text(
-        String.format("%.0f", rating * 10), // 0–10 → 0–100 som resten av appen
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .clip(androidx.compose.foundation.shape.CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    )
-}
 
 @Composable
 private fun ChevronIcon() {

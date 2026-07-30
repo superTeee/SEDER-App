@@ -29,6 +29,7 @@ import com.tomerikheggedal.vitola.data.JournalRepository
 import com.tomerikheggedal.vitola.data.ProManager
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.TastingLog
+import com.tomerikheggedal.vitola.ui.components.ScoreBadge
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
@@ -231,15 +232,7 @@ private fun JournalCard(log: TastingLog, onClick: () -> Unit) {
             }
             log.rating?.let { rating ->
                 Spacer(Modifier.width(10.dp))
-                Text(
-                    "$rating" + (log.scoreLabel?.let { " · $it" } ?: ""),
-                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                )
+                ScoreBadge("$rating" + (log.scoreLabel?.let { " · $it" } ?: ""), fontSize = 12.sp)
             }
         }
     }
