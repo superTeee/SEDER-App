@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
@@ -33,6 +34,7 @@ import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.ui.PinSetupSheet
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
 import com.tomerikheggedal.vitola.ui.theme.ThemeState
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.launch
 
@@ -41,6 +43,8 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(onBack: () -> Unit, onPaywall: () -> Unit = {}) {
     val isPro by ProManager.isPro.collectAsState()
     var forceFree by remember { mutableStateOf(ProManager.debugForceFree) }
+    var showDeleteAccount by remember { mutableStateOf(false) }
+    var deletingAccount by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val email = Supa.client.auth.currentUserOrNull()?.email
@@ -213,9 +217,42 @@ fun SettingsScreen(onBack: () -> Unit, onPaywall: () -> Unit = {}) {
                         textColor = MaterialTheme.colorScheme.error,
                         onClick = { scope.launch { Supa.client.auth.signOut() }; onBack() }
                     )
+                    HorizontalDivider(Modifier.padding(start = 52.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    ActionRow(
+                        icon = { Icon(Icons.Filled.DeleteForever, null, tint = MaterialTheme.colorScheme.error) },
+                        text = "Slett konto",
+                        textColor = MaterialTheme.colorScheme.error,
+                        onClick = { showDeleteAccount = true }
+                    )
                 }
             }
         }
+    }
+
+    if (showDeleteAccount) {
+        AlertDialog(
+            onDismissRequest = { if (!deletingAccount) showDeleteAccount = false },
+            title = { Text("Slette kontoen?") },
+            text = { Text("Dette sletter kontoen og profilen din permanent. Handlingen kan ikke angres.") },
+            confirmButton = {
+                TextButton(
+                    enabled = !deletingAccount,
+                    onClick = {
+                        deletingAccount = true
+                        scope.launch {
+                            runCatching { Supa.client.functions.invoke("delete-account") }
+                            runCatching { Supa.client.auth.signOut() }
+                            deletingAccount = false
+                            showDeleteAccount = false
+                            onBack()
+                        }
+                    }
+                ) { Text(if (deletingAccount) "Sletter…" else "Slett konto", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(enabled = !deletingAccount, onClick = { showDeleteAccount = false }) { Text("Avbryt") }
+            }
+        )
     }
 
     if (showEditName) {
