@@ -86,7 +86,7 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                     Spacer(Modifier.height(14.dp))
                     Text(p.displayName ?: "SEDER-bruker", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(12.dp))
                     val badgeBg = Color(0xFFE0D2BA)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically) {
@@ -118,12 +118,12 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                         }
                     }
                     p.bio?.takeIf { it.isNotBlank() }?.let {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                     }
                     val place = listOfNotNull(p.city, p.country).joinToString(", ")
                     if (place.isNotBlank()) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(place, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
