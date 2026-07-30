@@ -3,10 +3,12 @@ package com.tomerikheggedal.vitola.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material3.*
@@ -23,6 +25,13 @@ import kotlinx.coroutines.launch
 // ── Aldersbekreftelse (som iOS AgeGateView) ────────────────────────────────
 @Composable
 fun AgeGateScreen(onVerified: () -> Unit) {
+    var blocked by remember { mutableStateOf(false) }
+
+    if (blocked) {
+        AgeBlockedScreen(onBack = { blocked = false })
+        return
+    }
+
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState()).padding(24.dp),
@@ -40,13 +49,44 @@ fun AgeGateScreen(onVerified: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(20.dp))
-        // Én-trykks egenerklæring i stedet for fødselsår
+        // Egenerklæring med ja/nei i stedet for fødselsår
         Button(onClick = onVerified, modifier = Modifier.width(240.dp)) { Text("Jeg er over 18 år") }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = { blocked = true }) {
+            Text("Jeg er under 18 år", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
 
         Spacer(Modifier.height(48.dp))
         Text("Appen er kun for personer over 18 år.\nKjøp og promotering av tobakk er ikke en del av appen.",
             style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// Blokkeringsskjerm for under 18
+@Composable
+fun AgeBlockedScreen(onBack: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState()).padding(horizontal = 32.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(Icons.Filled.Block, contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(46.dp))
+        Spacer(Modifier.height(20.dp))
+        Text("Vi ses om noen år", style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "SEDER er en digital humidor og smaksjournal laget for voksne sigarentusiaster. " +
+                "Innholdet er kun ment for personer over 18 år, så vi kan dessverre ikke gi deg tilgang ennå.\n\n" +
+                "Du er hjertelig velkommen tilbake når du fyller 18.",
+            style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 22.sp
+        )
+        Spacer(Modifier.height(28.dp))
+        TextButton(onClick = onBack) { Text("Tilbake") }
     }
 }
 
