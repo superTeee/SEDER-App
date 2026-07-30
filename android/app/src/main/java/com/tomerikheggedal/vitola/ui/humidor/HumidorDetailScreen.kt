@@ -367,12 +367,6 @@ private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: (
     val latest = readings.firstOrNull()
     val status = rhStatus(latest?.rh, humidor.targetRh, humidor.rhMin, humidor.rhMax)
     val stale = latest?.let { rhIsStale(it.measuredAt) } ?: false
-    val badgeColor = when (status) {
-        RhStatus.STABLE -> androidx.compose.ui.graphics.Color(0xFF3FA34D)
-        RhStatus.SLIGHTLY_LOW, RhStatus.SLIGHTLY_HIGH -> androidx.compose.ui.graphics.Color(0xFFE0A400)
-        RhStatus.TOO_DRY, RhStatus.TOO_WET -> androidx.compose.ui.graphics.Color(0xFFD64545)
-        RhStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text("LUFTFUKTIGHET (RH)", style = MaterialTheme.typography.labelMedium,
@@ -404,10 +398,11 @@ private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: (
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                // Chip i samme status-farge som boblen, 20 % dekning, sort tekst.
                 Text(
                     status.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
-                    color = badgeColor,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeColor.copy(alpha = 0.12f))
+                    color = androidx.compose.ui.graphics.Color.Black,
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(rhDotColor(status).copy(alpha = 0.20f))
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 )
             }
@@ -424,15 +419,15 @@ private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: (
             // To knapper i bunnen: registrer ny måling + historikk (graf).
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(onClick = onRegister, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Registrer")
+                    Text("Registrer", fontSize = 12.sp)
                 }
                 OutlinedButton(onClick = onHistory, enabled = readings.isNotEmpty(),
                     modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.ShowChart, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.ShowChart, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Historikk")
+                    Text("Historikk", fontSize = 12.sp)
                 }
             }
         }

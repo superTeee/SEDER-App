@@ -264,8 +264,8 @@ struct HumidorDetailView: View {
                 HStack(spacing: 10) {
                     Button { showRHSheet = true } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: "plus.circle")
-                            Text("Registrer").fontWeight(.semibold)
+                            Image(systemName: "plus.circle").font(.system(size: 15))
+                            Text("Registrer").font(.system(size: 15, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
                         .background(Color("Accent").opacity(0.12))
@@ -274,8 +274,8 @@ struct HumidorDetailView: View {
                     }
                     Button { showRHHistory = true } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: "chart.xyaxis.line")
-                            Text("Historikk").fontWeight(.semibold)
+                            Image(systemName: "chart.xyaxis.line").font(.system(size: 15))
+                            Text("Historikk").font(.system(size: 15, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
                         .background(Color("TextSecondary").opacity(0.10))
@@ -294,19 +294,12 @@ struct HumidorDetailView: View {
 
     @ViewBuilder
     private func statusBadge(_ status: RHStatus) -> some View {
-        let color: Color = {
-            switch status {
-            case .stable:            return Color("Accent")
-            case .none:              return Color(.secondaryLabel)
-            case .tooDry, .tooWet:   return Color(.label)
-            default:                 return Color(.label)
-            }
-        }()
+        // Chip i samme status-farge som boblen, 20 % dekning, sort tekst.
         Text(status.label)
             .font(.caption.weight(.semibold))
-            .foregroundColor(color)
+            .foregroundColor(.black)
             .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(color.opacity(0.12))
+            .background(rhDotColor(status).opacity(0.20))
             .clipShape(Capsule())
     }
 
