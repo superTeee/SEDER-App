@@ -70,6 +70,7 @@ struct HumidorDetailView: View {
             }
             .padding(.bottom, 48)
         }
+        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
         .background(Color("Background"))
         .overlay {
             if isLoading {
@@ -562,6 +563,7 @@ struct RHHistoryView: View {
                 .padding(.vertical, 20)
             }
         }
+        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
         .background(Color("Background"))
         .navigationTitle("RH-historikk")
         .navigationBarTitleDisplayMode(.inline)

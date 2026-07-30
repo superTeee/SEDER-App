@@ -81,6 +81,7 @@ struct CigarDetailViewDesign: View {
                     contentBody
                 }
             }
+            .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
         }
         .navigationBarBackButtonHidden(true)
         .navigationTitle(cigar.brand)

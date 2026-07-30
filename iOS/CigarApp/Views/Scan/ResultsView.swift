@@ -110,6 +110,7 @@ struct ResultsView: View {
                 }
             }
         }
+        .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
         .navigationTitle("Treff")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAddCigar) {

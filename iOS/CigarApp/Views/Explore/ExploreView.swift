@@ -1825,6 +1825,7 @@ struct BrandCigarsView: View {
                     }
                     .padding(.bottom, 40)
                 }
+                .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
             }
         }
         .navigationTitle(brand)
