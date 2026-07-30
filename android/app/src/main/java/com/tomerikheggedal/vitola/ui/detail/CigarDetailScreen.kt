@@ -152,11 +152,12 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (c.isVerified) {
+                    val verifLabel = c.verificationLabel
+                    if (verifLabel != null) {
                         Icon(Icons.Filled.Verified, null, tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Verifisert mot produsent", style = MaterialTheme.typography.bodyMedium)
+                        Text(verifLabel, style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.width(6.dp))
                         Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.width(6.dp))

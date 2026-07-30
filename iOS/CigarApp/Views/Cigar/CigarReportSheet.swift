@@ -211,7 +211,7 @@ struct VerificationBadge: View {
         switch cigar.verification {
         case .manufacturer: return "checkmark.seal.fill"
         case .community:    return "person.2.fill"
-        case .retailer:     return "storefront"
+        case .retailer:     return "checkmark.seal.fill"
         case .unverified:   return "info.circle"
         }
     }
@@ -220,7 +220,7 @@ struct VerificationBadge: View {
         switch cigar.verification {
         case .manufacturer:      return "Verifisert mot produsent"
         case .community:         return "Bekreftet av brukere"
-        case .retailer(let host): return "Kilde: \(host ?? "forhandler")"
+        case .retailer:          return "Verifisert"
         case .unverified:        return "Ikke bekreftet ennå"
         }
     }
@@ -229,7 +229,7 @@ struct VerificationBadge: View {
         switch cigar.verification {
         case .manufacturer: return Color("Accent")
         case .community:    return Color("Accent")
-        case .retailer:     return Color(.secondaryLabel)
+        case .retailer:     return Color("Accent")
         case .unverified:   return Color(.label)   // ikon = tekstfarge når ubekreftet
         }
     }

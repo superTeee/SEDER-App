@@ -42,4 +42,14 @@ data class Cigar(
         }
 
     val isVerified: Boolean get() = verifiedAt != null
+
+    /** Tillitsmerke-tekst (som iOS). Navngir aldri en forhandler — forhandler-kilde
+     *  vises som nøytralt «Verifisert». null = ingen merke (ubekreftet). */
+    val verificationLabel: String?
+        get() = when (sourceTier) {
+            "manufacturer" -> if (isVerified) "Verifisert mot produsent" else null
+            "community"    -> if (isVerified) "Bekreftet av brukere" else null
+            "retailer"     -> "Verifisert"
+            else           -> null
+        }
 }
