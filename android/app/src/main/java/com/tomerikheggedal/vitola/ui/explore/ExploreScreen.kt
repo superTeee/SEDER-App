@@ -171,6 +171,7 @@ fun ExploreScreen(
     var quickCigar by remember { mutableStateOf<Cigar?>(null) }
     var qaAddHumidor by remember { mutableStateOf<Cigar?>(null) }
     var qaLog by remember { mutableStateOf<Cigar?>(null) }
+    var qaSharePromptId by remember { mutableStateOf<String?>(null) }
 
     // Registrer at brukeren løste en skanning: last opp bånd-bildet + koble
     // bånd-tekst → sigar (datahjul for bildegjenkjenning). Best effort, og
@@ -541,10 +542,17 @@ fun ExploreScreen(
             cigar = c,
             humidorEntryId = null,
             onDismiss = { qaLog = null },
-            onLogged = {
+            onLogged = { logId ->
                 qaLog = null
                 android.widget.Toast.makeText(context, "Lagt i journalen ✓", android.widget.Toast.LENGTH_SHORT).show()
+                if (logId.isNotBlank()) qaSharePromptId = logId
             }
+        )
+    }
+    // Tilby deling etter hurtig-logg — som på detaljsiden.
+    qaSharePromptId?.let { eid ->
+        com.tomerikheggedal.vitola.ui.detail.ShareAfterSaveSheet(
+            entryId = eid, onDismiss = { qaSharePromptId = null }
         )
     }
 }

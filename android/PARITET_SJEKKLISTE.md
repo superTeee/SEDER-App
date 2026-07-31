@@ -43,7 +43,7 @@ Sist oppdatert: 2026-07-26
 - ✅ Backend: migrasjon 115 (delings-felt på tasting_logs) + get_activity/set_entry_sharing/get_public_journal_entry + public-journal edge function — delt
 - ✅ Fane «Feed» → «Aktivitet» (scrollbar liste av delte journal-hendelser: rating/bilde/notat + «＋ ønskeliste», trykk → sigar). Journal beholdt som egen fane — begge plattformer
 - ✅ Del-etter-lagring-ark (Del i appen / Del eksternt) koblet på journal-logging; ekstern deling → native delings-ark med offentlig lenke — begge plattformer
-- 🟡 Del-prompt kun på hoved-logg (CigarDetail). Hurtighandling-logg + journal-redigering mangler prompten. iOS-QuickActions/JournalView + Android tilsvarende: TODO
+- ✅ Del-prompt også på hurtighandling-logg (langt trykk → «Marker som røkt») — begge plattformer. Journal-redigering utelatt bevisst (å re-spørre om deling ved redigering blir mas).
 - 🟡 Offentlig lenke peker på edge-funksjonen midlertidig; pen vitola.app/j-URL + universal links (AASA/assetlinks + entitlements) gjenstår
 
 ### Kvittering → humidor (paritet)

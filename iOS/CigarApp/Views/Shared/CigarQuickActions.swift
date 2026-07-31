@@ -12,6 +12,9 @@ struct CigarQuickActions: ViewModifier {
     @State private var showAddHumidor = false
     @State private var showLogSmoked = false
     @State private var showLogin = false
+    @State private var sharePrompt: SharePrompt?
+    @State private var externalShare: ExternalShareItem?
+    @State private var pendingShareCaption = ""
 
     private let humidorService = HumidorService()
     private let wishlistService = WishlistService()
@@ -75,8 +78,24 @@ struct CigarQuickActions: ViewModifier {
                                     flavorRating: flavor, personalNotes: notes, photoUrl: url)
                             }
                         }
+                        // Tilby deling etter logging — som på detaljsiden.
+                        if let logId {
+                            await MainActor.run {
+                                pendingShareCaption = cigar.fullName
+                                    + (rating.map { " · \($0)/100" } ?? "") + " på SEDER"
+                                sharePrompt = SharePrompt(entryId: logId)
+                            }
+                        }
                     }
                 }
+            }
+            .sheet(item: $sharePrompt) { prompt in
+                ShareAfterSaveSheet(entryId: prompt.entryId) { url in
+                    externalShare = ExternalShareItem(url: url, image: nil, caption: pendingShareCaption)
+                }
+            }
+            .sheet(item: $externalShare) { item in
+                IOSShareSheet(items: [item.caption, item.url])
             }
             .sheet(isPresented: $showLogin) { AuthView() }
     }
