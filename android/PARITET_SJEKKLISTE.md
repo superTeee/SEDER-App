@@ -50,7 +50,7 @@ Sist oppdatert: 2026-07-26
 - ✅ parse-receipt edge function (GPT-vision leser varelinjer + match_cigar-matching) — delt backend
 - ✅ «Legg til sigarer fra kvittering» i +-menyen på Humidor-fanen (ny meny: Ny humidor / Kvittering) — begge plattformer
 - ✅ Bekreft-skjerm: standard-humidor for alle + overstyring per rad, antall/pris redigerbart, ukjente varer → «Legg til manuelt» — begge plattformer
-- 🟡 Android kamera bruker thumbnail (TakePicturePreview); galleri gir full oppløsning. iOS bruker full kamera-oppløsning. Vurder full-res kamera (FileProvider) senere.
+- ✅ Android kamera bruker nå full oppløsning (TakePicture + FileProvider → cache/camera, leses tilbake og nedskaleres til 2000px). Paritet med iOS.
 
 ### Pris + humidor-verdi (paritet)
 - ✅ Prisfelt (kr per sigar) i legg-i-humidor-arket → purchase_price — begge plattformer

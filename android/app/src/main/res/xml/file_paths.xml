@@ -2,4 +2,6 @@
 <paths>
     <!-- Journal-eksport (PDF/CSV) skrives til cache/exports og deles via FileProvider. -->
     <cache-path name="exports" path="exports/" />
+    <!-- Kvittering-kamera skriver full-oppløsning til cache/camera via FileProvider. -->
+    <cache-path name="camera" path="camera/" />
 </paths>

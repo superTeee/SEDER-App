@@ -102,9 +102,15 @@ fun HumidorScreen(
         }
     }
 
+    // Full-oppløsning: kamera skriver til en FileProvider-fil, som leses tilbake
+    // i full oppløsning (nedskaleres til 2000px) — mye bedre OCR enn miniatyr.
+    val cameraUri = remember { mutableStateOf<android.net.Uri?>(null) }
     val receiptCamera = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bmp -> if (bmp != null) runParse(bitmapToJpegR(bmp)) }
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        val uri = cameraUri.value
+        if (success && uri != null) scope.launch { runParse(uriToJpegR(context, uri)) }
+    }
     val receiptGallery = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> if (uri != null) scope.launch { runParse(uriToJpegR(context, uri)) } }
@@ -312,7 +318,12 @@ fun HumidorScreen(
             title = { Text("Legg til sigarer fra kvittering") },
             text = { Text("Ta bilde av kvitteringen, eller velg et bilde fra galleriet.") },
             confirmButton = {
-                TextButton(onClick = { showReceiptSource = false; receiptCamera.launch(null) }) { Text("Ta bilde") }
+                TextButton(onClick = {
+                    showReceiptSource = false
+                    val uri = newReceiptCameraUri(context)
+                    cameraUri.value = uri
+                    receiptCamera.launch(uri)
+                }) { Text("Ta bilde") }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -355,11 +366,13 @@ fun HumidorScreen(
     }
 }
 
-// Kamera-thumbnail → JPEG. (Galleri gir høyere oppløsning for lange kvitteringer.)
-private fun bitmapToJpegR(bitmap: android.graphics.Bitmap): ByteArray {
-    val out = java.io.ByteArrayOutputStream()
-    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
-    return out.toByteArray()
+// Ny FileProvider-URI for et full-oppløsnings kvittering-kamerabilde (cache/camera).
+private fun newReceiptCameraUri(context: android.content.Context): android.net.Uri {
+    val dir = java.io.File(context.cacheDir, "camera").apply { mkdirs() }
+    val file = java.io.File(dir, "kvittering_${System.currentTimeMillis()}.jpg")
+    return androidx.core.content.FileProvider.getUriForFile(
+        context, "${context.packageName}.fileprovider", file
+    )
 }
 
 // Galleri-URI → nedskalert JPEG. Kvitteringer har mye liten tekst — behold 2000px.
