@@ -53,6 +53,12 @@ fun AddCigarSheet(
                 singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(vitola, { vitola = it }, label = { Text("Format / vitola") },
                 singleLine = true, modifier = Modifier.fillMaxWidth())
+            // Chips med vanlige vitolaer → fyller format + typisk størrelse.
+            com.tomerikheggedal.vitola.ui.components.VitolaChips(selected = vitola) { p ->
+                vitola = p.name
+                if (ring.isBlank()) ring = p.ring.toString()
+                if (length.isBlank()) length = com.tomerikheggedal.vitola.ui.components.vitolaLengthText(p.length)
+            }
             OutlinedTextField(country, { country = it }, label = { Text("Opprinnelsesland") },
                 singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(wrapper, { wrapper = it }, label = { Text("Dekkblad") },

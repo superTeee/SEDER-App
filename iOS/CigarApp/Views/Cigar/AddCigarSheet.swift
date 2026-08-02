@@ -38,6 +38,30 @@ struct AddCigarSheet: View {
 
     private let cigarService = CigarService()
 
+    // Vanlige vitolaer med typisk størrelse (ringmål × lengde i tommer).
+    // Trykk på en chip → fyller format + forhåndsutfyller mål (kan justeres).
+    private struct VitolaPreset { let name: String; let ring: Int; let length: Double }
+    private let vitolaPresets: [VitolaPreset] = [
+        .init(name: "Robusto",        ring: 50, length: 5.0),
+        .init(name: "Toro",           ring: 52, length: 6.0),
+        .init(name: "Churchill",      ring: 48, length: 7.0),
+        .init(name: "Corona",         ring: 42, length: 5.5),
+        .init(name: "Petit Corona",   ring: 42, length: 4.5),
+        .init(name: "Lonsdale",       ring: 42, length: 6.5),
+        .init(name: "Double Corona",  ring: 49, length: 7.5),
+        .init(name: "Torpedo",        ring: 52, length: 6.1),
+        .init(name: "Belicoso",       ring: 52, length: 5.5),
+        .init(name: "Rothschild",     ring: 50, length: 4.5),
+        .init(name: "Gordo",          ring: 60, length: 6.0),
+        .init(name: "Lancero",        ring: 38, length: 7.5),
+        .init(name: "Panetela",       ring: 38, length: 6.0),
+        .init(name: "Perfecto",       ring: 48, length: 5.0),
+    ]
+
+    private func lengthText(_ v: Double) -> String {
+        v.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(v)) : String(v)
+    }
+
     private var canSave: Bool {
         !brand.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
     }
@@ -52,10 +76,37 @@ struct AddCigarSheet: View {
                         .textInputAutocapitalization(.words)
                     TextField("Format eller vitola (valgfritt)", text: $vitola)
                         .textInputAutocapitalization(.words)
+
+                    // Chips med vanlige vitolaer — trykk for å fylle inn format + typisk størrelse.
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(vitolaPresets, id: \.name) { preset in
+                                Button {
+                                    vitola = preset.name
+                                    if ringGauge.trimmingCharacters(in: .whitespaces).isEmpty {
+                                        ringGauge = "\(preset.ring)"
+                                    }
+                                    if lengthInches.trimmingCharacters(in: .whitespaces).isEmpty {
+                                        lengthInches = lengthText(preset.length)
+                                    }
+                                } label: {
+                                    Text(preset.name)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .padding(.horizontal, 12).padding(.vertical, 6)
+                                        .background(Capsule().fill(
+                                            vitola == preset.name ? Color("Accent") : Color("Accent").opacity(0.12)))
+                                        .foregroundColor(vitola == preset.name ? .white : Color("Accent"))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 8))
                 } header: {
                     Text("Sigaren")
                 } footer: {
-                    Text("Bare merket er påkrevd. Resten kan du fylle ut senere.")
+                    Text("Bare merket er påkrevd. Trykk en vitola for å fylle inn format og typisk størrelse — du kan justere alt etterpå.")
                 }
 
                 Section("Detaljer") {

@@ -205,6 +205,9 @@ fun ManualAddCigarSheet(
                 singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 14.dp))
             OutlinedTextField(vitola, { vitola = it }, label = { Text("Vitola / format") },
                 singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 14.dp))
+            // Chips med vanlige vitolaer → fyller format-feltet.
+            Spacer(Modifier.height(8.dp))
+            com.tomerikheggedal.vitola.ui.components.VitolaChips(selected = vitola) { p -> vitola = p.name }
 
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error,
