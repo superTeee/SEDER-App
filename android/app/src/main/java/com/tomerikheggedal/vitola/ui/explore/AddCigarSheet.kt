@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AddCigarSheet(
     initialBrand: String = "",
+    initialNote: String = "",
     onDismiss: () -> Unit,
     onCreated: (String) -> Unit,
 ) {
@@ -33,8 +34,8 @@ fun AddCigarSheet(
     var wrapper by remember { mutableStateOf("") }
     var ring by remember { mutableStateOf("") }
     var length by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
-    var suggest by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf(initialNote) }
+    var suggest by remember { mutableStateOf(initialNote.isNotBlank()) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 

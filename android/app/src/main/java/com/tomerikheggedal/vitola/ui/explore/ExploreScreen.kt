@@ -47,6 +47,7 @@ import com.tomerikheggedal.vitola.data.BrandSummary
 import com.tomerikheggedal.vitola.data.Cigar
 import com.tomerikheggedal.vitola.data.CigarFilter
 import com.tomerikheggedal.vitola.data.CigarRepository
+import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.ScanHit
 import com.tomerikheggedal.vitola.data.ScanOutcome
 import com.tomerikheggedal.vitola.data.ScanRepository
@@ -477,14 +478,23 @@ fun ExploreScreen(
             onManualAdd = { showNoMatch = false; showScanManualAdd = true }
         )
     }
-    // Manuell innlegging fra ingen-treff (motiverende + merke-autocomplete).
+    // Manuell innlegging fra ingen-treff — samme skjerm som ellers (AddCigarSheet).
+    // Fra skann legger vi sigaren rett i første humidor og bekrefter, som før.
     if (showScanManualAdd) {
-        ManualAddCigarSheet(
-            ocrText = scanCtx?.first ?: "",
+        val scanOcr = scanCtx?.first ?: ""
+        AddCigarSheet(
+            initialNote = if (scanOcr.isBlank()) "" else "Fra skann: ${scanOcr.take(200)}",
             onDismiss = { showScanManualAdd = false },
-            onAdded = {
+            onCreated = { newId ->
                 showScanManualAdd = false
-                scope.launch { snackbar.showSnackbar("Lagt i humidoren – takk for bidraget!") }
+                scope.launch {
+                    val humidors = runCatching { HumidorRepository.myHumidors() }
+                        .getOrDefault(emptyList())
+                    humidors.firstOrNull()?.let { h ->
+                        runCatching { HumidorRepository.addCigar(cigarId = newId, humidorId = h.row.id) }
+                    }
+                    snackbar.showSnackbar("Lagt i humidoren – takk for bidraget!")
+                }
             }
         )
     }

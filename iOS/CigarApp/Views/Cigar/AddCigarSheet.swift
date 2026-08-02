@@ -17,6 +17,9 @@ struct AddCigarSheet: View {
     /// Forhåndsutfylt merke eller søketekst, hvis brukeren kom fra et tomt søk.
     var prefillBrand: String = ""
 
+    /// Forhåndsutfylt notat (f.eks. OCR-tekst fra et skann som ikke ga treff).
+    var prefillNote: String = ""
+
     /// Kalles med den nye sigaren når den er opprettet.
     var onCreated: (Cigar) -> Void = { _ in }
 
@@ -162,6 +165,7 @@ struct AddCigarSheet: View {
             }
             .onAppear {
                 if brand.isEmpty { brand = prefillBrand }
+                if note.isEmpty { note = prefillNote }
             }
         }
     }

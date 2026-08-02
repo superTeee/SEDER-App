@@ -6,7 +6,7 @@ Sist oppdatert: 2026-07-26
 ### Skann-dekning (paritet — klynge A, 26. juli)
 - ✅ `log_scan_event`-logging på hvert bånd-skann (treff + bom) → scan_events (dekning-datahjul) — ScanRepository
 - ✅ Vennlig «ingen treff»-ark (stiplet spøkelses-sigar + årsaks-liste + prøv-på-nytt/legg-inn-manuelt) — ScanNoMatchSheets.NoMatchSheet
-- ✅ Manuell-innlegging-ark: motiverende tekst + merke-autocomplete (searchBrands) → create_own_cigar (suggest) + legg i første humidor — ScanNoMatchSheets.ManualAddCigarSheet
+- ✅ Manuell-innlegging fra ingen-treff bruker nå SAMME skjerm som ellers (AddCigarSheet — full felt + vitola-chips); skann-flyt legger sigaren rett i første humidor + snackbar. (Egen ManualAddCigarSheet fjernet — én skjerm på tvers, paritet med iOS)
 - 🟡 Båndbildet festes ikke til bidraget ennå (kun OCR-tekst i notat) — samme som iOS v1
 
 ### Tab-bar + senter-skann + profil-avatar (paritet — klynge B, 26. juli)

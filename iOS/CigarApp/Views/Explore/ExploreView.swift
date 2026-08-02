@@ -334,14 +334,24 @@ struct ExploreView: View {
                 )
             }
             .sheet(isPresented: $showManualAdd) {
-                ManualAddSheet(
-                    image: capturedImage,
-                    ocrText: scanService.extractedText,
-                    onAdded: { showAddedConfirm = true }
-                )
+                // Samme skjerm som ellers i appen (AddCigarSheet). Fra skann legger vi
+                // sigaren rett i humidoren og bekrefter, akkurat som før.
+                AddCigarSheet(
+                    prefillNote: scanService.extractedText.isEmpty
+                        ? ""
+                        : "Fra skann: \(String(scanService.extractedText.prefix(200)))"
+                ) { cigar in
+                    guard let userId = authService.userId else { return }
+                    Task {
+                        let hs = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
+                        if let h = hs.first {
+                            _ = try? await humidorService.addToHumidor(
+                                cigarId: cigar.id, userId: userId, humidorId: h.id)
+                        }
+                        await MainActor.run { showAddedConfirm = true }
+                    }
+                }
                 .environmentObject(authService)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
             }
             .alert("Lagt i humidoren", isPresented: $showAddedConfirm) {
                 Button("Fint") {}
