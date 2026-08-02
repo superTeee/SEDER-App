@@ -56,6 +56,7 @@ struct AddCigarSheet: View {
         .init(name: "Lancero",        ring: 38, length: 7.5),
         .init(name: "Panetela",       ring: 38, length: 6.0),
         .init(name: "Perfecto",       ring: 48, length: 5.0),
+        .init(name: "Culebra",        ring: 38, length: 5.75),
     ]
 
     private func lengthText(_ v: Double) -> String {

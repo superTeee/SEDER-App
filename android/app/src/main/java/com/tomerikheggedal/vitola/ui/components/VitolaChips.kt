@@ -35,6 +35,7 @@ val vitolaPresets = listOf(
     VitolaPreset("Lancero", 38, 7.5),
     VitolaPreset("Panetela", 38, 6.0),
     VitolaPreset("Perfecto", 48, 5.0),
+    VitolaPreset("Culebra", 38, 5.75),
 )
 
 fun vitolaLengthText(v: Double): String =
