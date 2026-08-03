@@ -334,33 +334,10 @@ struct ExploreView: View {
                 )
             }
             .sheet(isPresented: $showManualAdd) {
-                // Samme skjerm som ellers i appen (AddCigarSheet). Fra skann legger vi
-                // sigaren rett i humidoren og bekrefter, akkurat som før.
-                AddCigarSheet(
-                    prefillNote: scanService.extractedText.isEmpty
-                        ? ""
-                        : "Fra skann: \(String(scanService.extractedText.prefix(200)))"
-                ) { cigar in
-                    guard let userId = authService.userId else { return }
-                    // Lær av det mislykkede skannet: knytt OCR-teksten + bånd-bildet til
-                    // den nye sigaren. Siden brukeren er kilden (created_by), blir OCR-teksten
-                    // alias med en gang, så samme bånd matcher neste gang.
-                    let ocr = scanService.extractedText
-                    let band = capturedImage?.jpegData(compressionQuality: 0.8)
-                    Task {
-                        // Lagre både tekst og bilde. Grafiske bånd uten tekst: bildet
-                        // lagres uansett, så lenge vi har et bånd-bilde.
-                        if !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || band != nil {
-                            await cigarService.resolveScan(
-                                ocrText: ocr, cigarId: cigar.id, userId: userId, bandImage: band)
-                        }
-                        let hs = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
-                        if let h = hs.first {
-                            _ = try? await humidorService.addToHumidor(
-                                cigarId: cigar.id, userId: userId, humidorId: h.id)
-                        }
-                        await MainActor.run { showAddedConfirm = true }
-                    }
+                // Samme skjerm som ellers i appen (AddCigarSheet). Logikken er flyttet ut
+                // i egne metoder for å holde view-uttrykket lett for type-sjekkeren.
+                AddCigarSheet(prefillNote: scanPrefillNote) { cigar in
+                    handleManualScanAdd(cigar)
                 }
                 .environmentObject(authService)
             }
@@ -496,6 +473,34 @@ struct ExploreView: View {
     }
 
     // Les kvittering: hent humidorer (trengs i bekreft-arket) + parse + åpne ark.
+    // Forhåndsutfylt notat til manuell innlegging fra et mislykket skann.
+    private var scanPrefillNote: String {
+        let t = scanService.extractedText
+        return t.isEmpty ? "" : "Fra skann: \(String(t.prefix(200)))"
+    }
+
+    // Manuell innlegging etter et skann uten treff: lær av skannet (OCR + bånd-bilde)
+    // og legg sigaren i første humidor. Trukket ut av view-body for å unngå at
+    // Swift-type-sjekkeren bruker for lang tid på et stort uttrykk.
+    private func handleManualScanAdd(_ cigar: Cigar) {
+        guard let userId = authService.userId else { return }
+        let ocr = scanService.extractedText
+        let band = capturedImage?.jpegData(compressionQuality: 0.8)
+        let hasText = !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        Task {
+            if hasText || band != nil {
+                await cigarService.resolveScan(
+                    ocrText: ocr, cigarId: cigar.id, userId: userId, bandImage: band)
+            }
+            let hs = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
+            if let h = hs.first {
+                _ = try? await humidorService.addToHumidor(
+                    cigarId: cigar.id, userId: userId, humidorId: h.id)
+            }
+            await MainActor.run { showAddedConfirm = true }
+        }
+    }
+
     private func parseReceipt(_ image: UIImage) async {
         isParsingReceipt = true
         receiptError = nil
