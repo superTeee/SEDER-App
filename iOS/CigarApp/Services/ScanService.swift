@@ -321,29 +321,60 @@ class ScanService: ObservableObject {
             print("🎨 Wrapper-gjetning: \(wrapperGuess.wrapper ?? "ukjent") (\(wrapperGuess.reason))")
 
             guard let guessedWrapper = wrapperGuess.wrapper else { return }
+            let g = guessedWrapper.lowercased()
 
-            let matches = wrapperAmbiguityCandidates.filter {
-                $0.wrapperLeaf?.lowercased() == guessedWrapper.lowercased()
+            // Steg 1: eksakt blad-treff. Steg 2: samme farge-nyanse (lys/medium/
+            // mørk) som mykt fallback — farge forteller nyansen pålitelig, men
+            // ikke alltid eksakt type, så vi lar nyansen telle når bladet ikke
+            // matcher ord-for-ord.
+            var matches = wrapperAmbiguityCandidates.filter {
+                ($0.wrapperLeaf?.lowercased() ?? "") == g
+            }
+            if matches.isEmpty, let gShade = Self.wrapperShade(g) {
+                matches = wrapperAmbiguityCandidates.filter {
+                    Self.wrapperShade($0.wrapperLeaf?.lowercased() ?? "") == gShade
+                }
             }
 
             if matches.count == 1, let match = matches.first {
+                // Entydig: velg automatisk og løft til topp.
                 autoSelectedCigar = match
-                // Flytt den avklarte varianten til toppen av listen — samme
-                // logikk som for form-avklaring (se resolveShapeAmbiguity).
-                if let idx = scanResults.firstIndex(where: { $0.cigar.id == match.id }) {
-                    let resolved = scanResults.remove(at: idx)
-                    scanResults.insert(
-                        ScanResult(cigar: resolved.cigar, confidence: 1.0, matchReason: resolved.matchReason),
-                        at: 0
-                    )
-                }
+                boostToTop(ids: [match.id])
+            } else if matches.count > 1 {
+                // Myk booster: wrapper-fargen peker på en delmengde, ikke én rad.
+                // Løft de sannsynlige kandidatene øverst, men behold resten under
+                // så brukeren fortsatt kan velge fritt.
+                boostToTop(ids: Set(matches.map { $0.id }))
             }
-            // 0 eller flere treff fortsatt — la brukeren velge fra listen som vanlig.
+            // 0 treff: la rekkefølgen stå — fargen ga ingen nyttig pekepinn.
         } catch {
             // Wrapper-avklaring feilet (f.eks. nettverk) — ikke blokker
             // brukeren, bare degrader til den vanlige valglisten.
             print("⚠️ Wrapper-avklaring feilet: \(error.localizedDescription)")
         }
+    }
+
+    // Løft de angitte kandidatene øverst i resultatlisten uten å fjerne noen,
+    // og behold intern rekkefølge. Grunnlaget for den myke wrapper-boosteren.
+    private func boostToTop(ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        let boosted = scanResults.filter { ids.contains($0.cigar.id) }
+        let rest = scanResults.filter { !ids.contains($0.cigar.id) }
+        scanResults = boosted + rest
+    }
+
+    // Grov nyanse-bøtte for et dekkblad: lys / medium / mørk. Farge fra et bilde
+    // forteller nyansen ganske pålitelig, men ikke eksakt type — derfor brukes
+    // dette kun som et mykt fallback-signal i wrapper-boosteren.
+    static func wrapperShade(_ leaf: String) -> String? {
+        let s = leaf.lowercased()
+        let lys = ["connecticut shade", "ecuador connecticut", "shade", "candela", "claro", "connecticut"]
+        let mork = ["maduro", "broadleaf", "oscuro", "san andrés", "san andres"]
+        let medium = ["habano", "corojo", "sumatra", "cameroon", "colorado", "sungrown", "rosado", "ecuadorian", "havana"]
+        if mork.contains(where: { s.contains($0) })   { return "mørk" }
+        if lys.contains(where: { s.contains($0) })    { return "lys" }
+        if medium.contains(where: { s.contains($0) }) { return "medium" }
+        return nil
     }
 
     // MARK: - OCR-tekst-rensing

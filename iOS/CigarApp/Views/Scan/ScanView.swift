@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import Combine
 
 // MARK: - ScanView
 // Kameravisning for å scanne sigarbandet
@@ -418,27 +419,107 @@ private struct ScanTip: View {
 }
 
 // MARK: - Scanning Overlay
+// Stilren skanne-loader: gull-hjørner rammer inn en sigar i kontur med et rundt
+// sigarbelte, en gull-stråle glir opp og ned, og teksten veksler mykt mellom de
+// tre stegene. Brukes overalt der skanning pågår.
 struct ScanningOverlay: View {
     @Environment(\.colorScheme) private var colorScheme
-    // Light: hvitt kort med tekstfarge på spinner/tekst (latte-bg ga uleselig hvit tekst).
-    // Dark: mørkt kort. TextPrimary tilpasser seg begge moduser automatisk.
+    @State private var beamDown = false
+    @State private var stepIndex = 0
+    @State private var textVisible = true
+
+    private let steps = ["Skanner sigarbeltet", "Skanner dekkblad", "Søker i basen"]
+    private let cycle = Timer.publish(every: 2.6, on: .main, in: .common).autoconnect()
+
     private var cardBackground: Color { colorScheme == .light ? .white : Color("Card") }
+    private var accent: Color { Color("Accent") }
+    private var outline: Color { Color("TextPrimary").opacity(0.5) }
+
+    private let fieldW: CGFloat = 158
+    private let fieldH: CGFloat = 72
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.5).ignoresSafeArea()
-            VStack(spacing: 16) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: Color("TextPrimary")))
-                    .scaleEffect(1.5)
-                Text("Analyserer bandet...")
+            VStack(spacing: 20) {
+                scanField
+                Text(steps[stepIndex])
+                    .font(.system(size: 14, design: .serif))
                     .foregroundColor(Color("TextPrimary"))
-                    .font(.headline)
+                    .opacity(textVisible ? 1 : 0)
+                    .frame(minHeight: 20)
             }
-            .padding(32)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 26)
             .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                beamDown = true
+            }
+        }
+        .onReceive(cycle) { _ in
+            withAnimation(.easeInOut(duration: 0.7)) { textVisible = false }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.72) {
+                stepIndex = (stepIndex + 1) % steps.count
+                withAnimation(.easeInOut(duration: 0.7)) { textVisible = true }
+            }
+        }
+    }
+
+    private var scanField: some View {
+        ZStack {
+            ScanCorners(len: 12, inset: 6)
+                .stroke(accent.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+
+            // Sigar i kontur med rundt sigarbelte
+            RoundedRectangle(cornerRadius: 9)
+                .strokeBorder(outline, lineWidth: 1.5)
+                .frame(width: 93, height: 17)
+                .overlay(
+                    ZStack {
+                        Circle().fill(accent.opacity(0.15))
+                        Circle().strokeBorder(accent, lineWidth: 1.5)
+                        Circle().fill(accent).frame(width: 3, height: 3)
+                    }
+                    .frame(width: 14, height: 14)
+                    .offset(x: 93 / 2 - 7 - 7)
+                )
+                .rotationEffect(.degrees(-9))
+
+            // Skanner-stråle
+            RoundedRectangle(cornerRadius: 1)
+                .fill(LinearGradient(colors: [.clear, accent, accent, .clear],
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(height: 2)
+                .shadow(color: accent.opacity(0.5), radius: 6)
+                .padding(.horizontal, 6)
+                .offset(y: beamDown ? (fieldH / 2 - 8) : -(fieldH / 2 - 8))
+        }
+        .frame(width: fieldW, height: fieldH)
+    }
+}
+
+// Fire hjørne-braketter som rammer inn skanne-området (uten bakgrunnsfelt).
+struct ScanCorners: Shape {
+    var len: CGFloat = 12
+    var inset: CGFloat = 6
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let x0 = rect.minX + inset, x1 = rect.maxX - inset
+        let y0 = rect.minY, y1 = rect.maxY
+        let l = len
+        // Topp venstre
+        p.move(to: CGPoint(x: x0, y: y0 + l)); p.addLine(to: CGPoint(x: x0, y: y0)); p.addLine(to: CGPoint(x: x0 + l, y: y0))
+        // Topp høyre
+        p.move(to: CGPoint(x: x1 - l, y: y0)); p.addLine(to: CGPoint(x: x1, y: y0)); p.addLine(to: CGPoint(x: x1, y: y0 + l))
+        // Bunn venstre
+        p.move(to: CGPoint(x: x0, y: y1 - l)); p.addLine(to: CGPoint(x: x0, y: y1)); p.addLine(to: CGPoint(x: x0 + l, y: y1))
+        // Bunn høyre
+        p.move(to: CGPoint(x: x1 - l, y: y1)); p.addLine(to: CGPoint(x: x1, y: y1)); p.addLine(to: CGPoint(x: x1, y: y1 - l))
+        return p
     }
 }
 

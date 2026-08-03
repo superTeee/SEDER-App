@@ -151,6 +151,45 @@ object ScanRepository {
         return candidates.filter { it.wrapperLeaf?.lowercase() == w.lowercase() }.singleOrNull()
     }
 
+    /**
+     * Myk wrapper-booster: gjetter wrapper fra bildet, matcher kandidatene
+     * (eksakt blad, ellers samme farge-nyanse), og returnerer et entydig
+     * auto-treff PLUSS ID-ene til alle sannsynlige kandidater. Kaller kan da
+     * løfte disse øverst i listen uten å droppe de andre.
+     */
+    suspend fun resolveWrapperBoost(candidates: List<Cigar>, imageJpeg: ByteArray): WrapperBoost {
+        val b64 = Base64.encodeToString(imageJpeg, Base64.NO_WRAP)
+        val guess: WrapperGuess = runCatching {
+            Supa.client.functions.invoke("scan-cigar", ModeReq(image = b64, mode = "wrapper")).body<WrapperGuess>()
+        }.getOrNull() ?: return WrapperBoost(null, emptySet())
+        val w = guess.wrapper?.lowercase() ?: return WrapperBoost(null, emptySet())
+
+        var matches = candidates.filter { (it.wrapperLeaf?.lowercase() ?: "") == w }
+        if (matches.isEmpty()) {
+            val shade = wrapperShade(w)
+            if (shade != null) {
+                matches = candidates.filter { wrapperShade(it.wrapperLeaf?.lowercase() ?: "") == shade }
+            }
+        }
+        val auto = if (matches.size == 1) matches.first() else null
+        return WrapperBoost(auto, matches.map { it.id }.toSet())
+    }
+
+    // Grov nyanse-bøtte (lys/medium/mørk). Farge forteller nyansen ganske
+    // pålitelig, men ikke eksakt type — derfor kun et mykt fallback-signal.
+    private fun wrapperShade(leaf: String): String? {
+        val s = leaf.lowercase()
+        val mork = listOf("maduro", "broadleaf", "oscuro", "san andrés", "san andres")
+        val lys = listOf("connecticut shade", "ecuador connecticut", "shade", "candela", "claro", "connecticut")
+        val medium = listOf("habano", "corojo", "sumatra", "cameroon", "colorado", "sungrown", "rosado", "ecuadorian", "havana")
+        return when {
+            mork.any { s.contains(it) } -> "mørk"
+            lys.any { s.contains(it) } -> "lys"
+            medium.any { s.contains(it) } -> "medium"
+            else -> null
+        }
+    }
+
     // MARK: - AI-fallback via edge function
 
     private suspend fun scanWithAI(imageJpeg: ByteArray, ocrText: String): Pair<List<ScanHit>, Cigar?> {
@@ -257,6 +296,10 @@ data class ScanOutcome(
 )
 
 data class ScanHit(val cigar: Cigar, val reason: String, val exact: Boolean, val confidence: Double = 0.0)
+
+// Resultat av den myke wrapper-boosteren: entydig auto-treff (om noe) + ID-ene
+// til alle sannsynlige kandidater som skal løftes øverst.
+data class WrapperBoost(val auto: Cigar?, val matchedIds: Set<String>)
 
 @Serializable
 private data class ScanReq(val image: String, val ocr_text: String = "")

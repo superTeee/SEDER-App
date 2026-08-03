@@ -235,9 +235,17 @@ fun ExploreScreen(
         if (bmp == null || pending == null) return@rememberLauncherForActivityResult
         scanning = true
         scope.launch {
-            val resolved = runCatching { ScanRepository.resolveWrapper(pending.candidates, bitmapToJpeg(bmp)) }.getOrNull()
+            val boost = runCatching { ScanRepository.resolveWrapperBoost(pending.candidates, bitmapToJpeg(bmp)) }.getOrNull()
             scanning = false
-            if (resolved != null) resolveTo(resolved.id) else scanResults = pending.hits
+            val auto = boost?.auto
+            if (auto != null) {
+                resolveTo(auto.id)
+            } else {
+                // Myk booster: løft wrapper-treffene øverst, behold resten under.
+                val ids = boost?.matchedIds ?: emptySet()
+                scanResults = if (ids.isEmpty()) pending.hits
+                    else pending.hits.sortedByDescending { it.cigar.id in ids }
+            }
         }
     }
 
@@ -439,17 +447,9 @@ fun ExploreScreen(
         )
     }
 
-    // Skanner-overlay mens AI-en jobber.
+    // Skanner-overlay mens AI-en jobber — stilren stegvis loader (speiler iOS).
     if (scanning) {
-        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f)),
-            contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = Color.White)
-                Spacer(Modifier.height(14.dp))
-                Text("Gjenkjenner sigaren…", color = Color.White,
-                    style = MaterialTheme.typography.bodyLarge)
-            }
-        }
+        com.tomerikheggedal.vitola.ui.components.ScanLoader()
     }
 
     // Flere kandidater → la brukeren velge.
