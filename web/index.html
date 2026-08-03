@@ -75,6 +75,12 @@
   .store:hover{border-color:var(--accent); transform:translateY(-2px)}
   .store small{display:block; font-size:11px; color:var(--muted); font-weight:500; letter-spacing:.02em}
   .store b{font-size:15px}
+  .soon-card{display:inline-flex; align-items:center; gap:15px; max-width:520px;
+    background:linear-gradient(180deg, rgba(224,164,0,.12), rgba(224,164,0,.05));
+    border:1px solid rgba(224,164,0,.38); border-radius:16px; padding:18px 22px}
+  .soon-card .soon-icon{font-size:24px; line-height:1}
+  .soon-card .txt b{display:block; font-family:var(--serif); font-weight:500; font-size:18px; color:var(--ink); margin-bottom:3px; letter-spacing:-.01em}
+  .soon-card .txt span{display:block; color:var(--muted); font-size:14px; line-height:1.55}
   .note{font-size:13px; color:var(--muted); margin-top:20px; letter-spacing:.01em}
   .scroll-hint{position:absolute; bottom:34px; left:50%; transform:translateX(-50%); color:var(--muted); font-size:11px;
     letter-spacing:.22em; text-transform:uppercase; display:flex; flex-direction:column; align-items:center; gap:10px}
@@ -240,12 +246,11 @@
         <span class="eyebrow-tag">Shazam for sigarer</span>
         <h1>Din digitale humidor og <em>sigarjournal</em>.</h1>
         <p class="lead">Skann båndet med AI, følg med på fuktigheten, loggfør hver røyk, og del favorittene dine — ett gjennomtenkt sted for sigaren du nyter nå og samlingen du bygger.</p>
-        <div class="stores">
-          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Last ned på</small><b>App Store</b></span></a>
-          <a class="store" href="#" data-store="testflight"><span>✈️</span><span><small>Beta via</small><b>TestFlight</b></span></a>
-          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Hent den for</small><b>Android</b></span></a>
+        <div class="soon-card" data-reveal>
+          <span class="soon-icon">🚀</span>
+          <div class="txt"><b>Kommer snart</b><span>SEDER lanseres på App Store og Google Play i løpet av kort tid.</span></div>
         </div>
-        <p class="note">Nedlastingslenker blir aktive ved lansering. SEDER er kun for personer over 18 år.</p>
+        <p class="note">SEDER er kun for personer over 18 år.</p>
       </div>
     </div>
     <div class="scroll-hint"><span>Bla ned</span><span class="line"></span></div>
@@ -307,12 +312,12 @@
   <section id="download" class="band">
     <div class="wrap split">
       <div data-reveal>
-        <p class="eyebrow"><span class="idx">(04)</span> Last ned</p>
+        <p class="eyebrow"><span class="idx">(04)</span> Kommer snart</p>
         <h2 class="section-title">Hele samlingen, <em>i lomma</em></h2>
-        <p class="section-sub">SEDER er tilgjengelig for iPhone og Android. Last ned og logg inn med Apple, Google eller e-post.</p>
-        <div class="stores">
-          <a class="store" href="#" data-store="ios"><span>🍎</span><span><small>Last ned på</small><b>App Store</b></span></a>
-          <a class="store" href="#" data-store="android"><span>🤖</span><span><small>Hent den for</small><b>Android</b></span></a>
+        <p class="section-sub">SEDER kommer snart til iPhone og Android. Logg inn med Apple, Google eller e-post når appen er ute.</p>
+        <div class="soon-card" data-reveal>
+          <span class="soon-icon">🚀</span>
+          <div class="txt"><b>Kommer snart</b><span>SEDER lanseres på App Store og Google Play i løpet av kort tid.</span></div>
         </div>
       </div>
       <div class="split-mark" data-reveal><img src="assets/vitola-mark.png" alt="SEDER" /></div>
