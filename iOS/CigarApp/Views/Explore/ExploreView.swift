@@ -342,7 +342,16 @@ struct ExploreView: View {
                         : "Fra skann: \(String(scanService.extractedText.prefix(200)))"
                 ) { cigar in
                     guard let userId = authService.userId else { return }
+                    // Lær av det mislykkede skannet: knytt OCR-teksten + bånd-bildet til
+                    // den nye sigaren. Siden brukeren er kilden (created_by), blir OCR-teksten
+                    // alias med en gang, så samme bånd matcher neste gang.
+                    let ocr = scanService.extractedText
+                    let band = capturedImage?.jpegData(compressionQuality: 0.8)
                     Task {
+                        if !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            await cigarService.resolveScan(
+                                ocrText: ocr, cigarId: cigar.id, userId: userId, bandImage: band)
+                        }
                         let hs = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
                         if let h = hs.first {
                             _ = try? await humidorService.addToHumidor(

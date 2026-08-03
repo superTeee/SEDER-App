@@ -487,7 +487,15 @@ fun ExploreScreen(
             onDismiss = { showScanManualAdd = false },
             onCreated = { newId ->
                 showScanManualAdd = false
+                val ctx = scanCtx
                 scope.launch {
+                    // Lær av det mislykkede skannet: knytt OCR-tekst + bånd-bilde til den nye
+                    // sigaren. Brukeren er kilden, så OCR-teksten blir alias med en gang.
+                    ctx?.let { (ocr, jpg) ->
+                        if (ocr.isNotBlank()) runCatching {
+                            ScanRepository.resolveScan(ocr, newId, jpg)
+                        }
+                    }
                     val humidors = runCatching { HumidorRepository.myHumidors() }
                         .getOrDefault(emptyList())
                     humidors.firstOrNull()?.let { h ->
