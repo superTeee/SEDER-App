@@ -36,6 +36,7 @@ fun FilterSheet(
     var draft by remember { mutableStateOf(initial) }
     var count by remember { mutableStateOf<Int?>(null) }
     var showVitolaGuide by remember { mutableStateOf(false) }
+    var showWrapperGuide by remember { mutableStateOf(false) }
 
     // Live antall treff — debounced når filteret endres.
     LaunchedEffect(draft) {
@@ -80,6 +81,7 @@ fun FilterSheet(
                 ChipSection("Opphav", CigarFilter.ORIGIN, draft.origin,
                     onToggle = { draft = draft.copy(origin = draft.origin.toggle(it)) })
                 ChipSection("Wrapper", CigarFilter.WRAPPER, draft.wrapper,
+                    onInfo = { showWrapperGuide = true },
                     onToggle = { draft = draft.copy(wrapper = draft.wrapper.toggle(it)) })
                 ChipSection("Binder", CigarFilter.BINDER, draft.binder,
                     onToggle = { draft = draft.copy(binder = draft.binder.toggle(it)) })
@@ -130,6 +132,7 @@ fun FilterSheet(
     }
 
     if (showVitolaGuide) VitolaGuideDialog { showVitolaGuide = false }
+    if (showWrapperGuide) WrapperGuideDialog { showWrapperGuide = false }
 }
 
 // Varm tan bak valgt chip — samme som iOS (#E0D2BA). Fast, uansett tema.
@@ -271,6 +274,90 @@ private fun VitolaGuideDialog(onDismiss: () -> Unit) {
                         Text(CigarFilter.VITOLA_SIZES[v] ?: "–",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        }
+    )
+}
+
+// Dekkblad-guide: opphav, typiske smaksnoter og et kort kjennetegn per wrapper.
+// Fargeprøven til venstre er en pekepinn på hvor lyst/mørkt bladet er. Speiler iOS.
+private data class WrapInfo(
+    val name: String, val origin: String, val notes: String, val info: String, val color: Color
+)
+
+private val WRAPPER_GUIDE = listOf(
+    WrapInfo("Connecticut Shade", "USA (Connecticut) / Ecuador",
+        "Mild, kremet, nøtter, gress, hvit pepper",
+        "Skyggedyrket under duk for et tynt, lyst og silkeaktig blad. Det mildeste alternativet — trygt for nybegynnere.",
+        Color(0xFFD8B98A)),
+    WrapInfo("Ecuador Connecticut", "Ecuador (Connecticut-frø)",
+        "Mild–medium, kremet, nøtter, lett sødme",
+        "Connecticut-frø dyrket under Ecuadors naturlige skydekke. Litt fyldigere enn ekte Connecticut Shade, men fortsatt mildt.",
+        Color(0xFFC8A56A)),
+    WrapInfo("Colorado Claro", "Fargenyanse (variabelt opphav)",
+        "Balansert, nøtter, sedertre, mild sødme",
+        "Egentlig en fargebeskrivelse (lys rødbrun), ikke et sted. Kjennetegner et middels modent, godt balansert dekkblad.",
+        Color(0xFFB07A46)),
+    WrapInfo("Cameroon", "Kamerun / Vest-Afrika",
+        "Krydder, sort pepper, kakao, tørket frukt",
+        "Sjeldent og lunefullt å dyrke. Kjent for en distinkt krydret sødme og et fint, kornete utseende.",
+        Color(0xFF8A4E26)),
+    WrapInfo("Habano", "Nicaragua / Ecuador (cubansk frø)",
+        "Pepper, krydder, sedertre, fyldig, kraftig",
+        "Cubansk-frø-dekkblad dyrket utenfor Cuba. Kraftfullt og krydret — ryggraden i mange fyldige sigarer.",
+        Color(0xFF7A3E1F)),
+    WrapInfo("Corojo", "Honduras / Nicaragua (cubansk sort)",
+        "Pepper, krydder, lær, kraftig, tørr finish",
+        "Klassisk cubansk sort, i dag mest dyrket i Honduras og Nicaragua. Krydret og robust.",
+        Color(0xFF733A1C)),
+    WrapInfo("Sumatra", "Ecuador / Indonesia (Sumatra)",
+        "Medium, jord, krydder, lær, lett sødme",
+        "Mørkt, litt krydret blad. Ecuador-dyrket Sumatra er mildere; indonesisk er kraftigere.",
+        Color(0xFF5E3A1E)),
+    WrapInfo("San Andrés", "Mexico (San Andrés-dalen)",
+        "Mørk sjokolade, kaffe, jord, pepper, sødme",
+        "Meksikansk maduro-blad, ofte solmodnet og ekstra fermentert. Rikt og mørkt.",
+        Color(0xFF3E2617)),
+    WrapInfo("Broadleaf", "USA (Connecticut Broadleaf)",
+        "Mørk sjokolade, kaffe, karamell, pepprig finish",
+        "Robust, tykt blad som fermenteres til en mørk maduro med naturlig sødme. En klassiker i maduro-sigarer.",
+        Color(0xFF2E1B10)),
+    WrapInfo("Maduro", "Metode (ofte Broadleaf / San Andrés)",
+        "Sjokolade, kaffe, karamell, espresso, sødme",
+        "«Maduro» betyr moden. Lengre fermentering med varme og trykk gir et mørkt, søtt og fyldig blad — en metode, ikke et opphav.",
+        Color(0xFF241511)),
+)
+
+@Composable
+private fun WrapperGuideDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Lukk") } },
+        title = { Text("Dekkblad-guide", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text("Dekkbladet står for mye av smaken — fra lyst og mildt til mørkt og kraftig. Fargen er en pekepinn, ikke en fasit.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(10.dp))
+                WRAPPER_GUIDE.forEach { w ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Box(Modifier.size(30.dp).clip(CircleShape).background(w.color))
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(w.name, style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold)
+                            Text(w.origin, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(3.dp))
+                            Text(w.notes, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                            Spacer(Modifier.height(2.dp))
+                            Text(w.info, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }

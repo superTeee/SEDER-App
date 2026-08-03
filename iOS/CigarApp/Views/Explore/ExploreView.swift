@@ -1133,6 +1133,7 @@ struct AdvancedFilterSheet: View {
     @State private var showAllNotes    = false
     @State private var showAllSection  = false
     @State private var showVitolaGuide = false
+    @State private var showWrapperGuide = false
 
     private let initialCount = 6
 
@@ -1202,7 +1203,8 @@ struct AdvancedFilterSheet: View {
                     sectionDivider()
                     chipSection(title: "OPPHAV",  options: originOptions,  selection: $countryOrigin,  showAll: $showAllOrigin)
                     sectionDivider()
-                    chipSection(title: "WRAPPER", options: wrapperOptions, selection: $wrapperCountry, showAll: $showAllWrapper)
+                    chipSection(title: "WRAPPER", options: wrapperOptions, selection: $wrapperCountry, showAll: $showAllWrapper,
+                                infoAction: { showWrapperGuide = true })
                     sectionDivider()
                     chipSection(title: "BINDER",  options: binderOptions,  selection: $binder,         showAll: $showAllBinder)
                     sectionDivider()
@@ -1252,6 +1254,9 @@ struct AdvancedFilterSheet: View {
         .background(Color("Card"))
         .sheet(isPresented: $showVitolaGuide) {
             VitolaGuideSheet()
+        }
+        .sheet(isPresented: $showWrapperGuide) {
+            WrapperGuideSheet()
         }
     }
 
@@ -1464,6 +1469,149 @@ struct VitolaGuideSheet: View {
             }
             .background(Color("Background"))
             .navigationTitle("SEDER-guide")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Lukk") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - WrapperGuideSheet
+//
+// Dekkbladet er det ytterste bladet på sigaren, og står for en stor del av smaken.
+// Her forklarer vi de vanligste typene: opphav, typiske smaksnoter og et kort
+// kjennetegn. Fargeprøven til venstre er en pekepinn på hvor lyst/mørkt bladet er.
+
+struct WrapperGuideSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private struct Wrap: Identifiable {
+        let name: String
+        let origin: String
+        let notes: String
+        let info: String
+        let hex: String      // omtrentlig farge på dekkbladet
+        var id: String { name }
+    }
+
+    // Lyst → mørkt, så listen leses som en fargeskala fra mild til kraftig.
+    private let wrappers: [Wrap] = [
+        .init(name: "Connecticut Shade",
+              origin: "USA (Connecticut) / Ecuador",
+              notes: "Mild, kremet, nøtter, gress, hvit pepper",
+              info: "Skyggedyrket under duk for et tynt, lyst og silkeaktig blad. Det mildeste alternativet — et trygt valg til morgenkaffen og for nybegynnere.",
+              hex: "#D8B98A"),
+        .init(name: "Ecuador Connecticut",
+              origin: "Ecuador (Connecticut-frø)",
+              notes: "Mild–medium, kremet, nøtter, lett sødme",
+              info: "Connecticut-frø dyrket under Ecuadors naturlige skydekke. Litt fyldigere og mer smaksrikt enn ekte Connecticut Shade, men fortsatt mildt.",
+              hex: "#C8A56A"),
+        .init(name: "Colorado Claro",
+              origin: "Fargenyanse (variabelt opphav)",
+              notes: "Balansert, nøtter, sedertre, mild sødme",
+              info: "Egentlig en fargebeskrivelse (lys rødbrun), ikke et sted. Kjennetegner et middels modent, godt balansert dekkblad.",
+              hex: "#B07A46"),
+        .init(name: "Cameroon",
+              origin: "Kamerun / Vest-Afrika",
+              notes: "Krydder, sort pepper, kakao, tørket frukt",
+              info: "Sjeldent og lunefullt å dyrke. Kjent for en distinkt krydret sødme og et fint, kornete utseende.",
+              hex: "#8A4E26"),
+        .init(name: "Habano",
+              origin: "Nicaragua / Ecuador (cubansk frø)",
+              notes: "Pepper, krydder, sedertre, fyldig, kraftig",
+              info: "Cubansk-frø-dekkblad dyrket utenfor Cuba. Kraftfullt og krydret — ryggraden i mange fyldige sigarer.",
+              hex: "#7A3E1F"),
+        .init(name: "Corojo",
+              origin: "Honduras / Nicaragua (cubansk sort)",
+              notes: "Pepper, krydder, lær, kraftig, tørr finish",
+              info: "Klassisk cubansk sort, i dag mest dyrket i Honduras og Nicaragua. Krydret og robust.",
+              hex: "#733A1C"),
+        .init(name: "Sumatra",
+              origin: "Ecuador / Indonesia (Sumatra)",
+              notes: "Medium, jord, krydder, lær, lett sødme",
+              info: "Mørkt, litt krydret blad. Ecuador-dyrket Sumatra er mildere; indonesisk er kraftigere.",
+              hex: "#5E3A1E"),
+        .init(name: "San Andrés",
+              origin: "Mexico (San Andrés-dalen)",
+              notes: "Mørk sjokolade, kaffe, jord, pepper, sødme",
+              info: "Meksikansk maduro-blad, ofte solmodnet og ekstra fermentert. Rikt og mørkt.",
+              hex: "#3E2617"),
+        .init(name: "Broadleaf",
+              origin: "USA (Connecticut Broadleaf)",
+              notes: "Mørk sjokolade, kaffe, karamell, pepprig finish",
+              info: "Robust, tykt blad som fermenteres til en mørk maduro med naturlig sødme. En klassiker i maduro-sigarer.",
+              hex: "#2E1B10"),
+        .init(name: "Maduro",
+              origin: "Metode (ofte Broadleaf / San Andrés)",
+              notes: "Sjokolade, kaffe, karamell, espresso, sødme",
+              info: "«Maduro» betyr moden. Lengre fermentering med varme og trykk gir et mørkt, søtt og fyldig blad — en metode, ikke et opphav.",
+              hex: "#241511")
+    ]
+
+    private var accent: Color { colorScheme == .dark ? Color("Accent") : Color(hex: "#8F7B51") }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Dekkbladet er sigarens ytterste blad og står for mye av smaken. Her er de vanligste typene — fra lyst og mildt til mørkt og kraftig — med opphav, typiske smaksnoter og et kort kjennetegn. Fargen er en pekepinn, ikke en fasit.")
+                        .font(.footnote)
+                        .foregroundColor(Color(.secondaryLabel))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
+
+                    ForEach(wrappers) { w in
+                        VStack(alignment: .leading, spacing: 9) {
+                            HStack(spacing: 12) {
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(Color(hex: w.hex))
+                                    .frame(width: 36, height: 36)
+                                    .overlay(RoundedRectangle(cornerRadius: 7)
+                                        .stroke(Color(.separator), lineWidth: 0.5))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(w.name)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(Color(.label))
+                                    Text(w.origin)
+                                        .font(.caption)
+                                        .foregroundColor(Color(.secondaryLabel))
+                                }
+                                Spacer(minLength: 0)
+                            }
+
+                            HStack(alignment: .top, spacing: 6) {
+                                Image(systemName: "circle.hexagongrid.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(accent)
+                                    .padding(.top, 1)
+                                Text(w.notes)
+                                    .font(.caption.weight(.medium))
+                                    .foregroundColor(accent)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Text(w.info)
+                                .font(.footnote)
+                                .foregroundColor(Color(.secondaryLabel))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color("Card")))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+            .background(Color("Background"))
+            .navigationTitle("Dekkblad-guide")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
