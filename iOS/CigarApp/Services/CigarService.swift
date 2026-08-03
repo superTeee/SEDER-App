@@ -1087,7 +1087,10 @@ class TastingService: ObservableObject {
     /// Én samlet «løs skanning»-handling: last opp bånd-bildet (om vi har det)
     /// og registrer koblingen. Kalles når brukeren velger riktig sigar.
     func resolveScan(ocrText: String, cigarId: UUID, userId: UUID?, bandImage: Data?) async {
-        guard !ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        // Kjør hvis vi har enten tekst ELLER et bånd-bilde. Grafiske bånd uten tekst
+        // gir ingen alias, men bildet lagres til fremtidig visuell matching.
+        let hasText = !ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        guard hasText || bandImage != nil else { return }
         var path: String? = nil
         if let bandImage, let userId {
             path = try? await uploadBandSample(userId: userId, imageData: bandImage)

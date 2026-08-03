@@ -348,7 +348,9 @@ struct ExploreView: View {
                     let ocr = scanService.extractedText
                     let band = capturedImage?.jpegData(compressionQuality: 0.8)
                     Task {
-                        if !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        // Lagre både tekst og bilde. Grafiske bånd uten tekst: bildet
+                        // lagres uansett, så lenge vi har et bånd-bilde.
+                        if !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || band != nil {
                             await cigarService.resolveScan(
                                 ocrText: ocr, cigarId: cigar.id, userId: userId, bandImage: band)
                         }

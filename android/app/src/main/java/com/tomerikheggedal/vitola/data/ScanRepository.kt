@@ -119,7 +119,9 @@ object ScanRepository {
 
     /** Registrer at brukeren løste en skanning: kobling bånd→sigar + bilde. */
     suspend fun resolveScan(ocrText: String, cigarId: String, imageJpeg: ByteArray?) {
-        if (ocrText.isBlank()) return
+        // Kjør hvis vi har enten tekst ELLER et bånd-bilde. Grafiske bånd uten tekst
+        // gir ingen alias, men bildet lagres til fremtidig visuell matching.
+        if (ocrText.isBlank() && imageJpeg == null) return
         runCatching {
             val path = imageJpeg?.let { uploadBandSample(it) }
             Supa.client.postgrest.rpc("record_scan_resolution", buildJsonObject {

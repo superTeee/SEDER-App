@@ -492,7 +492,8 @@ fun ExploreScreen(
                     // Lær av det mislykkede skannet: knytt OCR-tekst + bånd-bilde til den nye
                     // sigaren. Brukeren er kilden, så OCR-teksten blir alias med en gang.
                     ctx?.let { (ocr, jpg) ->
-                        if (ocr.isNotBlank()) runCatching {
+                        // Grafiske bånd uten tekst: lagre bildet uansett så lenge vi har det.
+                        if (ocr.isNotBlank() || jpg != null) runCatching {
                             ScanRepository.resolveScan(ocr, newId, jpg)
                         }
                     }
