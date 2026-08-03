@@ -83,6 +83,7 @@ struct ExploreView: View {
     // Kvittering-flyt (global, gjenbruker ReceiptService + ReceiptConfirmView)
     private let humidorService = HumidorService()
     private let receiptService = ReceiptService()
+    private let tastingService = TastingService()
     @State private var humidors: [Humidor] = []
     @State private var receiptImage: UIImage?
     @State private var showReceiptCamera  = false
@@ -489,7 +490,7 @@ struct ExploreView: View {
         let hasText = !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         Task {
             if hasText || band != nil {
-                await cigarService.resolveScan(
+                await tastingService.resolveScan(
                     ocrText: ocr, cigarId: cigar.id, userId: userId, bandImage: band)
             }
             let hs = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
