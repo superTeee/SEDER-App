@@ -429,7 +429,7 @@ struct ScanningOverlay: View {
     @State private var textVisible = true
 
     private let steps = ["Skanner sigarbeltet", "Skanner dekkblad", "Søker i basen"]
-    private let cycle = Timer.publish(every: 2.6, on: .main, in: .common).autoconnect()
+    private let cycle = Timer.publish(every: 4.6, on: .main, in: .common).autoconnect()
 
     private var cardBackground: Color { colorScheme == .light ? .white : Color("Card") }
     private var accent: Color { Color("Accent") }

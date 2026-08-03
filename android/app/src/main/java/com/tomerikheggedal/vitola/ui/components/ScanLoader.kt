@@ -48,7 +48,7 @@ fun ScanLoader() {
     val steps = listOf("Skanner sigarbeltet", "Skanner dekkblad", "Søker i basen")
     var idx by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
-        while (true) { delay(2600); idx = (idx + 1) % steps.size }
+        while (true) { delay(4600); idx = (idx + 1) % steps.size }
     }
 
     val accent = MaterialTheme.colorScheme.primary
