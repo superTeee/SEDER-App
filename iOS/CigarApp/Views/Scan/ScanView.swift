@@ -441,7 +441,7 @@ struct ScanningOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.5).ignoresSafeArea()
-            VStack(spacing: 24) {
+            VStack(spacing: 40) {
                 scanField
                 Text(steps[stepIndex])
                     .font(.system(size: 17, design: .serif))

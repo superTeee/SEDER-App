@@ -118,7 +118,7 @@ fun ScanLoader() {
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(40.dp))
 
             Crossfade(targetState = steps[idx], animationSpec = tween(700), label = "scanStep") { s ->
                 Text(
