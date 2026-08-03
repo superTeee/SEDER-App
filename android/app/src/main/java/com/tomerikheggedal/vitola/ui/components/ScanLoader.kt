@@ -70,7 +70,7 @@ fun ScanLoader() {
         Column(
             Modifier
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
-                .padding(horizontal = 28.dp, vertical = 26.dp),
+                .padding(horizontal = 44.dp, vertical = 42.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ── Skanne-vindu (uten bakgrunn) ──
@@ -118,13 +118,13 @@ fun ScanLoader() {
                 )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
 
             Crossfade(targetState = steps[idx], animationSpec = tween(700), label = "scanStep") { s ->
                 Text(
                     s,
                     color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 17.sp)
                 )
             }
         }

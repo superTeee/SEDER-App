@@ -441,16 +441,16 @@ struct ScanningOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.5).ignoresSafeArea()
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 scanField
                 Text(steps[stepIndex])
-                    .font(.system(size: 14, design: .serif))
+                    .font(.system(size: 17, design: .serif))
                     .foregroundColor(Color("TextPrimary"))
                     .opacity(textVisible ? 1 : 0)
-                    .frame(minHeight: 20)
+                    .frame(minHeight: 22)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 26)
+            .padding(.horizontal, 44)
+            .padding(.vertical, 42)
             .background(cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
