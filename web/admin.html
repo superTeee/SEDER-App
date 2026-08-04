@@ -220,8 +220,10 @@ async function loadDekning() {
     <div class="card"><div class="row">
       <div style="min-width:0"><div>${esc(trunc(g.sample_ocr || g.norm_text))}</div>
         <div class="muted" style="font-size:12px">${esc(trunc(g.norm_text, 70))}</div></div>
-      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span class="count">${g.misses}×</span>
+        <button title="Sigaren er publisert – fjern fra bom-lista" style="border:1px solid #BBE3CC;background:#EAF7F0;padding:6px 12px;border-radius:8px;color:#2E9E68;font-size:13px;font-weight:600;cursor:pointer"
+          onclick="markScanPublished('${esc(g.norm_text)}')">Publisert ✓</button>
         <button title="Fjern (støy)" style="border:1px solid #E7C3BE;background:#FBEEEC;padding:6px 12px;border-radius:8px;color:#b9433a;font-size:13px;cursor:pointer"
           onclick="deleteScanGap('${esc(g.norm_text)}')">Slett</button>
       </div>
@@ -234,6 +236,15 @@ async function deleteScanGap(normText) {
   loadDekning();
 }
 window.deleteScanGap = deleteScanGap;
+
+// «Publisert ✓» = sigaren er lagt inn og publisert; fjern bommen fra Dekning-lista.
+// (Samme opprydding som Slett, men positiv semantikk — den ekte sigaren ligger nå
+// i Publisert-fanen som en vanlig rad.)
+async function markScanPublished(normText) {
+  await db.rpc("admin_delete_scan_gap", { p_norm_text: normText });
+  loadDekning();
+}
+window.markScanPublished = markScanPublished;
 
 // ---- Datahull ----
 const FIELDS = [
