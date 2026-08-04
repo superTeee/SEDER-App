@@ -231,17 +231,18 @@ async function loadDekning() {
 }
 
 async function deleteScanGap(normText) {
-  if (!confirm("Fjerne denne bom-oppføringen? (fjerner den fra listen)")) return;
-  await db.rpc("admin_delete_scan_gap", { p_norm_text: normText });
+  if (!confirm("Fjerne denne bom-oppføringen fra lista? (påvirker ikke treffrate/statistikk)")) return;
+  // Skjuler bommen fra arbeidslista uten å slette skann-historikken.
+  await db.rpc("admin_resolve_scan_gap", { p_norm_text: normText });
   loadDekning();
 }
 window.deleteScanGap = deleteScanGap;
 
 // «Publisert ✓» = sigaren er lagt inn og publisert; fjern bommen fra Dekning-lista.
-// (Samme opprydding som Slett, men positiv semantikk — den ekte sigaren ligger nå
-// i Publisert-fanen som en vanlig rad.)
+// Skjuler bommen uten å røre skann-historikken (så treffrate/skann/bom står stille).
+// Den ekte sigaren ligger nå i Publisert-fanen som en vanlig rad.
 async function markScanPublished(normText) {
-  await db.rpc("admin_delete_scan_gap", { p_norm_text: normText });
+  await db.rpc("admin_resolve_scan_gap", { p_norm_text: normText });
   loadDekning();
 }
 window.markScanPublished = markScanPublished;
