@@ -31,3 +31,4 @@ supabase/.temp
 # API-nøkler – aldri i git
 .env
 _git_lock_trash/
+CHAT_HANDOFF.md
