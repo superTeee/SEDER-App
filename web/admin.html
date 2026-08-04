@@ -54,6 +54,27 @@
   .fl-add{display:flex;gap:8px;margin-top:8px}
   .fl-add input{flex:1}
   .fl-add button{white-space:nowrap}
+  /* Gamification: framdriftsbar for datahull */
+  .gapgame{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;margin-bottom:16px}
+  .gg-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .gg-title{font-size:14px;font-weight:600}
+  .gg-pct{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;transition:color .5s}
+  .gg-track{position:relative;height:22px;border-radius:12px;background:#EFEBE0;
+    overflow:hidden;border:1px solid var(--line)}
+  .gg-fill{position:absolute;top:0;left:0;bottom:0;width:0;border-radius:12px;
+    transition:width .8s cubic-bezier(.2,.8,.2,1),background .8s}
+  .gg-ms{position:relative;height:20px;margin-top:8px}
+  .gg-flag{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--muted);
+    text-align:center;line-height:1.15;transition:color .4s}
+  .gg-flag b{display:block;font-weight:600}
+  .gg-flag.hit{color:#2E9E68}
+  .gg-flag.hit b{color:#2E9E68}
+  .gg-sub{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);
+    margin-bottom:10px;font-variant-numeric:tabular-nums}
+  .gg-nudge{margin-top:14px;background:#F4F1E8;border-left:3px solid #3FBF7F;
+    border-radius:8px;padding:9px 12px;font-size:13px}
+  .gg-nudge b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -100,6 +121,21 @@
 
     <section id="tab-datahull" class="hidden">
       <div class="note">Offentlige sigarer som mangler felt appen viser. Fyll bare tomme felt — oppgi alltid kilde-URL (produsentens side).</div>
+
+      <div class="gapgame" id="gapgame" style="display:none">
+        <div class="gg-head">
+          <span class="gg-title">Datahull tettet</span>
+          <span class="gg-pct" id="gg-pct">–</span>
+        </div>
+        <div class="gg-sub">
+          <span>Komplette: <b id="gg-done" style="color:var(--ink)">–</b></span>
+          <span>Igjen: <b id="gg-gap" style="color:var(--ink)">–</b></span>
+        </div>
+        <div class="gg-track"><div class="gg-fill" id="gg-fill"></div></div>
+        <div class="gg-ms" id="gg-ms"></div>
+        <div class="gg-nudge" id="gg-nudge"></div>
+      </div>
+
       <div id="gaps-total" class="muted" style="margin-bottom:8px">Laster…</div>
       <input id="gaps-search" placeholder="Søk merke eller sigar…" oninput="onGapSearch(this.value)" style="margin-bottom:12px" />
       <div id="gaps-data"></div>
@@ -132,6 +168,7 @@ async function boot() {
   show("app-main");
   loadDekning();
   loadDatahull();
+  loadGapProgress();
 }
 
 // ---- Auth ----
@@ -252,6 +289,68 @@ function addFlavorNote(i, id){
   renderFlavorChips(i, id, "");
 }
 
+// ---- Gamification: framdriftsbar (Konsept B) ----
+const GG_MS = [25, 50, 75, 90, 100];
+let ggFlagsBuilt = false;
+
+// Fargeovergang rød -> gul -> grønn ut fra prosent tettet.
+function ggColor(pct) {
+  const stops = [[224,87,79],[232,161,58],[63,191,127]]; // rød, gul, grønn
+  const t = Math.max(0, Math.min(100, pct)) / 100;
+  const seg = t < 0.5 ? 0 : 1;
+  const lt = t < 0.5 ? t / 0.5 : (t - 0.5) / 0.5;
+  const a = stops[seg], b = stops[seg + 1];
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * lt));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+async function loadGapProgress() {
+  const { data, error } = await db.rpc("admin_gap_stats");
+  const box = $("gapgame");
+  if (error || !data || !data.length) { if (box) box.style.display = "none"; return; }
+  const row = Array.isArray(data) ? data[0] : data;
+  const total = row.total_public || 0;
+  const gap = row.gap_count || 0;
+  const done = (row.complete != null) ? row.complete : (total - gap);
+  if (!total) { box.style.display = "none"; return; }
+  const pct = done / total * 100;
+
+  box.style.display = "";
+
+  // Bygg milepæl-flagg én gang.
+  if (!ggFlagsBuilt) {
+    $("gg-ms").innerHTML = GG_MS.map(p =>
+      `<span class="gg-flag" data-p="${p}" style="left:${p}%"><b>${p}%</b>${p===100?"🏁":""}</span>`
+    ).join("");
+    ggFlagsBuilt = true;
+  }
+
+  const pctEl = $("gg-pct");
+  pctEl.textContent = pct.toFixed(1).replace(".", ",") + " %";
+  pctEl.style.color = ggColor(pct);
+
+  $("gg-done").textContent = done.toLocaleString("no-NO");
+  $("gg-gap").textContent = gap.toLocaleString("no-NO");
+
+  const fill = $("gg-fill");
+  fill.style.width = pct + "%";
+  fill.style.background = `linear-gradient(90deg, ${ggColor(Math.max(0, pct-18))}, ${ggColor(pct)})`;
+
+  document.querySelectorAll("#gg-ms .gg-flag").forEach(f => {
+    f.classList.toggle("hit", pct >= +f.dataset.p);
+  });
+
+  // Nudge: neste milepæl, oversatt til «antall sigarer igjen».
+  const nudge = $("gg-nudge");
+  const next = GG_MS.find(p => pct < p);
+  if (next == null) {
+    nudge.innerHTML = "🎉 <b>Alle hull tettet!</b> Hele katalogen er komplett.";
+  } else {
+    const trengs = Math.ceil(total * next / 100) - done;
+    nudge.innerHTML = `Bare <b>${trengs.toLocaleString("no-NO")} sigarer</b> igjen til <b>${next}%</b> tettet.`;
+  }
+}
+
 let gapSearchTimer = null;
 function onGapSearch(v) {
   // Debounce så vi ikke spør basen på hvert tastetrykk.
@@ -361,6 +460,7 @@ async function saveFill(i, cigarId) {
   if (error) { $(`msg-${i}`).textContent = "Feil: " + error.message; return; }
   clearDraft(cigarId);   // lagret OK → fjern utkastet
   loadDatahull();
+  loadGapProgress();     // oppdater framdriftsbaren når et hull tettes
 }
 
 // ---- Publisert (rediger allerede publiserte sigarer) ----
