@@ -100,6 +100,8 @@
 
     <section id="tab-datahull" class="hidden">
       <div class="note">Offentlige sigarer som mangler felt appen viser. Fyll bare tomme felt — oppgi alltid kilde-URL (produsentens side).</div>
+      <div id="gaps-total" class="muted" style="margin-bottom:8px">Laster…</div>
+      <input id="gaps-search" placeholder="Søk merke eller sigar…" oninput="onGapSearch(this.value)" style="margin-bottom:12px" />
       <div id="gaps-data"></div>
     </section>
 
@@ -250,10 +252,38 @@ function addFlavorNote(i, id){
   renderFlavorChips(i, id, "");
 }
 
-async function loadDatahull() {
-  const { data: gaps } = await db.rpc("admin_data_gaps");
+let gapSearchTimer = null;
+function onGapSearch(v) {
+  // Debounce så vi ikke spør basen på hvert tastetrykk.
+  clearTimeout(gapSearchTimer);
+  gapSearchTimer = setTimeout(() => loadDatahull(v), 300);
+}
+
+async function loadDatahull(search) {
+  // Behold gjeldende søk ved reload (f.eks. etter «Publiser i app»).
+  if (search === undefined) search = ($("gaps-search") ? $("gaps-search").value : "") || "";
+  const q = search.trim() ? search.trim() : null;
+  const params = { p_search: q };
+
+  const [{ data: gaps }, { data: total }] = await Promise.all([
+    db.rpc("admin_data_gaps", params),
+    db.rpc("admin_data_gaps_count", params),
+  ]);
+
+  const totalEl = $("gaps-total");
+  if (totalEl) {
+    const n = total ?? (gaps ? gaps.length : 0);
+    const vist = gaps ? gaps.length : 0;
+    totalEl.textContent = `Totalt ${n} sigarer med hull` + (n > vist ? ` · viser ${vist}` : "");
+  }
+
   const box = $("gaps-data");
-  if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen hull. 🎉</div>'; return; }
+  if (!gaps || !gaps.length) {
+    box.innerHTML = q
+      ? `<div class="card muted">Ingen treff for «${esc(q)}».</div>`
+      : '<div class="card muted">Ingen hull. 🎉</div>';
+    return;
+  }
   box.innerHTML = gaps.map((g, i) => {
     const navn = g.cigar_navn && g.cigar_navn.length ? g.cigar_navn : g.brand;
     const chips = (g.missing || []).map(m => `<span class="chip">${esc(m)}</span>`).join("");
