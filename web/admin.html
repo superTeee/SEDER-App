@@ -75,6 +75,17 @@
   .gg-nudge{margin-top:14px;background:#F4F1E8;border-left:3px solid #3FBF7F;
     border-radius:8px;padding:9px 12px;font-size:13px}
   .gg-nudge b{color:var(--ink)}
+  /* Datahull gruppert per merke (sammenleggbart) */
+  .brand-group{border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:10px;overflow:hidden}
+  .brand-head{cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:10px;padding:13px 16px;font-weight:600}
+  .brand-head::-webkit-details-marker{display:none}
+  .brand-head::before{content:"▸";color:var(--muted);font-size:12px;transition:transform .15s;display:inline-block}
+  .brand-group[open] .brand-head::before{transform:rotate(90deg)}
+  .brand-group[open] .brand-head{border-bottom:1px solid var(--line)}
+  .brand-name{flex:1}
+  .brand-count{font-size:12px;font-weight:600;color:var(--accent-dark);background:#F0ECE2;border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .brand-body{padding:12px 12px 4px}
+  .brand-body .card{margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -383,52 +394,72 @@ async function loadDatahull(search) {
       : '<div class="card muted">Ingen hull. 🎉</div>';
     return;
   }
-  box.innerHTML = gaps.map((g, i) => {
-    const navn = g.cigar_navn && g.cigar_navn.length ? g.cigar_navn : g.brand;
-    const chips = (g.missing || []).map(m => `<span class="chip">${esc(m)}</span>`).join("");
-    // Vis kun feltene som faktisk mangler (matcher «X mangler»); fyll aldri det som finnes.
-    const allowed = new Set();
-    (g.missing || []).forEach(m => (MISSING_TO_FIELDS[m] || []).forEach(k => allowed.add(k)));
-    const shownFields = allowed.size ? FIELDS.filter(([k]) => allowed.has(k)) : FIELDS;
-    const d = getDraft(g.id);
-    const av = (k) => esc(d[k] || "");
-    const fields = shownFields.map(([k,label,type]) => {
-      if (k === "flavor_notes") return `
-        <div style="grid-column:1/-1"><label class="f">Smaksnoter</label>
-          <div class="flavor-ms" data-i="${i}" data-id="${g.id}">
-            <input class="fl-search" placeholder="Søk smaksnoter…" oninput="renderFlavorChips(${i},'${g.id}',this.value)" />
-            <div class="fl-chips" id="fl-chips-${i}"></div>
-            <div class="fl-add">
-              <input id="fl-new-${i}" placeholder="Ny note (tekst)" />
-              <button type="button" class="ghost" onclick="addFlavorNote(${i},'${g.id}')">+ Legg til</button>
-            </div>
-          </div></div>`;
-      return `
-      <div><label class="f">${label}</label>${
-        type === "textarea"
-          ? `<textarea id="f-${i}-${k}" rows="2" oninput="saveDraft('${g.id}','${k}',this.value)">${av(k)}</textarea>`
-          : `<input id="f-${i}-${k}" type="${type}" ${type==="number"?'step="any"':''} value="${av(k)}" oninput="saveDraft('${g.id}','${k}',this.value)" />`
-      }</div>`;
+  // Grupper hullene per merke i sammenleggbare seksjoner (antall vises i overskriften).
+  // Behold global indeks i, som brukes i element-IDer (f-${i}-...) og flavor-chips.
+  const groups = new Map();
+  gaps.forEach((g, i) => {
+    const b = g.brand || "(ukjent merke)";
+    if (!groups.has(b)) groups.set(b, []);
+    groups.get(b).push({ g, i });
+  });
+  box.innerHTML = [...groups.entries()]
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "no"))
+    .map(([brand, items]) => {
+      const apen = items.some(({ g }) => Object.keys(getDraft(g.id)).length > 0);
+      const antall = items.length;
+      const cards = items.map(({ g, i }) => renderGapCard(g, i)).join("");
+      return `<details class="brand-group"${apen ? " open" : ""}>`
+        + `<summary class="brand-head"><span class="brand-name">${esc(brand)}</span>`
+        + `<span class="brand-count">${antall} ${antall === 1 ? "sigar" : "sigarer"}</span></summary>`
+        + `<div class="brand-body">${cards}</div></details>`;
     }).join("");
-    const hasDraft = Object.keys(d).length > 0;
-    return `<div class="card">
-      <div class="row"><div><strong>${esc(navn)}</strong>
-        <span class="muted"> · ${esc(g.brand)}</span></div>
-        <div class="count">${g.gap_count} mangler</div></div>
-      <div style="margin-top:6px">${chips}</div>
-      <details ${hasDraft ? "open" : ""}><summary>Fyll inn</summary>
-        <div class="grid2">${fields}</div>
-        <div style="margin-top:10px"><label class="f">Kilde-URL (produsentens side) *</label>
-          <input id="f-${i}-src" type="url" placeholder="https://..." value="${av("src")}" oninput="saveDraft('${g.id}','src',this.value)" /></div>
-        <div id="msg-${i}" class="note"></div>
-        <div style="display:flex;gap:8px">
-          <button onclick="saveLocal(${i}, '${g.id}')">Lagre</button>
-          <button class="primary" onclick="saveFill(${i}, '${g.id}')">Publiser i app</button>
-        </div>
-      </details>
-    </div>`;
-  }).join("");
   gaps.forEach((g, i) => renderFlavorChips(i, g.id, ""));
+}
+
+function renderGapCard(g, i) {
+  const navn = g.cigar_navn && g.cigar_navn.length ? g.cigar_navn : g.brand;
+  const chips = (g.missing || []).map(m => `<span class="chip">${esc(m)}</span>`).join("");
+  // Vis kun feltene som faktisk mangler (matcher «X mangler»); fyll aldri det som finnes.
+  const allowed = new Set();
+  (g.missing || []).forEach(m => (MISSING_TO_FIELDS[m] || []).forEach(k => allowed.add(k)));
+  const shownFields = allowed.size ? FIELDS.filter(([k]) => allowed.has(k)) : FIELDS;
+  const d = getDraft(g.id);
+  const av = (k) => esc(d[k] || "");
+  const fields = shownFields.map(([k,label,type]) => {
+    if (k === "flavor_notes") return `
+      <div style="grid-column:1/-1"><label class="f">Smaksnoter</label>
+        <div class="flavor-ms" data-i="${i}" data-id="${g.id}">
+          <input class="fl-search" placeholder="Søk smaksnoter…" oninput="renderFlavorChips(${i},'${g.id}',this.value)" />
+          <div class="fl-chips" id="fl-chips-${i}"></div>
+          <div class="fl-add">
+            <input id="fl-new-${i}" placeholder="Ny note (tekst)" />
+            <button type="button" class="ghost" onclick="addFlavorNote(${i},'${g.id}')">+ Legg til</button>
+          </div>
+        </div></div>`;
+    return `
+    <div><label class="f">${label}</label>${
+      type === "textarea"
+        ? `<textarea id="f-${i}-${k}" rows="2" oninput="saveDraft('${g.id}','${k}',this.value)">${av(k)}</textarea>`
+        : `<input id="f-${i}-${k}" type="${type}" ${type==="number"?'step="any"':''} value="${av(k)}" oninput="saveDraft('${g.id}','${k}',this.value)" />`
+    }</div>`;
+  }).join("");
+  const hasDraft = Object.keys(d).length > 0;
+  return `<div class="card">
+    <div class="row"><div><strong>${esc(navn)}</strong>
+      <span class="muted"> · ${esc(g.brand)}</span></div>
+      <div class="count">${g.gap_count} mangler</div></div>
+    <div style="margin-top:6px">${chips}</div>
+    <details ${hasDraft ? "open" : ""}><summary>Fyll inn</summary>
+      <div class="grid2">${fields}</div>
+      <div style="margin-top:10px"><label class="f">Kilde-URL (produsentens side) *</label>
+        <input id="f-${i}-src" type="url" placeholder="https://..." value="${av("src")}" oninput="saveDraft('${g.id}','src',this.value)" /></div>
+      <div id="msg-${i}" class="note"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveLocal(${i}, '${g.id}')">Lagre</button>
+        <button class="primary" onclick="saveFill(${i}, '${g.id}')">Publiser i app</button>
+      </div>
+    </details>
+  </div>`;
 }
 
 // «Lagre» = behold lokalt utkast (feltene autolagres allerede løpende; dette
