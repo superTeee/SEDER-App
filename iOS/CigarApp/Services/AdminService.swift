@@ -21,6 +21,8 @@ final class AdminService: ObservableObject {
     @Published private(set) var reports: [AdminReport] = []
     @Published private(set) var submissions: [AdminSubmission] = []
     @Published private(set) var gaps: [CigarGap] = []
+    /// Ekte totaltall (respekterer søk), uavhengig av 300-grensen på lista.
+    @Published private(set) var gapsTotal = 0
     @Published private(set) var scanHitrate: ScanHitrate?
     @Published private(set) var scanGaps: [ScanGap] = []
     @Published private(set) var isLoading = false
@@ -61,16 +63,29 @@ final class AdminService: ObservableObject {
     // Offentlige rader som mangler noe appen viser. Verst først. Egen last, så
     // køen ikke må vente på 300 rader hver gang admin åpner skjermen.
 
-    func loadGaps() async {
+    struct GapSearchParam: Encodable { let p_search: String? }
+
+    /// Laster hull-lista (topp 300, verst først) og det ekte totaltallet ved
+    /// siden av. Et valgfritt søk filtrerer begge på merke/serie/vitola.
+    func loadGaps(search: String = "") async {
         guard isAdmin else { return }
         isLoading = true
         defer { isLoading = false }
 
+        let trimmet = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        let param = GapSearchParam(p_search: trimmet.isEmpty ? nil : trimmet)
+
         let g: [CigarGap]? = await attempt("admin_data_gaps") {
-            let svar = try await supabase.rpc("admin_data_gaps").execute()
+            let svar = try await supabase.rpc("admin_data_gaps", params: param).execute()
             return try SupabaseDecoder.shared.decode([CigarGap].self, from: svar.data)
         }
+        let total: Int? = await attempt("admin_data_gaps_count") {
+            let svar = try await supabase.rpc("admin_data_gaps_count", params: param).execute()
+            return try SupabaseDecoder.shared.decode(Int.self, from: svar.data)
+        }
+
         gaps = g ?? []
+        gapsTotal = total ?? gaps.count
     }
 
     // MARK: - Skann-dekning

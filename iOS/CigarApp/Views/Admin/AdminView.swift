@@ -316,52 +316,66 @@ private struct SkannDekningView: View {
 private struct DatahullView: View {
     @ObservedObject var admin: AdminService
     @State private var valgt: CigarGap?
+    @State private var sok = ""
+    @State private var sokJobb: Task<Void, Never>?
 
     var body: some View {
-        Group {
+        List {
             if admin.isLoading && admin.gaps.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if admin.gaps.isEmpty {
-                tomt
+                Section {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                        .padding(.vertical, 24)
+                        .listRowBackground(Color.clear)
+                }
             } else {
-                List {
-                    Section {
+                Section {
+                    if admin.gaps.isEmpty {
+                        Text(sok.trimmingCharacters(in: .whitespaces).isEmpty
+                             ? "Ingen hull — alle offentlige sigarer har feltene appen viser."
+                             : "Ingen treff for «\(sok)».")
+                            .font(.subheadline)
+                            .foregroundColor(Color(.secondaryLabel))
+                    } else {
                         ForEach(admin.gaps) { hull in
                             Button { valgt = hull } label: { GapRow(hull: hull) }
                                 .buttonStyle(.plain)
                         }
-                    } header: {
-                        Text("\(admin.gaps.count) sigarer mangler noe")
-                    } footer: {
-                        Text("Verst først. Trykk for å tette hullene. Fylling retter ikke eksisterende verdier — den fyller bare tomme felt.")
                     }
+                } header: {
+                    HStack {
+                        Text("Totalt \(admin.gapsTotal) sigarer med hull")
+                            .font(.footnote.weight(.semibold))
+                        Spacer()
+                        if admin.gapsTotal > admin.gaps.count {
+                            Text("viser \(admin.gaps.count)")
+                                .font(.footnote)
+                                .foregroundColor(Color(.tertiaryLabel))
+                        }
+                    }
+                    .textCase(nil)
+                } footer: {
+                    Text("Verst først. Trykk for å tette hullene. Fylling retter ikke eksisterende verdier — den fyller bare tomme felt.")
                 }
-                .listStyle(.insetGrouped)
-                .refreshable { await admin.loadGaps() }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .searchable(text: $sok,
+                    placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: "Søk merke eller sigar")
+        .refreshable { await admin.loadGaps(search: sok) }
+        .onChange(of: sok) { _, ny in
+            // Liten debounce så vi ikke spør basen på hvert tastetrykk.
+            sokJobb?.cancel()
+            sokJobb = Task {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                if Task.isCancelled { return }
+                await admin.loadGaps(search: ny)
             }
         }
         .task { if admin.gaps.isEmpty { await admin.loadGaps() } }
         .sheet(item: $valgt) { hull in
             CigarFillSheet(hull: hull, admin: admin)
         }
-    }
-
-    private var tomt: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "checkmark.seal")
-                .font(.system(size: 34))
-                .foregroundColor(Color(.tertiaryLabel))
-            Text("Ingen hull")
-                .font(.headline)
-                .foregroundColor(Color(.secondaryLabel))
-            Text("Alle offentlige sigarer har de feltene appen viser.")
-                .font(.subheadline)
-                .foregroundColor(Color(.tertiaryLabel))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
