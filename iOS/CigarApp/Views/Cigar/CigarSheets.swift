@@ -603,7 +603,7 @@ struct SmokingLogSheet: View {
                             )
                             dismiss()
                         } label: {
-                            Text("Logg røykesession")
+                            Text("Loggfør sigar")
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)

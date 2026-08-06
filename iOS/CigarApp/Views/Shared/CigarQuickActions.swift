@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - CigarQuickActions
 // Gjenbrukbar long-press-hurtigmeny for et listeelement som representerer en sigar.
-// Handlinger: Legg i humidor · Marker som røkt · Legg i ønskeliste · Del.
+// Handlinger: Legg i humidor · Loggfør sigar · Legg i ønskeliste · Del.
 // Bruk: .cigarQuickActions(cigar) på en rad/kort (f.eks. en NavigationLink).
 
 struct CigarQuickActions: ViewModifier {
@@ -37,7 +37,7 @@ struct CigarQuickActions: ViewModifier {
                     Label("Legg i humidor", systemImage: "archivebox")
                 }
                 Button { requireLogin { showLogSmoked = true } } label: {
-                    Label("Marker som røkt", systemImage: "flame")
+                    Label("Loggfør sigar", systemImage: "square.and.pencil")
                 }
                 Button { requireLogin { addToWishlist() } } label: {
                     Label("Legg i ønskeliste", systemImage: "bookmark")
@@ -62,7 +62,7 @@ struct CigarQuickActions: ViewModifier {
                 SmokingLogSheet(cigar: cigar, userId: authService.userId) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
                     guard let uid = authService.userId else { return }
                     Task {
-                        let logId = await attempt("Marker som røkt") {
+                        let logId = await attempt("Loggfør sigar") {
                             try await humidorService.logTastingForCigar(
                                 cigarId: cigar.id, userId: uid, smokedAt: smokedAt, rating: rating,
                                 smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,

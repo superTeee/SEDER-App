@@ -440,8 +440,8 @@ struct CigarDetailViewDesign: View {
             if entry != nil {
                 Button { showSmokingSheet = true } label: {
                     HStack {
-                        Image(systemName: "flame.fill")
-                        Text("Marker som røkt").fontWeight(.semibold)
+                        Image(systemName: "square.and.pencil")
+                        Text("Loggfør sigar").fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -468,8 +468,8 @@ struct CigarDetailViewDesign: View {
                         showLogSmokedSheet = true
                     } label: {
                         HStack {
-                            Image(systemName: "flame.fill")
-                            Text("Marker som røkt").fontWeight(.semibold)
+                            Image(systemName: "square.and.pencil")
+                            Text("Loggfør sigar").fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 16)
                         .background(surfacePrimary).foregroundColor(action)
