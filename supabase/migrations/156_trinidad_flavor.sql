@@ -1,0 +1,11 @@
+-- 156: Trinidad (cubansk) — erstatt 'Tobacco'-placeholder med ekte smaksnoter + friske beskrivelser.
+-- Overskriver bevisst placeholder-data for de 9 nåværende cubanske Trinidad-seriene.
+UPDATE public.cigars SET flavor_notes = ARRAY['Cedar','Honey','Cream','Floral','Citrus']::text[], description = 'En mellomsterk cubansk sigar, med toner av seder, honning, fløte og blomster.' WHERE brand='Trinidad' AND series='Reyes';
+UPDATE public.cigars SET flavor_notes = ARRAY['Cedar','Coffee','Cocoa','Cream','Spice']::text[], description = 'En mellomsterk cubansk sigar, med toner av seder, kaffe, kakao og fløte.' WHERE brand='Trinidad' AND series='Vigia';
+UPDATE public.cigars SET flavor_notes = ARRAY['Honey','Cedar','Cream','Coffee','White Pepper']::text[], description = 'En mellomsterk cubansk sigar, med toner av honning, seder, fløte og kaffe.' WHERE brand='Trinidad' AND series='Media Luna';
+UPDATE public.cigars SET flavor_notes = ARRAY['Coffee','Cocoa','Cedar','Leather','Pepper']::text[], description = 'En mellomsterk cubansk sigar, med toner av kaffe, kakao, seder og lær.' WHERE brand='Trinidad' AND series='Topes';
+UPDATE public.cigars SET flavor_notes = ARRAY['Cedar','Honey','Coffee','Cream','Baking Spice']::text[], description = 'En mellomsterk cubansk sigar, med toner av seder, honning, kaffe og fløte.' WHERE brand='Trinidad' AND series='Coloniales';
+UPDATE public.cigars SET flavor_notes = ARRAY['Cedar','Coffee','Cream','Honey','Floral']::text[], description = 'En mellomsterk cubansk sigar, med toner av seder, kaffe, fløte og honning.' WHERE brand='Trinidad' AND series='Esmeralda';
+UPDATE public.cigars SET flavor_notes = ARRAY['Cedar','Coffee','Leather','Cocoa','Honey']::text[], description = 'En mellomsterk cubansk sigar, med toner av seder, kaffe, lær og kakao.' WHERE brand='Trinidad' AND series='Robustos Extra';
+UPDATE public.cigars SET flavor_notes = ARRAY['Honey','Cedar','Coffee','Cream','Floral']::text[], description = 'En mellomsterk cubansk sigar, med toner av honning, seder, kaffe og fløte.' WHERE brand='Trinidad' AND series='La Trova';
+UPDATE public.cigars SET flavor_notes = ARRAY['Cedar','Honey','Coffee','Floral','Baking Spice']::text[], description = 'En mellomsterk cubansk sigar, med toner av seder, honning, kaffe og blomster.' WHERE brand='Trinidad' AND series='Fundadores';
