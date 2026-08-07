@@ -575,7 +575,7 @@ struct UserProfileView: View {
     private var lastSmokedSection: some View {
         if let log = lastLog, let cigar = log.cigar {
             VStack(alignment: .leading, spacing: 0) {
-                sectionHeader("Sist røkt")
+                sectionHeader("Sist i journal")
                 HStack(alignment: .top, spacing: 14) {
                     // Ikon eller bilde
                     if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {

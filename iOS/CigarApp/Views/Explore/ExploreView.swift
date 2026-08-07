@@ -1363,7 +1363,7 @@ struct AdvancedFilterSheet: View {
     // ── Røyketid (multi-select) ──
     private var smokingTimeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("RØYKETID")
+            Text("VARIGHET")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)

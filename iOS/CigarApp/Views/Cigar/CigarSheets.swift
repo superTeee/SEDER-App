@@ -465,7 +465,7 @@ struct SmokingLogSheet: View {
 
                     // ── Smoke again ───────────────────────────────────
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Ville røkt igjen?")
+                        Text("Prøve igjen?")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -625,7 +625,7 @@ struct SmokingLogSheet: View {
                     .padding(.bottom, 32)
                 }
             }
-            .navigationTitle("Har røkt den")
+            .navigationTitle("Loggfør sigar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

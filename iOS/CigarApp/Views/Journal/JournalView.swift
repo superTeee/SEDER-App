@@ -205,9 +205,9 @@ struct JournalView: View {
             Image(systemName: "book.closed")
                 .font(.system(size: 60))
                 .foregroundColor(Color("TextSecondary").opacity(0.4))
-            Text("Ingen røykte sigarer ennå")
+            Text("Ingen oppføringer ennå")
                 .font(.title3.bold())
-            Text("Gå til en sigar i humidoren\nog trykk «Har røkt den»")
+            Text("Gå til en sigar og trykk «Loggfør sigar»")
                 .font(.subheadline)
                 .foregroundColor(Color("TextSecondary"))
                 .multilineTextAlignment(.center)
@@ -560,7 +560,7 @@ struct EditLogSheet: View {
 
                     // ── Smoke again ───────────────────────────────────
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Ville røkt igjen?")
+                        Text("Prøve igjen?")
                             .font(.subheadline).foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         HStack(spacing: 10) {
@@ -818,7 +818,7 @@ struct StatistikkView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                    statCard(label: "Røkt totalt", value: "\(s.totalLogged)")
+                    statCard(label: "Registrert totalt", value: "\(s.totalLogged)")
                     statCard(label: "Merker prøvd", value: "\(s.brandsTried)")
                     statCard(label: "Snittscore", value: s.avgScore.map { "\($0)" } ?? "–")
                     statCard(label: "Humidor-verdi", value: "\(kr(s.humidorValue)) kr")
@@ -850,7 +850,7 @@ struct StatistikkView: View {
                 }
 
                 if !s.topBrands.isEmpty {
-                    statSection("Mest røkte merker") {
+                    statSection("Mest registrerte merker") {
                         let maxN = s.topBrands.map(\.n).max() ?? 1
                         VStack(spacing: 10) {
                             ForEach(s.topBrands) { b in
