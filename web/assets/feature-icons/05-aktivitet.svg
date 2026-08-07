@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="7 7 83 83" role="img" aria-label="Aktivitet"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="7 7 83 83" role="img" aria-label="Oppslag"
      fill="none" stroke="#000000" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-  <title>Aktivitet</title>
-  <!-- Person -->
-  <circle cx="30" cy="48" r="11"/>
-  <path d="M14 82 C 14 67 21 61 30 61 C 39 61 46 67 46 82"/>
-  <!-- Snakkeboble med et innlegg -->
-  <rect x="46" y="14" width="38" height="30" rx="9"/>
-  <path d="M58 44 L54 53 L66 44"/>
-  <line x1="54" y1="25" x2="78" y2="25"/>
-  <line x1="54" y1="33" x2="70" y2="33"/>
+  <title>Oppslag</title>
+  <!-- Åpen bok (oppslag/referanse) -->
+  <path d="M48 30 C 41 25 32 24 22 26 L22 68 C 32 66 41 67 48 72"/>
+  <path d="M48 30 C 55 25 64 24 74 26 L74 68 C 64 66 55 67 48 72"/>
+  <line x1="48" y1="30" x2="48" y2="72"/>
+  <line x1="29" y1="37" x2="41" y2="39"/>
+  <line x1="29" y1="47" x2="41" y2="49"/>
+  <line x1="55" y1="39" x2="67" y2="37"/>
+  <line x1="55" y1="49" x2="67" y2="47"/>
 </svg>
