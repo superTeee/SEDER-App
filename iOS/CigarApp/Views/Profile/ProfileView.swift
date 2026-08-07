@@ -50,7 +50,7 @@ struct ProfileView: View {
             Text("Du er ikke innlogget")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(Color("TextPrimary"))
-            Text("Logg inn for å se profilen din, lagre sigarer og koble deg til venner.")
+            Text("Logg inn for å se profilen din, lagre sigarer og bygge samlingen din.")
                 .font(.subheadline)
                 .foregroundColor(Color("TextSecondary"))
                 .multilineTextAlignment(.center)

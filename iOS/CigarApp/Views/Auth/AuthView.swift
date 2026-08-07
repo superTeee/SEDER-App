@@ -302,7 +302,7 @@ struct CompleteProfileView: View {
                 } header: {
                     Text("E-post")
                 } footer: {
-                    Text("Fyll inn navnet ditt så vennene dine finner deg.")
+                    Text("Fyll inn navnet ditt så profilen din blir personlig.")
                 }
 
                 Section("Navn") {

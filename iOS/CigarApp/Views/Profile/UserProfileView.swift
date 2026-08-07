@@ -45,8 +45,6 @@ struct UserProfileView: View {
 
     private let profileService = ProfileService()
     private let favoriteService = FavoriteService()
-    private let friendService = FriendService()
-    @State private var friendRequestSent = false
 
     // Samme farge som smaksnote-ikonene: #8F7B51 i lys modus, accent i mørk.
     private var accentIconColor: Color {
@@ -89,19 +87,6 @@ struct UserProfileView: View {
                         Image(systemName: "gearshape")
                             .foregroundColor(Color("TextPrimary"))
                     }
-                }
-            } else {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        guard !friendRequestSent else { return }
-                        friendRequestSent = true
-                        Task { try? await friendService.requestFriendship(userId: userId) }
-                    } label: {
-                        Label(friendRequestSent ? "Forespørsel sendt" : "Legg til venn",
-                              systemImage: friendRequestSent ? "checkmark" : "person.badge.plus")
-                            .foregroundColor(Color("Accent"))
-                    }
-                    .disabled(friendRequestSent)
                 }
             }
         }
@@ -367,19 +352,6 @@ struct UserProfileView: View {
                 statCell(icon: "star.fill", value: myFavorites.count, label: "Favoritter")
             }
 
-            statDivider()
-
-            // Venner → VennerView (kun navigasjon på egen profil)
-            if isOwnProfile {
-                NavigationLink {
-                    VennerView().environmentObject(authService)
-                } label: {
-                    statCell(icon: "person.2", value: p.friendCount, label: "Venner")
-                }
-                .buttonStyle(.plain)
-            } else {
-                statCell(icon: "person.2.fill", value: p.friendCount, label: "Venner")
-            }
         }
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity)
@@ -939,8 +911,8 @@ struct MerkerView: View {
                            icon: "hand.thumbsup", earned: false),
             SecondaryBadge(id: 3, title: "Pioner", subtitle: "Legg til nye sigarer",
                            icon: "plus.circle", earned: false),
-            SecondaryBadge(id: 4, title: "Ambassadør", subtitle: "Verv 3 venner",
-                           icon: "person.2.badge.plus", earned: false),
+            SecondaryBadge(id: 4, title: "Samler", subtitle: "100+ i samlingen",
+                           icon: "archivebox", earned: false),
         ]
     }
 
