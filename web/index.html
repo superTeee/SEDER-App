@@ -420,7 +420,7 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ---- Screenshots: drop 1.png … 5.png into web/screenshots/. Missing ones show a placeholder. ----
-const shotLabels = ["Utforsk","Humidor & RF","Smaksjournal","Aktivitet","Sigardetalj"];
+const shotLabels = ["Utforsk","Humidor & RF","Smaksjournal","Oppslag","Sigardetalj"];
 document.getElementById('shots').innerHTML = shotLabels.map((label,i)=>{
   const n=i+1;
   return `<div class="phone"><div class="screen">
