@@ -1125,6 +1125,18 @@ class TastingService: ObservableObject {
             path = try? await uploadBandSample(userId: userId, imageData: bandImage)
         }
         await recordScanResolution(ocrText: ocrText, cigarId: cigarId, imagePath: path)
+
+        // Lær bildet VISUELT (best effort): be edge-funksjonen lage et 512-d
+        // embedding av båndet og feste det på prøven vi nettopp lagret. Da kan
+        // neste skann av et lignende bånd foreslå akkurat denne sigaren.
+        // Feiler stille — skal aldri velte skanne-flyten.
+        if let path {
+            struct EmbedAck: Decodable { let ok: Bool? }
+            let _: EmbedAck? = try? await supabase.functions.invoke(
+                "embed-band",
+                options: .init(body: ["storage_path": path, "cigar_id": cigarId.uuidString])
+            )
+        }
     }
 
     // URL til delbart log-kort (Edge Function)

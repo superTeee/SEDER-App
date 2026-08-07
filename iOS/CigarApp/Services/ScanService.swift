@@ -142,6 +142,14 @@ class ScanService: ObservableObject {
             errorMessage = "Scanning feilet: \(error.localizedDescription)"
         }
 
+        // Visuell båndgjenkjenning (siste utvei): fant vi ingenting via OCR/tekst/
+        // GPT, sammenlign selve bånd-bildet mot bånd andre har løst før. Redder
+        // grafiske bånd uten tekst (f.eks. Cavalier) som skanneren ellers bommer på.
+        if errorMessage == nil && scanResults.isEmpty {
+            await visualBandMatch(image: image)
+            scanResults.sort { $0.confidence > $1.confidence }
+        }
+
         // Ferdig uten treff, men uten teknisk feil → vis den vennlige «ingen
         // treff»-skjermen i stedet for en tørr feil-alert.
         if errorMessage == nil && scanResults.isEmpty {
@@ -548,6 +556,31 @@ class ScanService: ObservableObject {
         }
     }
 
+    // MARK: - Visuell båndgjenkjenning (siste utvei)
+    // Sender bånd-bildet til edge-funksjonen embed-band, som lager et 512-d
+    // "visuelt fingeravtrykk" og finner sigarer med lignende bånd blant alt
+    // som andre brukere har løst før. Fanger bånd uten (lesbar) tekst.
+    private func visualBandMatch(image: UIImage) async {
+        guard let data = image.jpegData(compressionQuality: 0.7) else { return }
+        let base64 = data.base64EncodedString()
+        do {
+            let res: BandMatchResponse = try await supabase.functions
+                .invoke("embed-band", options: .init(body: ["image": base64]))
+            for s in (res.suggestions ?? []) {
+                if scanResults.contains(where: { $0.cigar.id == s.cigarId }) { continue }
+                if let cigar = try? await cigarService.fetchCigar(id: s.cigarId) {
+                    scanResults.append(ScanResult(
+                        cigar: cigar,
+                        confidence: min(s.similarity, 0.95),
+                        matchReason: "Ligner et bånd andre har skannet"
+                    ))
+                }
+            }
+        } catch {
+            print("⚠️ Visuell båndmatch feilet: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Eksplisitt variant-gjenkjenning fra OCR-tekst
     // Returnerer cigaren hvis AKKURAT ÉN av treffene har en serie som
     // faktisk står skrevet i OCR-teksten fra båndet.
@@ -599,6 +632,23 @@ class ScanService: ObservableObject {
 
         return min(max(score, 0.0), 1.0)
     }
+}
+
+// MARK: - Visuell båndmatch (respons fra embed-band edge function)
+struct BandSuggestion: Decodable {
+    let cigarId: UUID
+    let similarity: Double
+    let nSamples: Int
+    enum CodingKeys: String, CodingKey {
+        case cigarId   = "cigar_id"
+        case similarity
+        case nSamples  = "n_samples"
+    }
+}
+
+struct BandMatchResponse: Decodable {
+    let signature: String?
+    let suggestions: [BandSuggestion]?
 }
 
 // MARK: - AI Match (respons fra Edge Function)
