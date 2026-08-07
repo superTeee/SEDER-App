@@ -289,6 +289,7 @@ struct CigarDetailViewDesign: View {
     private var hasPhoto: Bool {
         if let p = entry?.photoURL, !p.isEmpty { return true }
         if let p = cigar.productImageUrl, !p.isEmpty { return true }
+        if let p = cigar.bandImageUrl, !p.isEmpty { return true }
         return false
     }
 
@@ -306,6 +307,14 @@ struct CigarDetailViewDesign: View {
                         .scaledToFill()
                         .id(photoURL)
                 } else if let productURL = cigar.productImageUrl, let url = URL(string: productURL) {
+                    KFImage(url)
+                        .resizable()
+                        .placeholder { Rectangle().fill(surfacePrimary) }
+                        .fade(duration: 0.15)
+                        .scaledToFill()
+                } else if let bandURL = cigar.bandImageUrl, let url = URL(string: bandURL) {
+                    // Skann-bilde (fra en tidligere skanning) — vises når sigaren
+                    // ikke har noe kuratert produktbilde og du ikke har lastet opp eget.
                     KFImage(url)
                         .resizable()
                         .placeholder { Rectangle().fill(surfacePrimary) }
