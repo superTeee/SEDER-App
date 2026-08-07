@@ -5,12 +5,17 @@ import SwiftUI
 // Finner du ikke sigaren, skal du ikke bli stående fast. Du legger den inn selv,
 // og den virker umiddelbart i din humidor og journal.
 //
-// Men den skrives IKKE rett inn i det delte oppslagsverket. Raden opprettes
-// privat (`is_public = false`, `created_by = deg`), og samtidig sendes et
-// forslag til review-køen. Godkjennes det, blir den en del av basen for alle.
+// Men FØRST prøver vi å koble deg til en sigar som allerede finnes i basen:
+// mens du skriver merke og serie foreslår vi treff fra oppslagsverket, og velger
+// du ett av dem, kobles oppføringen rett til den eksisterende raden — med ferdig
+// metadata (land, dekkblad, styrke ...). Det er nettopp dette som redder deg når
+// skanneren ikke fant et grafisk bånd uten tekst: skriv «Cavalier» → «White
+// Series», og velg den faktiske sigaren fra basen.
 //
-// Uten det skillet ville databasen blitt full av dubletter og gjetninger —
-// nøyaktig den feilen vi bruker uker på å rydde opp i.
+// Skriver du inn en sigar som IKKE finnes, opprettes raden privat
+// (`is_public = false`, `created_by = deg`), og et forslag sendes til review-køen.
+// Godkjennes det, blir den en del av basen for alle. Uten det skillet ville
+// databasen blitt full av dubletter og gjetninger.
 
 struct AddCigarSheet: View {
 
@@ -20,7 +25,7 @@ struct AddCigarSheet: View {
     /// Forhåndsutfylt notat (f.eks. OCR-tekst fra et skann som ikke ga treff).
     var prefillNote: String = ""
 
-    /// Kalles med den nye sigaren når den er opprettet.
+    /// Kalles med sigaren når den er opprettet ELLER koblet til en eksisterende rad.
     var onCreated: (Cigar) -> Void = { _ in }
 
     @EnvironmentObject var authService: AuthService
@@ -38,6 +43,14 @@ struct AddCigarSheet: View {
 
     @State private var isSaving = false
     @State private var errorMessage: String?
+
+    // Autocomplete-tilstand
+    private enum Field: Hashable { case brand, series, vitola }
+    @FocusState private var focus: Field?
+    @State private var brandMatches: [String] = []   // merke-forslag mens du skriver merke
+    @State private var seriesMatches: [String] = []  // serie-forslag for valgt merke
+    @State private var dbCigars: [Cigar] = []        // eksisterende offentlige sigarer å koble til
+    @State private var searchTask: Task<Void, Never>? = nil
 
     private let cigarService = CigarService()
 
@@ -76,10 +89,31 @@ struct AddCigarSheet: View {
                 Section {
                     TextField("Merke", text: $brand)
                         .textInputAutocapitalization(.words)
+                        .focused($focus, equals: .brand)
+                        .onChange(of: brand) { _, _ in onBrandChange() }
+
+                    if focus == .brand, !brandMatches.isEmpty {
+                        ForEach(brandMatches, id: \.self) { name in
+                            Button { pickBrand(name) } label: { suggestionRow(name) }
+                                .buttonStyle(.plain)
+                        }
+                    }
+
                     TextField("Serie (valgfritt)", text: $series)
                         .textInputAutocapitalization(.words)
+                        .focused($focus, equals: .series)
+                        .onChange(of: series) { _, _ in onSeriesChange() }
+
+                    if focus == .series, !seriesMatches.isEmpty {
+                        ForEach(seriesMatches, id: \.self) { name in
+                            Button { pickSeries(name) } label: { suggestionRow(name) }
+                                .buttonStyle(.plain)
+                        }
+                    }
+
                     TextField("Format eller vitola (valgfritt)", text: $vitola)
                         .textInputAutocapitalization(.words)
+                        .focused($focus, equals: .vitola)
 
                     // Chips med vanlige vitolaer — trykk for å fylle inn format + typisk størrelse.
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -110,7 +144,23 @@ struct AddCigarSheet: View {
                 } header: {
                     Text("Sigaren")
                 } footer: {
-                    Text("Bare merket er påkrevd. Trykk en vitola for å fylle inn format og typisk størrelse — du kan justere alt etterpå.")
+                    Text("Begynn å skrive merket — finnes sigaren i basen fra før, foreslår vi den så du kobler deg rett på med ferdig metadata. Bare merket er påkrevd.")
+                }
+
+                // Eksisterende sigarer i basen som matcher det du skriver.
+                // Velger du én, kobles oppføringen din direkte til den raden —
+                // ingen duplikat, all metadata ferdig utfylt.
+                if !dbCigars.isEmpty {
+                    Section {
+                        ForEach(dbCigars) { c in
+                            Button { linkExisting(c) } label: { existingCigarRow(c) }
+                                .buttonStyle(.plain)
+                        }
+                    } header: {
+                        Text("Finnes i basen")
+                    } footer: {
+                        Text("Velg den riktige for å koble sigaren til basen — da unngår vi et duplikat, og land, dekkblad og styrke er allerede fylt ut.")
+                    }
                 }
 
                 Section("Detaljer") {
@@ -166,8 +216,118 @@ struct AddCigarSheet: View {
             .onAppear {
                 if brand.isEmpty { brand = prefillBrand }
                 if note.isEmpty { note = prefillNote }
+                if !brand.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Task { await refreshDBMatches() }
+                }
             }
         }
+    }
+
+    // MARK: - Autocomplete-rader
+
+    @ViewBuilder
+    private func suggestionRow(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12))
+                .foregroundColor(Color("TextSecondary"))
+            Text(text)
+                .foregroundColor(Color("Accent"))
+            Spacer()
+            Image(systemName: "arrow.up.left")
+                .font(.system(size: 11))
+                .foregroundColor(Color("TextSecondary"))
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func existingSubtitle(_ c: Cigar) -> String {
+        [c.series, c.vitola, c.dimensionsLabel]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+
+    @ViewBuilder
+    private func existingCigarRow(_ c: Cigar) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(c.brand)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                if !existingSubtitle(c).isEmpty {
+                    Text(existingSubtitle(c))
+                        .font(.caption)
+                        .foregroundColor(Color("TextSecondary"))
+                }
+            }
+            Spacer()
+            Image(systemName: "link")
+                .font(.system(size: 13))
+                .foregroundColor(Color("Accent"))
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 2)
+    }
+
+    // MARK: - Autocomplete-logikk
+
+    private func onBrandChange() {
+        searchTask?.cancel()
+        let currentBrand = brand
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if Task.isCancelled { return }
+            let matches = await cigarService.searchBrands(query: currentBrand)
+            if Task.isCancelled { return }
+            brandMatches = matches.filter { $0.lowercased() != currentBrand.lowercased() }
+            await refreshDBMatches()
+        }
+    }
+
+    private func onSeriesChange() {
+        searchTask?.cancel()
+        let currentBrand = brand
+        let currentSeries = series
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if Task.isCancelled { return }
+            var matches = await cigarService.seriesForBrand(currentBrand)
+            let sl = currentSeries.lowercased()
+            if !sl.isEmpty {
+                matches = matches.filter { $0.lowercased().contains(sl) && $0.lowercased() != sl }
+            }
+            if Task.isCancelled { return }
+            seriesMatches = matches
+            await refreshDBMatches()
+        }
+    }
+
+    private func refreshDBMatches() async {
+        let matches = await cigarService.matchingCigars(brand: brand, series: series)
+        dbCigars = matches
+    }
+
+    private func pickBrand(_ name: String) {
+        brand = name
+        brandMatches = []
+        focus = .series
+        Task {
+            seriesMatches = await cigarService.seriesForBrand(name)
+            await refreshDBMatches()
+        }
+    }
+
+    private func pickSeries(_ name: String) {
+        series = name
+        seriesMatches = []
+        Task { await refreshDBMatches() }
+    }
+
+    /// Koble oppføringen til en eksisterende rad i basen — ingen ny (dublett-)rad.
+    private func linkExisting(_ cigar: Cigar) {
+        onCreated(cigar)
+        dismiss()
     }
 
     private func save() async {

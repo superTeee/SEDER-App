@@ -152,6 +152,35 @@ class CigarService: ObservableObject {
         return Array(out.prefix(6))
     }
 
+    /// Eksisterende OFFENTLIGE sigarer som matcher et merke og evt. en serie.
+    /// Brukes i «Legg til sigar» til å koble en manuell innlegging rett til
+    /// riktig rad i basen — med ferdig metadata — i stedet for å lage et duplikat.
+    /// Nettopp det brukeren trenger når skanneren ikke fant et grafisk bånd:
+    /// skriv «Cavalier» → «White Series», og velg den faktiske sigaren fra basen.
+    func matchingCigars(brand: String, series: String) async -> [Cigar] {
+        let b = brand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard b.count >= 2 else { return [] }
+        let all = (try? await fetchCigarsByBrand(b)) ?? []
+        let bl = b.lowercased()
+        let sl = series.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let filtered = all.filter { c in
+            // Kun offentlige rader — ikke andres (eller egne) private kladder.
+            guard c.isPublic != false else { return false }
+            // fetchCigarsByBrand bruker %ilike% og kan overmatche; krev at
+            // merkene faktisk overlapper hverandre.
+            let cb = c.brand.lowercased()
+            guard cb.contains(bl) || bl.contains(cb) else { return false }
+            if sl.isEmpty { return true }
+            return (c.series ?? "").lowercased().contains(sl)
+        }
+        .sorted {
+            let s0 = ($0.series ?? "").lowercased(), s1 = ($1.series ?? "").lowercased()
+            if s0 != s1 { return s0 < s1 }
+            return ($0.vitola ?? "").lowercased() < ($1.vitola ?? "").lowercased()
+        }
+        return Array(filtered.prefix(12))
+    }
+
     // MARK: - Hent sigarer basert på merke
     func fetchCigarsByBrand(_ brand: String) async throws -> [Cigar] {
         let results: [Cigar] = try await supabase
