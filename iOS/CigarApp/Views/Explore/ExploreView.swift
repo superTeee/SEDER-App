@@ -171,10 +171,6 @@ struct ExploreView: View {
             .navigationBarTitleDisplayMode(.inline)   // liten sentrert tittel
             .toolbarBackground(Color("Background"), for: .navigationBar)
             .toolbarColorScheme(colorScheme, for: .navigationBar)
-            // Profil-avatar øverst til venstre
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
-            }
             // --- Sheets & navigasjon ---
             .sheet(isPresented: $showFilterSheet) {
                 AdvancedFilterSheet(

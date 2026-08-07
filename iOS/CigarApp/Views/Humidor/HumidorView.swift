@@ -213,7 +213,6 @@ struct HumidorView: View {
             .toolbarBackground(Color("Background"), for: .navigationBar)
             .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
                 if authService.userId != nil && selectedTab == .humidor {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {

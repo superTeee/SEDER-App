@@ -52,7 +52,6 @@ struct JournalView: View {
                 .toolbarBackground(Color("Background"), for: .navigationBar)
                 .toolbarColorScheme(colorScheme, for: .navigationBar)
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) { ProfileAvatarButton() }
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button { if proManager.isPro { showStats = true } else { showPaywall = true } } label: {
