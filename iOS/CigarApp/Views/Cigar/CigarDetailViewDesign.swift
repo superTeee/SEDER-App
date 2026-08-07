@@ -12,6 +12,10 @@ struct CigarDetailViewDesign: View {
     let cigar: Cigar
     @State private var entry: HumidorEntry?
     let onScanNext: (() -> Void)?
+    // Bildet fra skanningen som førte hit (om noen). Brukes som standard bilde
+    // på BRUKERENS EGNE plasseringer: humidor-oppføringen og journaloppføringen —
+    // ikke på det delte katalogkortet.
+    let scanImage: UIImage?
 
     @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) private var dismiss
@@ -63,9 +67,10 @@ struct CigarDetailViewDesign: View {
         colorScheme == .dark ? Color("Accent") : Color(hex: "#8F7B51")
     }
 
-    init(cigar: Cigar, humidorEntry: HumidorEntry? = nil, onScanNext: (() -> Void)? = nil) {
+    init(cigar: Cigar, humidorEntry: HumidorEntry? = nil, onScanNext: (() -> Void)? = nil, scanImage: UIImage? = nil) {
         self.cigar = cigar
         self.onScanNext = onScanNext
+        self.scanImage = scanImage
         _entry = State(initialValue: humidorEntry)
         _quantity = State(initialValue: humidorEntry?.quantity ?? 1)
     }
@@ -136,7 +141,10 @@ struct CigarDetailViewDesign: View {
                                 cutType: cutType,
                                 store: store
                             )
-                            if let data = photoData {
+                            // Tok du ikke eget bilde, brukes skann-bildet som loggbilde
+                            // (vises i journalen — din egen plassering).
+                            let effectivePhoto = photoData ?? scanImage?.jpegData(compressionQuality: 0.9)
+                            if let data = effectivePhoto {
                                 let ts = TastingService()
                                 await attempt("Last opp loggbilde") {
                                     // Last opp OG persistér photo_url — uploadLogPhoto
@@ -150,7 +158,7 @@ struct CigarDetailViewDesign: View {
                             }
                             await MainActor.run {
                                 confirmLogged()
-                                pendingShareImageData = photoData
+                                pendingShareImageData = effectivePhoto
                                 pendingShareCaption = "\(cigar.fullName)" + (rating.map { " · \($0)/100" } ?? "") + " på SEDER"
                                 sharePrompt = SharePrompt(entryId: logId)
                             }
@@ -172,6 +180,16 @@ struct CigarDetailViewDesign: View {
                         self.entry = newEntry
                         self.quantity = newEntry.quantity
                         humidorHasNew = true
+                        // Kom vi hit fra en skanning uten at oppføringen har bilde,
+                        // blir skann-bildet oppføringens bilde (personlig, i din humidor).
+                        if let scan = scanImage,
+                           (newEntry.photoURL ?? "").isEmpty,
+                           let data = scan.jpegData(compressionQuality: 0.9) {
+                            if let url = try? await humidorService.uploadPhoto(
+                                entryId: newEntry.id, userId: userId, imageData: data) {
+                                self.entry?.photoURL = url
+                            }
+                        }
                     } catch { print("Feil ved lagring: \(error)") }
                     isSaving = false
                 }
@@ -186,7 +204,8 @@ struct CigarDetailViewDesign: View {
                             cigarId: cigar.id, userId: userId, smokedAt: smokedAt,
                             rating: rating, smokeAgain: smokeAgain, drawRating: draw,
                             burnRating: burn, flavorRating: flavor, notes: notes, cutType: cutType, store: store)
-                        if let data = photoData {
+                        let effectivePhoto = photoData ?? scanImage?.jpegData(compressionQuality: 0.9)
+                        if let data = effectivePhoto {
                             let ts = TastingService()
                             await attempt("Last opp loggbilde") {
                                 let url = try await ts.uploadLogPhoto(logId: logId, userId: userId, imageData: data)
@@ -289,7 +308,6 @@ struct CigarDetailViewDesign: View {
     private var hasPhoto: Bool {
         if let p = entry?.photoURL, !p.isEmpty { return true }
         if let p = cigar.productImageUrl, !p.isEmpty { return true }
-        if let p = cigar.bandImageUrl, !p.isEmpty { return true }
         return false
     }
 
@@ -307,14 +325,6 @@ struct CigarDetailViewDesign: View {
                         .scaledToFill()
                         .id(photoURL)
                 } else if let productURL = cigar.productImageUrl, let url = URL(string: productURL) {
-                    KFImage(url)
-                        .resizable()
-                        .placeholder { Rectangle().fill(surfacePrimary) }
-                        .fade(duration: 0.15)
-                        .scaledToFill()
-                } else if let bandURL = cigar.bandImageUrl, let url = URL(string: bandURL) {
-                    // Skann-bilde (fra en tidligere skanning) — vises når sigaren
-                    // ikke har noe kuratert produktbilde og du ikke har lastet opp eget.
                     KFImage(url)
                         .resizable()
                         .placeholder { Rectangle().fill(surfacePrimary) }

@@ -259,11 +259,7 @@ struct JournalRow: View {
         VStack(alignment: .leading, spacing: 0) {
 
             // ── Bilde (hvis finnes) ───────────────────────────
-            // Rekkefølge: bildet tatt under røykingen → kuratert produktbilde
-            // → skann-bilde av sigaren. Så en journaloppføring viser sigarens
-            // bilde selv om du ikke tok et eget under røykingen.
-            if let photoUrl = log.photoUrl ?? log.cigar?.productImageUrl ?? log.cigar?.bandImageUrl,
-               let url = URL(string: photoUrl) {
+            if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {
                 KFImage(url)
                     // Nedskaler under dekoding — store bilder (opptil ~2 MB) lastet
                     // tregt/upålitelig i full oppløsning inn i en liten rad.

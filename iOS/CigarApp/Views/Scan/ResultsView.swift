@@ -121,7 +121,9 @@ struct ResultsView: View {
             .environmentObject(authService)
         }
         .navigationDestination(item: $selectedCigar) { cigar in
-            CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext)
+            // Ta med skann-bildet: legges på DINE egne plasseringer (humidor +
+            // journal) dersom du ikke har et bilde fra før — aldri på katalogen.
+            CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext, scanImage: bandImage)
         }
     }
 
