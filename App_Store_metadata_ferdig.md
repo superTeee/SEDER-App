@@ -13,7 +13,7 @@ SEDER - Digital humidor
 
 **Undertittel** (maks 30 tegn):
 ```
-Sigarjournal og humidor
+Sigarkatalog og humidor
 ```
 
 **Kampanjetekst / Promotional Text** (maks 170 tegn — kan endres når som helst uten ny build):
@@ -23,33 +23,32 @@ Skann sigarbånd, bygg din digitale humidor og før journal med vurderinger og s
 
 **Nøkkelord / Keywords** (maks 100 tegn, komma, ingen mellomrom):
 ```
-sigar,cigar,humidor,journal,smaksnotat,samling,vitola,skann,rating,aficionado,kjenner,kolleksjon
+sigar,cigar,humidor,katalog,journal,smaksnotat,samling,vitola,skann,database,aficionado,kolleksjon
 ```
 
 **Beskrivelse / Description** (maks 4000 tegn):
 ```
-SEDER er appen for deg som liker å holde orden på sigarene dine.
+SEDER er referanse- og samlingsappen for deg som vil holde orden på sigarene dine.
 
-Skann båndet på en sigar for å kjenne den igjen, bygg din digitale humidor, og før journal over det du har røkt – med vurdering, notater og smaksprofil. Alt samlet på ett sted.
+Slå opp en sigar ved å skanne båndet, bygg din digitale humidor, og før en privat journal med vurderinger og smaksprofil. Alt samlet på ett sted – som en katalog og kjeller for samlingen din.
 
 FUNKSJONER
-• Skann sigarbånd og finn sigaren i databasen
+• Skann sigarbånd og slå opp sigaren i databasen
+• Omfattende oppslag: dekkblad, opphav, styrke, format og smaksprofil
 • Digital humidor: hold oversikt over samlingen, antall og verdi
 • Følg luftfuktighet (RH) per humidor, med historikk og graf over tid
-• Tasting-journal: vurder 0–100, skriv notater og se din personlige smaksprofil
-• Utforsk en voksende database med merker, serier og vitolaer
+• Privat journal: vurder 0–100, skriv notater og se din personlige smaksprofil
+• Utforsk en voksende katalog med merker, serier og vitolaer
 • Legg til kjøp fra kvittering – ta bilde, så fylles varelinjene inn automatisk
-• Venner og aktivitet: del det du røyker og se hva andre samler på
-• Nivåer og merker etter hvert som du bruker appen
 
-SEDER er laget for voksne sigarentusiaster som vil organisere og dokumentere hobbyen sin. Appen selger ikke tobakk og oppfordrer ikke til bruk av tobakk.
+SEDER er et oppslags- og organiseringsverktøy for voksne sigarentusiaster som vil dokumentere og holde styr på samlingen sin. Appen selger ikke tobakk, viser ikke hvor man kan kjøpe tobakk, og oppfordrer ikke til bruk av tobakk.
 
-Aldersgrense 17+. Krever konto.
+Kun for personer over 18 år. Krever konto.
 ```
 
 **Nyheter / What's New** (v1.0):
 ```
-Første versjon av SEDER. Skann sigarer, bygg humidor, følg luftfuktighet og før tasting-journal.
+SEDER er et oppslags- og samlingsverktøy for sigarentusiaster: skann og slå opp sigarer, bygg din digitale humidor, følg luftfuktighet og før en privat smaksjournal.
 ```
 
 ---
@@ -59,7 +58,7 @@ Første versjon av SEDER. Skann sigarer, bygg humidor, følg luftfuktighet og f�
 - **Support-URL:** `https://sederappen.no/support`
 - **Markedsførings-URL** (valgfritt): `https://sederappen.no`
 - **Copyright:** `2026 Tom Erik Heggedal`
-- **Kategori:** Primær = **Livsstil (Lifestyle)**. Sekundær = valgfritt (la stå tom, eller «Referanse»).
+- **Kategori:** Primær = **Referanse (Reference)** ⟵ endret. Sekundær = **Verktøy (Utilities)** eller Livsstil. (Referanse-kategorien understreker at appen er en katalog/oppslagstjeneste, ikke livsstil/konsum — viktig for 1.4.3.)
 - **Personvern-URL** (under App Privacy): `https://sederappen.no/personvern.html`
 
 ---
@@ -100,6 +99,21 @@ Ikke legg til: Helse/Fitness, Posisjon (enhet), Betalingsinfo, Kontakter, Søkeh
 
 ## 5. Rekkefølge på det siste
 
-1. Fyll inn alt over + last opp de 5 screenshots (i rekkefølge skann → humidor → journal → utforsk → venner).
+1. Fyll inn alt over + last opp screenshots (rekkefølge: oppslag/skann → humidor → sigardetalj → journal → RF-graf → utforsk). MERK: ingen feed/venner-skjermbilder, ingen tente sigarer.
 2. **IKKE** send inn ennå — vi venter på RevenueCat-nøkkelen (ellers avvises kjøp).
 3. Når incidenten er borte: Claude limer inn `appl_`-nøkkel → arkiverer build → fester abonnementer + build → **Submit for Review**.
+
+---
+
+## 6. Skjermbilde-tekster (nye — 1.4.3-tilpasset)
+
+Skyt på nytt fra den oppdaterte appen. **Ingen tente sigarer, ingen feed/venner.** Bruk utente sigarer, bånd, humidor og katalog. Forslag til overskrifter (bilde → tekst):
+
+1. **Slå opp båndet med AI** — skann/oppslag-skjermen
+2. **Full kontroll på samlingen** — humidor
+3. **Alt du vil vite om sigaren** — sigardetalj (dekkblad, opphav, styrke, smak)
+4. **Din private smaksjournal** — journal (utent sigar / bånd på bildet, ikke aske/glo)
+5. **Følg fuktigheten over tid** — RF-graf (fremhever verktøy/referanse, ikke konsum)
+6. **Finn din neste favoritt** — utforsk/katalog
+
+Unngå de gamle: «Del øyeblikkene» (sosialt), «Husk hver opplevelse» (tent sigar), «Utvikle din sigarprofil» (kan leses som gamification av røyking).
