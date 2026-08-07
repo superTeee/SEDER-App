@@ -697,9 +697,9 @@ struct SmokingLogSheet: View {
     }
 }
 
-// MARK: - Del etter lagring (Aktivitet/deling)
-// Vises etter at et journalinnlegg er lagret. To brytere, aldri påtvunget.
-// «Del i appen» → Aktivitet + offentlig side. «Del eksternt» → native delings-ark.
+// MARK: - Del etter lagring (ekstern deling)
+// Vises etter at et journalinnlegg er lagret. Kun ekstern deling av en offentlig
+// katalog-lenke via det native delings-arket. Aldri påtvunget; journalen er privat.
 
 /// Identifiable-wrapper så vi kan presentere del-arket via .sheet(item:).
 struct SharePrompt: Identifiable {
@@ -732,7 +732,6 @@ struct ShareAfterSaveSheet: View {
     @Environment(\.dismiss) private var dismiss
     private let shareService = ShareService()
 
-    @State private var community = false
     @State private var external = false
     @State private var isSaving = false
 
@@ -747,17 +746,11 @@ struct ShareAfterSaveSheet: View {
                 .padding(.top, 3)
 
             toggleRow(
-                title: "Del i appen",
-                subtitle: "Vises i Aktivitet for andre",
-                isOn: $community
-            )
-            .padding(.top, 18)
-            Divider().overlay(Color("TextSecondary").opacity(0.15))
-            toggleRow(
                 title: "Del eksternt",
                 subtitle: "Del lenken via delings-arket",
                 isOn: $external
             )
+            .padding(.top, 18)
 
             Button {
                 Task { await share() }
@@ -768,11 +761,11 @@ struct ShareAfterSaveSheet: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(community || external ? Color("Accent") : Color("TextSecondary").opacity(0.4))
+                .background(external ? Color("Accent") : Color("TextSecondary").opacity(0.4))
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .disabled(isSaving || !(community || external))
+            .disabled(isSaving || !external)
             .padding(.top, 20)
 
             Button("Behold privat") { dismiss() }
@@ -811,7 +804,7 @@ struct ShareAfterSaveSheet: View {
     private func share() async {
         isSaving = true
         do {
-            let res = try await shareService.setSharing(entryId: entryId, community: community, external: external)
+            let res = try await shareService.setSharing(entryId: entryId, community: false, external: external)
             if external, let slug = res.publicSlug, let url = shareService.publicURL(slug: slug) {
                 shareService.primeFacebook(slug: slug)   // varm opp FB-cachen i bakgrunnen
                 onExternalShare(url)

@@ -346,11 +346,11 @@ struct UserProfileView: View {
                 NavigationLink {
                     JournalView().environmentObject(authService)
                 } label: {
-                    statCell(icon: "smoke", value: p.cigarCount, label: "I journal")
+                    statCell(icon: "book.closed", value: p.cigarCount, label: "I journal")
                 }
                 .buttonStyle(.plain)
             } else {
-                statCell(icon: "smoke", value: p.cigarCount, label: "I journal")
+                statCell(icon: "book.closed", value: p.cigarCount, label: "I journal")
             }
 
             statDivider()

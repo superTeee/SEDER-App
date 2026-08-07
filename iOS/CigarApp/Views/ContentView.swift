@@ -34,7 +34,7 @@ final class AppShell: ObservableObject {
 
 // MARK: - ContentView
 // Egen tab-bar (SwiftUI TabView støtter ikke en overlappende senter-knapp):
-// 4 faner (Utforsk · Aktivitet | Journal · Humidor) med en hevet, rund
+// 3 faner (Utforsk | Journal · Humidor) med en hevet, rund
 // SKANN-knapp i midten. Profil er flyttet ut av tab-baren til en avatar
 // øverst til venstre på hver hovedskjerm.
 struct ContentView: View {
@@ -48,7 +48,6 @@ struct ContentView: View {
 
     // Fane-taggene beholdes fra før (0=Utforsk, 3=Aktivitet, 2=Journal, 1=Humidor)
     private let exploreTag  = 0
-    private let activityTag = 3
     private let journalTag  = 2
     private let humidorTag  = 1
 
@@ -56,11 +55,6 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             ExploreView()
                 .tag(exploreTag)
-                .toolbar(.hidden, for: .tabBar)
-
-            ActivityView()
-                .environmentObject(authService)
-                .tag(activityTag)
                 .toolbar(.hidden, for: .tabBar)
 
             JournalView()
@@ -117,15 +111,12 @@ struct ContentView: View {
             // Fanene
             HStack(spacing: 0) {
                 tabButton(tag: exploreTag,  title: "Utforsk",   image: "tab_explore")
-                    .offset(x: 4)    // 4px nærmere Aktivitet
-                tabButton(tag: activityTag, title: "Aktivitet", image: "tab_feed")
+                tabButton(tag: journalTag,  title: "Journal",   image: "tab_journal")
 
-                // Hull til senter-knappen (smalere → fanene 4px nærmere skann-knappen)
+                // Hull til senter-knappen
                 Color.clear.frame(width: 66)
 
-                tabButton(tag: journalTag,  title: "Journal",   image: "tab_journal")
                 tabButton(tag: humidorTag,  title: "Humidor",   image: "tab_humidor", showBadge: humidorHasNew)
-                    .offset(x: -4)   // 4px nærmere Journal
             }
             .frame(maxWidth: .infinity)
             .frame(height: 60)
