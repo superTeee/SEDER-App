@@ -34,7 +34,7 @@ final class AppShell: ObservableObject {
 
 // MARK: - ContentView
 // Egen tab-bar (SwiftUI TabView støtter ikke en overlappende senter-knapp):
-// 3 faner (Utforsk | Journal · Humidor) med en hevet, rund
+// 4 faner (Utforsk · Journal | Humidor · Profil) med en hevet, rund
 // SKANN-knapp i midten. Profil er flyttet ut av tab-baren til en avatar
 // øverst til venstre på hver hovedskjerm.
 struct ContentView: View {
@@ -50,6 +50,7 @@ struct ContentView: View {
     private let exploreTag  = 0
     private let journalTag  = 2
     private let humidorTag  = 1
+    private let profileTag  = 4
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -63,6 +64,11 @@ struct ContentView: View {
 
             HumidorView()
                 .tag(humidorTag)
+                .toolbar(.hidden, for: .tabBar)
+
+            ProfileView()
+                .environmentObject(authService)
+                .tag(profileTag)
                 .toolbar(.hidden, for: .tabBar)
         }
         .tint(Color("Accent"))
@@ -117,6 +123,7 @@ struct ContentView: View {
                 Color.clear.frame(width: 66)
 
                 tabButton(tag: humidorTag,  title: "Humidor",   image: "tab_humidor", showBadge: humidorHasNew)
+                tabButton(tag: profileTag,  title: "Profil",    image: "tab_profile")
             }
             .frame(maxWidth: .infinity)
             .frame(height: 60)
