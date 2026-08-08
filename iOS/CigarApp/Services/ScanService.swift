@@ -153,10 +153,20 @@ class ScanService: ObservableObject {
                     // Steg 3: DB fant ingenting — fallback til GPT via Edge Function
                     try await scanWithAI(image: image)
                 }
+            } else if bandTextOutcome == .none {
+                // Ingen LESBAR tekst i det hele tatt (typisk rent grafisk bånd,
+                // f.eks. Cavalier med bare hest-logo). Da har GPT ingenting reelt
+                // å lese, men "må" likevel gjette et merke — og bommer ofte stygt
+                // (dette ga f.eks. La Aurora 1903 Cameroon på et Cavalier-bånd).
+                // Vi stoler derfor IKKE på blind GPT-gjetting her. Den visuelle
+                // båndmatchen (lærte bånd) kjøres av trailing-handleren under, siden
+                // scanResults er tom; finnes ingen match, viser vi «ingen tekst»-
+                // skjermen med søk/manuell innlegging i stedet for et feil "treff".
+                print("⚠️ Ingen lesbar tekst på båndet — hopper over blind GPT, bruker visuell match")
             } else {
-                // OCR-teksten ble tom etter rensing (bare geografiske fraser) —
-                // ingen meningsfull tekst å søke på; bruk AI direkte.
-                print("⚠️ Tom søketekst etter rensing (råtekst: '\(text)', konfidens: \(ocrConfidence)) — AI-fallback")
+                // Det VAR tekst på båndet, men bare fraser vi ikke søker på (geografi
+                // e.l.). Da kan GPT fortsatt lese bildet fornuftig — behold AI-fallback.
+                print("⚠️ Kun ikke-søkbar tekst (råtekst: '\(text)', konfidens: \(ocrConfidence)) — AI-fallback")
                 try await scanWithAI(image: image)
             }
 
