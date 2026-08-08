@@ -320,6 +320,7 @@ struct ExploreView: View {
                 NoMatchView(
                     image: capturedImage,
                     ocrText: scanService.extractedText,
+                    outcome: scanService.bandTextOutcome,
                     onRetry: {
                         scanService.noMatch = false
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { showCameraPicker = true }

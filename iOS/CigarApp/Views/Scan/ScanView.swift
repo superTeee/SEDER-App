@@ -148,6 +148,24 @@ struct ScanView: View {
                 guard !needsPhoto, !scanService.scanResults.isEmpty else { return }
                 navigateToResults = true
             }
+            // Ingen treff → vennlig skjerm som forklarer HVORFOR (ingen tekst /
+            // uleselig tekst / lest men ingen match) og viser veien videre.
+            // Manuell vei lander i ResultsView med søk + «legg til» (autocomplete).
+            .fullScreenCover(isPresented: $scanService.noMatch) {
+                NoMatchView(
+                    image: capturedImage,
+                    ocrText: scanService.extractedText,
+                    outcome: scanService.bandTextOutcome,
+                    onRetry: {
+                        scanService.noMatch = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { showCameraPicker = true }
+                    },
+                    onManualAdd: {
+                        scanService.noMatch = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { navigateToResults = true }
+                    }
+                )
+            }
             .alert("Feil", isPresented: .constant(scanService.errorMessage != nil)) {
                 Button("OK") { scanService.errorMessage = nil }
             } message: {
@@ -563,10 +581,35 @@ struct ImagePicker: UIViewControllerRepresentable {
 struct NoMatchView: View {
     let image: UIImage?
     let ocrText: String
+    // Hvorfor skanningen ikke ga treff — avgjør forklaringen og hvilken
+    // handling som er den naturlige neste. Default .clear så eldre kall kompilerer.
+    var outcome: ScanService.BandTextOutcome = .clear
     var onRetry: () -> Void
     var onManualAdd: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+
+    // Tilpasset forklaring per situasjon.
+    private var reason: (icon: String, title: String, body: String) {
+        switch outcome {
+        case .none:
+            return ("textformat",
+                    "Vi fant ingen tekst på båndet",
+                    "Mange bånd er rent grafiske, uten lesbar tekst å søke på. Sigaren kan likevel ligge i databasen — og legger du den inn, kjenner appen igjen båndet neste gang.")
+        case .unclear:
+            return ("scribble.variable",
+                    "Vi så tekst, men klarte ikke å lese den",
+                    "Teksten kan være bøyd, vinklet eller ha gjenskinn. Et skarpere bilde med godt lys hjelper ofte — ellers kan du legge sigaren inn manuelt.")
+        case .clear:
+            return ("magnifyingglass",
+                    "Vi leste båndet, men fant ingen match — ennå",
+                    "Sigaren mangler kanskje i databasen. Søk eller legg den inn manuelt, så kobler vi deg til riktig oppføring.")
+        }
+    }
+
+    // Et nytt bilde hjelper bare når teksten var utydelig — ikke når båndet er
+    // helt uten tekst. Da er manuell innlegging den naturlige primærveien.
+    private var retryIsPrimary: Bool { outcome == .unclear }
 
     var body: some View {
         ZStack {
@@ -585,60 +628,100 @@ struct NoMatchView: View {
 
                 Spacer()
 
-                ghostCigar
+                Image(systemName: reason.icon)
+                    .font(.system(size: 32, weight: .regular))
+                    .foregroundColor(Color("Accent"))
                     .frame(width: 84, height: 84)
                     .background(Circle().fill(Color("Accent").opacity(0.12)))
                     .padding(.bottom, 18)
 
-                Text("Vi fant ikke denne sigaren")
+                Text(reason.title)
                     .font(.title2.bold())
                     .foregroundColor(Color("TextPrimary"))
-                Text("Ingen match i databasen – ennå.")
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                Text(reason.body)
                     .font(.subheadline)
                     .foregroundColor(Color("TextSecondary"))
-                    .padding(.top, 4)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
+                    .padding(.horizontal, 28)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Det kan skyldes:")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color("TextPrimary"))
-                    cause("sun.max", "Gjenskinn eller refleks i sigarbeltet")
-                    cause("textformat.size", "Lite eller ingen tekst på båndet")
-                    cause("scribble.variable", "Utydelig, bøyd eller vinklet tekst")
-                    cause("lightbulb", "For svakt lys")
+                // Situasjonsbestemt hjelpekort.
+                Group {
+                    if outcome == .unclear {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Prøv igjen med:")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+                            cause("sun.max", "Godt lys — unngå gjenskinn og skygger")
+                            cause("arrow.up.left.and.arrow.down.right", "Kom nærmere, så teksten er skarp")
+                            cause("hand.raised", "Hold sigaren stille og båndet flatt mot deg")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .background(Color("Card"))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.horizontal, 24)
+                        .padding(.top, 22)
+                    } else {
+                        HStack(spacing: 10) {
+                            Image(systemName: "plus.circle")
+                                .font(.system(size: 15))
+                                .foregroundColor(Color("Accent"))
+                                .frame(width: 20)
+                            Text("Skriv merket når du legger den inn — vi foreslår treff mens du skriver og kobler deg til riktig sigar i basen.")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color("TextPrimary").opacity(0.85))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .background(Color("Card"))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.horizontal, 24)
+                        .padding(.top, 22)
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(Color("Card"))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .padding(.horizontal, 24)
-                .padding(.top, 22)
 
                 Spacer()
 
                 VStack(spacing: 10) {
-                    Button(action: onManualAdd) {
-                        Text("Legg den inn manuelt")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .background(Color("Accent"))
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    Button(action: onRetry) {
-                        Text("Prøv på nytt med nytt bilde")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .background(Color("Card"))
-                            .foregroundColor(Color("Accent"))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    if retryIsPrimary {
+                        primaryButton("Prøv på nytt med nytt bilde", action: onRetry)
+                        secondaryButton("Legg den inn manuelt", action: onManualAdd)
+                    } else {
+                        primaryButton("Legg den inn manuelt", action: onManualAdd)
+                        secondaryButton("Prøv på nytt med nytt bilde", action: onRetry)
                     }
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 28)
             }
+        }
+    }
+
+    private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(Color("Accent"))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private func secondaryButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(Color("Card"))
+                .foregroundColor(Color("Accent"))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -653,20 +736,4 @@ struct NoMatchView: View {
                 .foregroundColor(Color("TextPrimary").opacity(0.85))
         }
     }
-
-    // Stiplet «spøkelses-sigar» — sier «finnes ikke i basen ennå».
-    private var ghostCigar: some View {
-        ZStack {
-            Capsule()
-                .strokeBorder(style: StrokeStyle(lineWidth: 2.4, dash: [5, 4]))
-                .frame(width: 62, height: 18)
-            Rectangle()
-                .strokeBorder(style: StrokeStyle(lineWidth: 2.2, dash: [4, 3]))
-                .frame(width: 11, height: 18)
-                .offset(x: 15)
-        }
-        .rotationEffect(.degrees(-20))
-        .foregroundColor(Color("Accent"))
-    }
 }
-

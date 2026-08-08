@@ -29,6 +29,16 @@ class ScanService: ObservableObject {
     // Båndet viser sjelden wrapper-fargen tydelig, så UI ber om ett ekstra
     // bilde av hele sigaren, akkurat som ved form-avklaring.
     @Published var needsWrapperPhoto = false
+    // Utfallet av tekstlesingen på båndet — driver HVORFOR-forklaringen på
+    // «ingen treff»-skjermen: var det ingen tekst, uleselig tekst, eller lest
+    // tekst uten treff i basen? Tre svært ulike situasjoner for brukeren.
+    @Published var bandTextOutcome: BandTextOutcome = .none
+
+    enum BandTextOutcome: Equatable {
+        case none      // ingen lesbar tekst funnet (typisk rent grafisk bånd)
+        case unclear   // tekst funnet, men for utydelig til å stole på (bøyd/vinklet/gjenskinn)
+        case clear     // tekst lest greit, men ingen match i basen
+    }
 
     private let cigarService = CigarService()
     // Kandidatene som deler bånd men kan skilles på form — fylles når
@@ -61,6 +71,7 @@ class ScanService: ObservableObject {
         wrapperAmbiguityCandidates = []
         errorMessage = nil
         noMatch = false
+        bandTextOutcome = .none
 
         // Hent OCR-vokabular (merke-/serienavn fra databasen) før vi kjører
         // Vision, slik at customWords er klar til extractText under.
@@ -71,6 +82,17 @@ class ScanService: ObservableObject {
             let (text, ocrConfidence) = try await extractText(from: image, customWords: ocrVocabulary ?? [])
             extractedText = text
             print("📝 OCR-tekst: \(text) (konfidens: \(ocrConfidence))")
+
+            // Klassifiser tekst-utfallet én gang, uavhengig av match-resultatet.
+            // Brukes til å forklare HVORFOR om skanningen ender uten treff.
+            let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedText.count < 2 {
+                bandTextOutcome = .none
+            } else if ocrConfidence < ocrConfidenceThreshold {
+                bandTextOutcome = .unclear
+            } else {
+                bandTextOutcome = .clear
+            }
 
             // Vision er usikker på (deler av) teksten — typisk krumme bånd,
             // vinklet bilde eller stilisert skrift. Da kan søket "treffe" på

@@ -47,7 +47,9 @@ struct ResultsView: View {
                 }
             } else {
                 Section {
-                    Text("Fant ingen treff på bandet. Søk manuelt under, eller scan på nytt.")
+                    Text(ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                         ? "Vi fant ingen tekst å søke på — men sigaren kan likevel finnes i basen. Søk på merket under, eller legg den inn selv."
+                         : "Vi fant ingen match på båndet — men sigaren kan likevel finnes i basen. Søk under (vi foreslår treff mens du skriver), eller legg den inn selv.")
                         .font(.subheadline)
                         .foregroundColor(Color("TextSecondary"))
                 }
