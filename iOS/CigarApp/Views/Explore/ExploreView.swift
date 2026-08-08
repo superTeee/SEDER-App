@@ -680,7 +680,7 @@ struct ExploreView: View {
         }
 
         // Topp 3 sigarer — headeren står alltid, så layouten er stabil.
-        sectionHeader("Brukernes topp 3")
+        sectionHeader("Høyest vurderte")
         topFiveSection
 
         // Dagens utvalgte

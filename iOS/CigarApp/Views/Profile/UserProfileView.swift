@@ -860,7 +860,7 @@ enum MemberLevel: Int, CaseIterable, Identifiable {
         case .kjenner:        return "1 md · 5+ journalinnlegg"
         case .samler:         return "3 md · 2 humidorer · 10 sigarer · RH-måling"
         case .kurator:        return "6 md · 3 humidorer · 30 sigarer · 15 journalinnlegg"
-        case .aficionado:     return "12 md · 100+ røkt · 20+ merker"
+        case .aficionado:     return "12 md · 100+ journalinnlegg · 20+ merker"
         }
     }
 
