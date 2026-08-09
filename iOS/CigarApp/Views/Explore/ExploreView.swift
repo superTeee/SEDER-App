@@ -74,6 +74,8 @@ struct ExploreView: View {
     // Ingen treff → vennlig skjerm + manuell innlegging
     @State private var showManualAdd      = false
     @State private var showAddedConfirm   = false
+    @State private var pendingHumidorCigar: Cigar? = nil
+    @AppStorage("humidorHasNew") private var humidorHasNew = false
 
     // Strekkode-scanner
     @State private var showBarcodeScan       = false
@@ -332,10 +334,21 @@ struct ExploreView: View {
                 )
             }
             .sheet(isPresented: $showManualAdd) {
-                // Samme skjerm som ellers i appen (AddCigarSheet). Logikken er flyttet ut
-                // i egne metoder for å holde view-uttrykket lett for type-sjekkeren.
+                // Samme skjerm som ellers i appen (AddCigarSheet).
                 AddCigarSheet(prefillNote: scanPrefillNote) { cigar in
-                    handleManualScanAdd(cigar)
+                    // Lukk arket, så la brukeren VELGE humidor før vi legger til.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        pendingHumidorCigar = cigar
+                    }
+                }
+                .environmentObject(authService)
+            }
+            // Velg humidor (+ antall/dato) før vi legger sigaren til — samme ark
+            // som fra sigar-detalj, så brukeren bestemmer HVOR den skal.
+            .sheet(item: $pendingHumidorCigar) { cigar in
+                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price in
+                    finalizeManualScanAdd(cigar, purchasedAt: purchasedAt, addedAt: addedAt,
+                                          quantity: qty, humidorId: humidorId, store: store, price: price)
                 }
                 .environmentObject(authService)
             }
@@ -480,22 +493,42 @@ struct ExploreView: View {
     // Manuell innlegging etter et skann uten treff: lær av skannet (OCR + bånd-bilde)
     // og legg sigaren i første humidor. Trukket ut av view-body for å unngå at
     // Swift-type-sjekkeren bruker for lang tid på et stort uttrykk.
-    private func handleManualScanAdd(_ cigar: Cigar) {
+    // Manuell innlegging etter et skann uten treff — ETTER at brukeren har valgt
+    // humidor. Legger til umiddelbart, fester skann-bildet på oppføringen, setter
+    // rød badge og bekrefter med en gang. Selve læringen (bilde-embedding, 6–7 s)
+    // kjøres ETTERPÅ i bakgrunnen, så bekreftelsen ikke henger.
+    private func finalizeManualScanAdd(_ cigar: Cigar, purchasedAt: Date, addedAt: Date,
+                                       quantity: Int, humidorId: UUID?, store: String, price: Double?) {
         guard let userId = authService.userId else { return }
         let ocr = scanService.extractedText
-        let band = capturedImage?.jpegData(compressionQuality: 0.8)
-        let hasText = !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let scanImg = capturedImage
+        let band = scanImg?.jpegData(compressionQuality: 0.8)
         Task {
+            // 1) Legg i den VALGTE humidoren
+            let entry = try? await humidorService.addToHumidor(
+                cigarId: cigar.id, userId: userId, humidorId: humidorId, quantity: quantity,
+                purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store, purchasePrice: price)
+
+            // 2) Skann-bildet blir oppføringens bilde (vises på detalj) hvis vi har
+            //    det og oppføringen ikke har bilde fra før.
+            if let entry, let scanImg, (entry.photoURL ?? "").isEmpty,
+               let data = scanImg.jpegData(compressionQuality: 0.9) {
+                _ = try? await humidorService.uploadPhoto(
+                    entryId: entry.id, userId: userId, imageData: data)
+            }
+
+            // 3) Rød badge på humidor-fanen + bekreftelse — UMIDDELBART.
+            await MainActor.run {
+                humidorHasNew = true
+                showAddedConfirm = true
+            }
+
+            // 4) Lær av skannet i bakgrunnen (bånd-bilde → embedding). Blokkerer ikke UI.
+            let hasText = !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             if hasText || band != nil {
                 await tastingService.resolveScan(
                     ocrText: ocr, cigarId: cigar.id, userId: userId, bandImage: band)
             }
-            let hs = (try? await humidorService.fetchHumidors(userId: userId)) ?? []
-            if let h = hs.first {
-                _ = try? await humidorService.addToHumidor(
-                    cigarId: cigar.id, userId: userId, humidorId: h.id)
-            }
-            await MainActor.run { showAddedConfirm = true }
         }
     }
 
