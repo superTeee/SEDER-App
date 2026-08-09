@@ -103,6 +103,12 @@
   .brand-count{font-size:12px;font-weight:600;color:var(--accent-dark);background:#F0ECE2;border-radius:20px;padding:3px 10px;white-space:nowrap}
   /* Grønn antall-chip når sigaren har fått nye bilder */
   .brand-count.new{color:#2E9E68;background:#EAF7F0;border:1px solid #BBE3CC}
+  /* Kopier-navn / Google-snarvei i sigar-headeren */
+  .hdr-btn{flex:0 0 auto;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;
+    white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+  .hdr-btn:hover{color:var(--ink);border-color:var(--accent)}
+  .hdr-btn.ok{color:#2E9E68;border-color:#BBE3CC;background:#EAF7F0}
   .brand-body{padding:12px 12px 4px}
   .brand-body .card{margin-bottom:8px}
   /* Bildeprøver (visuell gjenkjenning) */
@@ -784,8 +790,11 @@ function renderBilder(){
       g.items.sort((a, b) => (isNew(b) - isNew(a)) || (new Date(b.created_at || 0) - new Date(a.created_at || 0)));
       const cards = g.items.map(s => sampCard(s)).join("");
       const dz = g.cigarId ? dropzoneHtml(g.cigarId) : "";
+      const gq = encodeURIComponent(g.navn + " cigar band");
       return `<details class="brand-group" open>
         <summary class="brand-head"><span class="brand-name">${esc(g.navn)}</span>
+          <button class="hdr-btn" title="Kopier navn" data-name="${esc(g.navn)}" onclick="copyName(event, this)">⧉ Kopier</button>
+          <a class="hdr-btn" title="Søk bilder på Google" href="https://www.google.com/search?tbm=isch&q=${gq}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔍 Google</a>
           <span class="brand-count${hasNew ? " new" : ""}">${n} ${n === 1 ? "bilde" : "bilder"}</span></summary>
         <div class="brand-body"><div class="samp-grid">${cards}</div>${dz}</div>
       </details>`;
@@ -797,6 +806,30 @@ function toggleMove(id){
   if (p) p.classList.toggle("open");
 }
 window.toggleMove = toggleMove;
+
+// Kopier sigarnavnet (uten å toggle gruppa) — praktisk for Google-søk etter flere bilder.
+function copyName(event, btn){
+  event.preventDefault(); event.stopPropagation();
+  const name = btn.dataset.name || "";
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = "✓ Kopiert"; btn.classList.add("ok");
+    setTimeout(() => { btn.textContent = old; btn.classList.remove("ok"); }, 1200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(name).then(done).catch(() => fallbackCopy(name, done));
+  } else {
+    fallbackCopy(name, done);
+  }
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  ta.remove(); done();
+}
+window.copyName = copyName;
 
 let moveTimer = null;
 function searchReassign(id, q){
