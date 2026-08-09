@@ -14,12 +14,21 @@
   html,body{max-width:100%;overflow-x:hidden}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
+  /* Toppbar: merke til venstre, nav SENTRERT, logg ut til høyre (3-kolonners grid
+     så navigasjonen blir midtstilt uansett bredden på sidene). */
+  header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:16px;row-gap:8px;
     padding:14px 24px;border-bottom:1px solid var(--line);background:var(--card);}
   header h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.2px}
-  .brand-title{font-size:18px;font-weight:600;letter-spacing:.2px;white-space:nowrap}
-  /* Faner som nav-lenker i toppbaren */
-  .topnav{display:flex;gap:2px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+  .brand-title{font-size:18px;font-weight:600;letter-spacing:.2px;white-space:nowrap;justify-self:start}
+  /* Faner som nav-lenker, sentrert i toppbaren */
+  .topnav{grid-column:2;justify-self:center;display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+  #logout{justify-self:end}
+  @media(max-width:720px){
+    header{grid-template-columns:1fr auto}
+    .brand-title{grid-column:1;grid-row:1}
+    #logout{grid-column:2;grid-row:1;justify-self:end}
+    .topnav{grid-column:1 / -1;grid-row:2;justify-self:center}
+  }
   .navlink{background:transparent;border:1px solid transparent;border-radius:8px;
     padding:8px 12px;color:var(--muted);font-weight:600;white-space:nowrap}
   .navlink:hover{color:var(--ink);background:#F4F1E8}
