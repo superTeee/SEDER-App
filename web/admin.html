@@ -221,8 +221,7 @@
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
       </div>
       <div class="samp-tabs" id="samp-tabs">
-        <button class="samp-tab active" data-f="all" onclick="setSampFilter('all', this)">Alle bilder</button>
-        <button class="samp-tab" data-f="emb" onclick="setSampFilter('emb', this)">Med fingeravtrykk</button>
+        <button class="samp-tab active" data-f="emb" onclick="setSampFilter('emb', this)">Med fingeravtrykk</button>
         <button class="samp-tab" data-f="noemb" onclick="setSampFilter('noemb', this)">Uten fingeravtrykk</button>
         <button class="samp-tab" data-f="new" onclick="setSampFilter('new', this)">Nye bilder <span class="chip-count" id="new-count" style="display:none"></span></button>
       </div>
@@ -670,7 +669,7 @@ async function savePublishedEdit(id){
 // ---- Bildeprøver (visuell gjenkjenning) ----
 let bilderLoaded = false;
 let SAMPLES = [];
-let sampFilter = "all";
+let sampFilter = "emb";
 const SRC_NO = { manual_scan: "Skann", journal: "Journal", humidor: "Humidor", band: "Bånd", product: "Produkt" };
 
 // "Nytt" bilde = ikke håndtert ennå (ingen reviewed_at) OG registrert de siste
