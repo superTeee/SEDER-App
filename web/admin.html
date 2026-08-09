@@ -126,6 +126,8 @@
   .badge.emb{background:#EAF7F0;border-color:#BBE3CC;color:#2E9E68}
   .badge.noemb{background:#FBF3E6;border-color:#EBD9B4;color:#9A7A2E}
   .badge.src{background:#F0ECE2;color:var(--accent)}
+  .badge.ny{background:#2E9E68;border-color:#2E9E68;color:#fff;font-weight:700}
+  .samp.is-new{outline:2px solid #2E9E68;outline-offset:-2px}
   .samp .badges .badge.emb, .samp .badges .badge.noemb{padding:2px 6px}
   .samp-actions{display:flex;gap:6px;margin:0 11px 11px}
   .samp-actions button{flex:1;font-size:12px;padding:6px;border-radius:8px;cursor:pointer}
@@ -699,14 +701,15 @@ function sampCard(s){
   const embBadge = s.has_embedding
     ? '<span class="badge emb">✓ fingeravtrykk</span>'
     : '<span class="badge noemb">○ mangler</span>';
+  const nyBadge = isNew(s) ? '<span class="badge ny">Ny</span>' : '';
   const img = s.image_url
     ? `<img class="thumb" loading="lazy" src="${esc(s.image_url)}" alt=""
          onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb miss',textContent:'Bilde utilgjengelig'}))">`
     : `<div class="thumb miss">Ingen bilde-URL</div>`;
-  return `<div class="samp" id="samp-${s.id}">
+  return `<div class="samp${isNew(s) ? " is-new" : ""}" id="samp-${s.id}">
     ${img}
     <div class="meta">
-      <div class="badges"><span class="badge src">${esc(src)}</span>${embBadge}</div>
+      <div class="badges">${nyBadge}<span class="badge src">${esc(src)}</span>${embBadge}</div>
     </div>
     <div class="samp-actions">
       <button class="mv" onclick="toggleMove('${s.id}')">Flytt</button>
@@ -734,7 +737,12 @@ function renderBilder(){
   let list = SAMPLES;
   if (filter === "emb") list = list.filter(s => s.has_embedding);
   else if (filter === "noemb") list = list.filter(s => !s.has_embedding);
-  else if (filter === "new") list = list.filter(isNew);
+  else if (filter === "new") {
+    // Vis ALLE bildene til sigarer som har fått nye bilder — ikke bare de nye —
+    // så du kan sammenligne det nye bildet mot de eksisterende for sigaren.
+    const newCigarIds = new Set(SAMPLES.filter(isNew).map(s => s.cigar_id));
+    list = list.filter(s => newCigarIds.has(s.cigar_id));
+  }
   if (nameQ) list = list.filter(s => (s.cigar_navn || s.brand || "").toLowerCase().includes(nameQ));
 
   const emb = SAMPLES.filter(s => s.has_embedding).length;
@@ -762,6 +770,8 @@ function renderBilder(){
     .map(g => {
       const n = g.items.length;
       const hasNew = g.items.some(isNew);   // grønn antall-chip når sigaren har nye bilder
+      // Nye bilder først, så eldste — gjør det lett å sammenligne mot de kjente.
+      g.items.sort((a, b) => (isNew(b) - isNew(a)) || (new Date(b.created_at || 0) - new Date(a.created_at || 0)));
       const cards = g.items.map(s => sampCard(s)).join("");
       return `<details class="brand-group" open>
         <summary class="brand-head"><span class="brand-name">${esc(g.navn)}</span>
