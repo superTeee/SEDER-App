@@ -176,7 +176,10 @@ class CigarService: ObservableObject {
             let cb = c.brand.lowercased()
             guard cb.contains(bl) || bl.contains(cb) else { return false }
             if sl.isEmpty { return true }
-            return (c.series ?? "").lowercased().contains(sl)
+            // Match på serie OG vitola sammen, så et båndnavn som «NV Romulus»
+            // finner serie «NV» + vitola «Romulus». Alle ord må finnes i «serie vitola».
+            let combined = "\(c.series ?? "") \(c.vitola ?? "")".lowercased()
+            return sl.split(separator: " ").allSatisfy { combined.contains($0) }
         }
         .sorted {
             let s0 = ($0.series ?? "").lowercased(), s1 = ($1.series ?? "").lowercased()
@@ -184,6 +187,20 @@ class CigarService: ObservableObject {
             return ($0.vitola ?? "").lowercased() < ($1.vitola ?? "").lowercased()
         }
         return Array(filtered.prefix(12))
+    }
+
+    /// Distinkte feltverdier for autocomplete (land, dekkblad, vitola ...).
+    /// Bruker RPC-en distinct_cigar_values (whitelist av felt server-side).
+    func distinctValues(field: String, matching query: String) async -> [String] {
+        struct Params: Encodable { let p_field: String; let p_query: String; let p_limit: Int }
+        let rows: [String] = (try? await supabase
+            .rpc("distinct_cigar_values", params: Params(
+                p_field: field,
+                p_query: query.trimmingCharacters(in: .whitespacesAndNewlines),
+                p_limit: 8))
+            .execute()
+            .value) ?? []
+        return rows
     }
 
     // MARK: - Hent sigarer basert på merke

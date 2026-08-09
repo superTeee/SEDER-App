@@ -75,6 +75,7 @@ struct ExploreView: View {
     @State private var showManualAdd      = false
     @State private var showAddedConfirm   = false
     @State private var pendingHumidorCigar: Cigar? = nil
+    @State private var isAddingToHumidor = false
     @AppStorage("humidorHasNew") private var humidorHasNew = false
 
     // Strekkode-scanner
@@ -352,10 +353,43 @@ struct ExploreView: View {
                 }
                 .environmentObject(authService)
             }
-            .alert("Lagt i humidoren", isPresented: $showAddedConfirm) {
-                Button("Fint") {}
-            } message: {
-                Text("Takk for bidraget! Vi finner og verifiserer sigaren så raskt vi kan, så neste som skanner den får treff.")
+            // Spinner mens sigaren legges til (add + evt. bilde-opplasting).
+            .overlay(alignment: .center) {
+                if isAddingToHumidor {
+                    ZStack {
+                        Color.black.opacity(0.3).ignoresSafeArea()
+                        VStack(spacing: 12) {
+                            ProgressView().tint(.white).scaleEffect(1.3)
+                            Text("Legger til …")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.white)
+                        }
+                        .padding(26)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color("Card")))
+                    }
+                }
+            }
+            // Bekreftelse med grønt check-ikon (erstatter system-alerten).
+            .overlay(alignment: .bottom) {
+                if showAddedConfirm {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                        Text("Lagt i humidoren").fontWeight(.semibold)
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 12)
+                    .background(Color("Accent"))
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
+                    .padding(.bottom, 40)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                            withAnimation { showAddedConfirm = false }
+                        }
+                    }
+                }
             }
             .navigationDestination(for: String.self) { brand in
                 BrandCigarsView(brand: brand)
@@ -500,6 +534,7 @@ struct ExploreView: View {
     private func finalizeManualScanAdd(_ cigar: Cigar, purchasedAt: Date, addedAt: Date,
                                        quantity: Int, humidorId: UUID?, store: String, price: Double?) {
         guard let userId = authService.userId else { return }
+        isAddingToHumidor = true
         let ocr = scanService.extractedText
         let scanImg = capturedImage
         let band = scanImg?.jpegData(compressionQuality: 0.8)
@@ -519,8 +554,9 @@ struct ExploreView: View {
 
             // 3) Rød badge på humidor-fanen + bekreftelse — UMIDDELBART.
             await MainActor.run {
+                isAddingToHumidor = false
                 humidorHasNew = true
-                showAddedConfirm = true
+                withAnimation { showAddedConfirm = true }
             }
 
             // 4) Lær av skannet i bakgrunnen (bånd-bilde → embedding). Blokkerer ikke UI.

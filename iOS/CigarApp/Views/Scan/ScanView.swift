@@ -594,8 +594,8 @@ struct NoMatchView: View {
         switch outcome {
         case .none:
             return ("textformat",
-                    "Vi fant ingen tekst på båndet",
-                    "Mange bånd er rent grafiske, uten lesbar tekst å søke på. Sigaren kan likevel ligge i databasen — og legger du den inn, kjenner appen igjen båndet neste gang.")
+                    "Vi klarte ikke å lese båndet",
+                    "Båndet er enten rent grafisk, eller har bare noen få tegn (som en forkortelse) — for lite til å slå opp et merke. Sigaren kan likevel ligge i databasen; legger du den inn, kjenner appen igjen båndet neste gang.")
         case .unclear:
             return ("scribble.variable",
                     "Vi så tekst, men klarte ikke å lese den",

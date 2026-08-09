@@ -45,11 +45,13 @@ struct AddCigarSheet: View {
     @State private var errorMessage: String?
 
     // Autocomplete-tilstand
-    private enum Field: Hashable { case brand, series, vitola }
+    private enum Field: Hashable { case brand, series, vitola, country, wrapper }
     @FocusState private var focus: Field?
     @State private var brandMatches: [String] = []   // merke-forslag mens du skriver merke
     @State private var seriesMatches: [String] = []  // serie-forslag for valgt merke
     @State private var dbCigars: [Cigar] = []        // eksisterende offentlige sigarer å koble til
+    @State private var countryMatches: [String] = []
+    @State private var wrapperMatches: [String] = []
     @State private var searchTask: Task<Void, Never>? = nil
 
     private let cigarService = CigarService()
@@ -166,8 +168,24 @@ struct AddCigarSheet: View {
                 Section("Detaljer") {
                     TextField("Opprinnelsesland", text: $country)
                         .textInputAutocapitalization(.words)
+                        .focused($focus, equals: .country)
+                        .onChange(of: country) { _, _ in onCountryChange() }
+                    if focus == .country, !countryMatches.isEmpty {
+                        ForEach(countryMatches, id: \.self) { name in
+                            Button { pickCountry(name) } label: { suggestionRow(name) }
+                                .buttonStyle(.plain)
+                        }
+                    }
                     TextField("Dekkblad", text: $wrapper)
                         .textInputAutocapitalization(.words)
+                        .focused($focus, equals: .wrapper)
+                        .onChange(of: wrapper) { _, _ in onWrapperChange() }
+                    if focus == .wrapper, !wrapperMatches.isEmpty {
+                        ForEach(wrapperMatches, id: \.self) { name in
+                            Button { pickWrapper(name) } label: { suggestionRow(name) }
+                                .buttonStyle(.plain)
+                        }
+                    }
                     HStack {
                         TextField("Ringmål", text: $ringGauge)
                             .keyboardType(.numberPad)
@@ -324,6 +342,34 @@ struct AddCigarSheet: View {
         seriesMatches = []
         Task { await refreshDBMatches() }
     }
+
+    // Autocomplete for land + dekkblad (distinkte verdier fra basen).
+    private func onCountryChange() {
+        searchTask?.cancel()
+        let q = country
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if Task.isCancelled { return }
+            let m = await cigarService.distinctValues(field: "country_origin", matching: q)
+            if Task.isCancelled { return }
+            countryMatches = m.filter { $0.lowercased() != q.lowercased() }
+        }
+    }
+
+    private func onWrapperChange() {
+        searchTask?.cancel()
+        let q = wrapper
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if Task.isCancelled { return }
+            let m = await cigarService.distinctValues(field: "wrapper_leaf", matching: q)
+            if Task.isCancelled { return }
+            wrapperMatches = m.filter { $0.lowercased() != q.lowercased() }
+        }
+    }
+
+    private func pickCountry(_ name: String) { country = name; countryMatches = [] }
+    private func pickWrapper(_ name: String) { wrapper = name; wrapperMatches = [] }
 
     /// Koble oppføringen til en eksisterende rad i basen — ingen ny (dublett-)rad.
     private func linkExisting(_ cigar: Cigar) {
