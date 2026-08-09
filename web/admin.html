@@ -86,6 +86,21 @@
   .brand-count{font-size:12px;font-weight:600;color:var(--accent-dark);background:#F0ECE2;border-radius:20px;padding:3px 10px;white-space:nowrap}
   .brand-body{padding:12px 12px 4px}
   .brand-body .card{margin-bottom:8px}
+  /* Bildeprøver (visuell gjenkjenning) */
+  .bf-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .samp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:4px}
+  .samp{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .samp .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;background:#F0ECE2;display:block}
+  .samp .thumb.miss{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;padding:8px}
+  .samp .meta{padding:9px 11px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .samp .nm{font-size:13px;font-weight:600;line-height:1.25;word-break:break-word}
+  .samp .badges{display:flex;flex-wrap:wrap;gap:4px}
+  .badge{font-size:11px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
+  .badge.emb{background:#EAF7F0;border-color:#BBE3CC;color:#2E9E68}
+  .badge.noemb{background:#FBF3E6;border-color:#EBD9B4;color:#9A7A2E}
+  .badge.src{background:#F0ECE2;color:var(--accent)}
+  .samp .rm{margin:0 11px 11px;border:1px solid #E7C3BE;background:#FBEEEC;color:#b9433a;font-size:13px;padding:7px;border-radius:8px;cursor:pointer}
+  .samp.gone{opacity:.35;pointer-events:none}
 </style>
 </head>
 <body>
@@ -118,6 +133,7 @@
       <button data-tab="dekning" class="active">Dekning</button>
       <button data-tab="datahull">Datahull</button>
       <button data-tab="publisert">Publisert</button>
+      <button data-tab="bilder">Bildeprøver</button>
     </div>
 
     <section id="tab-dekning">
@@ -156,6 +172,23 @@
       <div class="note">Sigarer som er publisert i appen. Rediger for å rette feil — her <strong>overskrives</strong> feltene (i motsetning til Datahull, som bare fyller tomme).</div>
       <input id="pub-search" placeholder="Søk merke / navn…" oninput="renderPublisert(this.value)" style="margin-bottom:12px" />
       <div id="pub-list"><div class="card muted">Laster…</div></div>
+    </section>
+
+    <section id="tab-bilder" class="hidden">
+      <div class="note">Bilder appen har koblet til sigarer, brukt til <strong>visuell gjenkjenning</strong> ved skanning. Fjern bilder som er koblet til feil sigar, eller som er for dårlige til å kjenne igjen båndet. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
+      <div class="bf-bar">
+        <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
+        <span id="bf-msg" class="muted" style="font-size:13px"></span>
+      </div>
+      <div class="bf-bar">
+        <select id="samp-filter" onchange="renderBilder()" style="width:auto">
+          <option value="all">Alle bilder</option>
+          <option value="emb">Kun med fingeravtrykk</option>
+          <option value="noemb">Kun uten fingeravtrykk</option>
+        </select>
+        <span id="samp-total" class="muted" style="font-size:13px"></span>
+      </div>
+      <div id="samp-data"><div class="card muted">Laster…</div></div>
     </section>
   </main>
 </div>
@@ -197,11 +230,12 @@ $("logout").onclick = $("logout2").onclick = async () => { await db.auth.signOut
 db.auth.onAuthStateChange((_e, session) => { if (session) boot(); });
 
 // ---- Tabs ----
-const TABS = ["dekning", "datahull", "publisert"];
+const TABS = ["dekning", "datahull", "publisert", "bilder"];
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("active", x === b));
   TABS.forEach(t => $("tab-" + t).classList.toggle("hidden", b.dataset.tab !== t));
   if (b.dataset.tab === "publisert" && !pubLoaded) { pubLoaded = true; loadPublisert(); }
+  if (b.dataset.tab === "bilder" && !bilderLoaded) { bilderLoaded = true; loadBilder(); }
 });
 
 // ---- Dekning ----
@@ -590,6 +624,86 @@ async function savePublishedEdit(id){
   msg.textContent = error ? ("Feil: " + error.message) : "Lagret ✓";
   if (!error){ const row = PUB_LIST.find(c => c.id === id); if (row){ row.flavor_notes = notes.slice(); PUB_SEED[id] = notes.slice(); } }
 }
+
+// ---- Bildeprøver (visuell gjenkjenning) ----
+let bilderLoaded = false;
+let SAMPLES = [];
+const SRC_NO = { manual_scan: "Skann", journal: "Journal", band: "Bånd", product: "Produkt" };
+
+async function loadBilder(){
+  const box = $("samp-data");
+  box.innerHTML = '<div class="card muted">Laster…</div>';
+  const { data, error } = await db.rpc("admin_image_samples", { p_limit: 500 });
+  if (error){ box.innerHTML = '<div class="card muted">Feil: ' + esc(error.message) + '</div>'; return; }
+  SAMPLES = data || [];
+  renderBilder();
+}
+
+function renderBilder(){
+  const filter = $("samp-filter").value;
+  let list = SAMPLES;
+  if (filter === "emb") list = SAMPLES.filter(s => s.has_embedding);
+  else if (filter === "noemb") list = SAMPLES.filter(s => !s.has_embedding);
+
+  const emb = SAMPLES.filter(s => s.has_embedding).length;
+  $("samp-total").textContent =
+    `${SAMPLES.length} bilder · ${emb} med fingeravtrykk · ${SAMPLES.length - emb} uten`;
+
+  const box = $("samp-data");
+  if (!list.length){ box.innerHTML = '<div class="card muted">Ingen bilder i dette filteret.</div>'; return; }
+  box.innerHTML = '<div class="samp-grid">' + list.map(s => {
+    const navn = s.cigar_navn && s.cigar_navn.length ? s.cigar_navn : (s.brand || "(ukjent sigar)");
+    const src = SRC_NO[s.source] || s.source || "?";
+    const embBadge = s.has_embedding
+      ? '<span class="badge emb">✓ fingeravtrykk</span>'
+      : '<span class="badge noemb">○ mangler</span>';
+    const img = s.image_url
+      ? `<img class="thumb" loading="lazy" src="${esc(s.image_url)}" alt=""
+           onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb miss',textContent:'Bilde utilgjengelig'}))">`
+      : `<div class="thumb miss">Ingen bilde-URL</div>`;
+    return `<div class="samp" id="samp-${s.id}">
+      ${img}
+      <div class="meta">
+        <div class="nm">${esc(navn)}</div>
+        <div class="badges"><span class="badge src">${esc(src)}</span>${embBadge}</div>
+      </div>
+      <button class="rm" onclick="removeSample('${s.id}', this)">Fjern</button>
+    </div>`;
+  }).join("") + '</div>';
+}
+
+async function removeSample(id, btn){
+  if (!confirm("Fjerne dette bildet fra visuell gjenkjenning? Koblingen slettes permanent.")) return;
+  btn.disabled = true; btn.textContent = "Fjerner…";
+  const { error } = await db.rpc("admin_delete_image_sample", { p_id: id });
+  if (error){ btn.disabled = false; btn.textContent = "Fjern"; alert("Feil: " + error.message); return; }
+  SAMPLES = SAMPLES.filter(s => s.id !== id);
+  renderBilder();
+}
+window.removeSample = removeSample;
+
+async function runBackfill(){
+  const btn = $("bf-run"); const msg = $("bf-msg");
+  btn.disabled = true;
+  let total = 0;
+  try {
+    for (let round = 0; round < 20; round++){
+      msg.textContent = `Kjører… (${total} behandlet)`;
+      const { data, error } = await db.functions.invoke("embed-band", { body: { backfill: true, limit: 20 } });
+      if (error) throw error;
+      total += (data.done || 0);
+      msg.textContent = `Behandlet ${total} · ${data.remaining ?? 0} igjen`;
+      if (!data.done || (data.remaining ?? 0) === 0) break;
+    }
+    msg.textContent = `Ferdig — ${total} nye fingeravtrykk laget.`;
+  } catch (e){
+    msg.textContent = "Feil: " + (e && e.message ? e.message : e);
+  } finally {
+    btn.disabled = false;
+    loadBilder();
+  }
+}
+$("bf-run").onclick = runBackfill;
 
 boot();
 </script>

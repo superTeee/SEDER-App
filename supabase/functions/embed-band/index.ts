@@ -9,7 +9,7 @@
 // Tre bruksmåter (samme funksjon):
 //   A) { image }                      -> { signature, suggestions }  (skanne-spørring)
 //   B) { storage_path, cigar_id }     -> lagrer embedding på prøven   (etter en løst skanning)
-//   C) { backfill:true, limit }       -> fyller manglende embeddings   (krever x-admin-key)
+//   C) { backfill:true, limit }       -> fyller manglende embeddings   (admin: x-admin-key ELLER innlogget admin-JWT)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -21,10 +21,29 @@ const cors = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const BAND_BUCKET = "band-samples";
 
 function publicUrl(path: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/${BAND_BUCKET}/${path}`;
+}
+
+// Er kalleren en innlogget admin? Bruker kallerens egen JWT (anon-klient med
+// Authorization-header), slik at is_admin() ser auth.uid(). Brukes for å la
+// admin-panelet trigge backfill uten å eksponere service-nøkkelen i nettleseren.
+async function callerIsAdmin(req: Request): Promise<boolean> {
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return false;
+    const caller = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data, error } = await caller.rpc("is_admin");
+    if (error) return false;
+    return data === true;
+  } catch {
+    return false;
+  }
 }
 
 async function toBase64FromUrl(url: string): Promise<string | null> {
@@ -114,9 +133,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // C) BACKFILL — fyll manglende embeddings. Krever service-role i x-admin-key.
+    // C) BACKFILL — fyll manglende embeddings.
+    // Tillatt for (1) service-role i x-admin-key (curl/cron) ELLER
+    // (2) en innlogget admin (JWT + is_admin), slik at admin-panelet kan trigge den.
     if (body.backfill === true) {
-      if (req.headers.get("x-admin-key") !== SERVICE_ROLE) {
+      const viaServiceKey = req.headers.get("x-admin-key") === SERVICE_ROLE;
+      const viaAdminJwt = viaServiceKey ? true : await callerIsAdmin(req);
+      if (!viaServiceKey && !viaAdminJwt) {
         return new Response(JSON.stringify({ error: "unauthorized" }), {
           status: 401, headers: { ...cors, "Content-Type": "application/json" },
         });
