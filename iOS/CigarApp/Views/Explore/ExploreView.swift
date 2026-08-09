@@ -359,10 +359,10 @@ struct ExploreView: View {
                     ZStack {
                         Color.black.opacity(0.3).ignoresSafeArea()
                         VStack(spacing: 12) {
-                            ProgressView().tint(.white).scaleEffect(1.3)
+                            ProgressView().tint(Color("TextPrimary")).scaleEffect(1.3)
                             Text("Legger til …")
                                 .font(.subheadline.weight(.medium))
-                                .foregroundColor(.white)
+                                .foregroundColor(Color("TextPrimary"))
                         }
                         .padding(26)
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color("Card")))
@@ -382,7 +382,7 @@ struct ExploreView: View {
                     .background(Color("Accent"))
                     .clipShape(Capsule())
                     .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 100)   // klar tab-baren (60pt + safe area)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .onAppear {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
