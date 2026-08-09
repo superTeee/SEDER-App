@@ -129,8 +129,9 @@
   .badge.ny{background:#2E9E68;border-color:#2E9E68;color:#fff;font-weight:700}
   .samp.is-new{outline:2px solid #2E9E68;outline-offset:-2px}
   .samp .badges .badge.emb, .samp .badges .badge.noemb{padding:2px 6px}
-  .samp-actions{display:flex;gap:6px;margin:0 11px 11px}
-  .samp-actions button{flex:1;font-size:12px;padding:6px;border-radius:8px;cursor:pointer}
+  .samp-actions{display:flex;gap:6px;flex-wrap:wrap;margin:0 11px 11px}
+  .samp-actions button{flex:1 1 40px;font-size:12px;padding:6px 4px;border-radius:8px;cursor:pointer}
+  .samp-actions .keep{border:1px solid #BBE3CC;background:#EAF7F0;color:#2E9E68;font-weight:600}
   .samp-actions .mv{border:1px solid #CBD9E8;background:#EEF4FB;color:#2C5A87}
   .samp-actions .rm{border:1px solid #E7C3BE;background:#FBEEEC;color:#b9433a}
   .samp.gone{opacity:.35;pointer-events:none}
@@ -214,7 +215,7 @@
     </section>
 
     <section id="tab-bilder" class="hidden">
-      <div class="note">Bilder appen har koblet til sigarer, gruppert per sigar og brukt til <strong>visuell gjenkjenning</strong> ved skanning. <strong>Flytt</strong> et bilde til riktig sigar hvis det er feilkoblet (beholder fingeravtrykket), eller <strong>Fjern</strong> ekte dårlige bilder. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
+      <div class="note">Bilder appen har koblet til sigarer, gruppert per sigar og brukt til <strong>visuell gjenkjenning</strong> ved skanning. Under <strong>Nye bilder</strong> gjennomgår du innkomne bilder — <strong>Behold</strong> (riktig), <strong>Flytt</strong> (feil sigar, beholder fingeravtrykket) eller <strong>Fjern</strong> (dårlig) — så forsvinner de fra køen. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
       <div class="bf-bar" id="bf-bar" style="display:none">
         <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
@@ -672,10 +673,12 @@ let SAMPLES = [];
 let sampFilter = "all";
 const SRC_NO = { manual_scan: "Skann", journal: "Journal", humidor: "Humidor", band: "Bånd", product: "Produkt" };
 
-// "Nytt" bilde = registrert de siste 14 dagene (fanger bildene brukerne nettopp
-// har lagt til via humidor/journal, så du kan gjennomgå dem fortløpende).
-const NEW_DAYS = 14;
+// "Nytt" bilde = ikke håndtert ennå (ingen reviewed_at) OG registrert de siste
+// 30 dagene. Du tømmer køen med Behold/Flytt/Fjern; 30-dagersgrensen er en
+// backstop så uhåndterte bilder ikke ligger evig.
+const NEW_DAYS = 30;
 function isNew(s){
+  if (s.reviewed_at) return false;
   if (!s.created_at) return false;
   return (Date.now() - new Date(s.created_at).getTime()) < NEW_DAYS * 86400000;
 }
@@ -712,6 +715,7 @@ function sampCard(s){
       <div class="badges">${nyBadge}<span class="badge src">${esc(src)}</span>${embBadge}</div>
     </div>
     <div class="samp-actions">
+      ${isNew(s) ? `<button class="keep" onclick="keepSample('${s.id}', this)">Behold</button>` : ""}
       <button class="mv" onclick="toggleMove('${s.id}')">Flytt</button>
       <button class="rm" onclick="removeSample('${s.id}', this)">Fjern</button>
     </div>
@@ -752,7 +756,7 @@ function renderBilder(){
   const box = $("samp-data");
   if (!list.length){
     box.innerHTML = '<div class="card muted">' +
-      (filter === "new" ? "Ingen nye bilder de siste 14 dagene." : "Ingen bilder i dette filteret.") +
+      (filter === "new" ? "✅ Køen er tom — ingen nye bilder å gjennomgå." : "Ingen bilder i dette filteret.") +
       '</div>';
     return;
   }
@@ -812,10 +816,22 @@ async function reassignSample(id, cigarId, btn){
   const { error } = await db.rpc("admin_reassign_image_sample", { p_id: id, p_cigar_id: cigarId });
   if (error){ alert("Feil: " + error.message); return; }
   const s = SAMPLES.find(x => x.id === id);
-  if (s){ s.cigar_id = cigarId; s.cigar_navn = navn; }
+  // Flytt teller også som håndtert → ut av «Nye bilder»-køen.
+  if (s){ s.cigar_id = cigarId; s.cigar_navn = navn; s.reviewed_at = new Date().toISOString(); }
   renderBilder();
 }
 window.reassignSample = reassignSample;
+
+// Behold: «dette er riktig» → marker som håndtert, ut av køen (blir liggende i basen).
+async function keepSample(id, btn){
+  btn.disabled = true; btn.textContent = "…";
+  const { error } = await db.rpc("admin_mark_image_reviewed", { p_id: id });
+  if (error){ btn.disabled = false; btn.textContent = "Behold"; alert("Feil: " + error.message); return; }
+  const s = SAMPLES.find(x => x.id === id);
+  if (s) s.reviewed_at = new Date().toISOString();
+  renderBilder();
+}
+window.keepSample = keepSample;
 
 async function removeSample(id, btn){
   if (!confirm("Fjerne dette bildet fra visuell gjenkjenning? Koblingen slettes permanent.")) return;
