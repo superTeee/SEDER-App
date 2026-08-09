@@ -1,15 +1,14 @@
 // supabase/functions/embed-band/index.ts
-// Lager et 512-d "visuelt fingeravtrykk" av et sigarbånd — gjenbruker OpenAI.
+// Ekte bilde-embedding (CLIP via Jina) — bildet blir en vektor DIREKTE, uten
+// tekst-mellomledd. Vektoren (512-d) lagres i cigar_image_samples.image_embedding.
 //
-// GPT (gpt-5-mini) beskriver båndets UTSEENDE i en fast, verdi-basert form
-// (ikke hvilket merke det er), og text-embedding-3-small (dimensions:512) gjør
-// beskrivelsen om til en vektor som passer cigar_image_samples.embedding
-// (vector(512)). OpenAI-nøkkelen ligger kun her, server-side.
+// Bruksmåter (samme funksjon):
+//   A) { image }                          -> { signature:"", suggestions }  (skanne-spørring)
+//   B) { storage_path, cigar_id }         -> lagrer image_embedding på prøven (etter løst skann)
+//   C) { backfill:true, limit }           -> fyller manglende image_embedding   (admin)
+//   D) { addSample:true, image, cigar_id }-> last opp + embed nytt referansebilde (admin)
 //
-// Tre bruksmåter (samme funksjon):
-//   A) { image }                      -> { signature, suggestions }  (skanne-spørring)
-//   B) { storage_path, cigar_id }     -> lagrer embedding på prøven   (etter en løst skanning)
-//   C) { backfill:true, limit }       -> fyller manglende embeddings   (admin: x-admin-key ELLER innlogget admin-JWT)
+// Krever secret JINA_API_KEY. Uten nøkkel degraderer den pent (tomme forslag).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -24,13 +23,18 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const BAND_BUCKET = "band-samples";
 
+function json(obj: unknown, status = 200): Response {
+  return new Response(JSON.stringify(obj), {
+    status, headers: { ...cors, "Content-Type": "application/json" },
+  });
+}
+
 function publicUrl(path: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/${BAND_BUCKET}/${path}`;
 }
 
-// Er kalleren en innlogget admin? Bruker kallerens egen JWT (anon-klient med
-// Authorization-header), slik at is_admin() ser auth.uid(). Brukes for å la
-// admin-panelet trigge backfill uten å eksponere service-nøkkelen i nettleseren.
+// Innlogget admin? Kallerens egen JWT (anon-klient med Authorization), så is_admin()
+// ser auth.uid(). Brukes for backfill/addSample uten å eksponere service-nøkkelen.
 async function callerIsAdmin(req: Request): Promise<boolean> {
   try {
     const authHeader = req.headers.get("Authorization");
@@ -62,63 +66,38 @@ async function toBase64FromUrl(url: string): Promise<string | null> {
   }
 }
 
-// Beskriv KUN utseendet — faste verdier i fast rekkefølge, uten feltnavn, slik
-// at to bilder av samme bånd gir like beskrivelser (og dermed nære vektorer).
-async function describeBand(base64: string, ocr: string, key: string): Promise<string> {
-  const prompt =
-    `Du beskriver KUN det VISUELLE utseendet til et sigarbånd (IKKE hvilket merke det er).\n` +
-    (ocr ? `OCR leste denne teksten på båndet: "${ocr}".\n` : "") +
-    `Returner ÉN linje med disse VERDIENE i denne rekkefølgen, adskilt med "; ", UTEN feltnavn:\n` +
-    `1) 2-4 dominant colors\n` +
-    `2) metallic finish (gold/silver/copper/none)\n` +
-    `3) band shape and layout\n` +
-    `4) central emblem/crest/animal/logo described briefly, or "no emblem"\n` +
-    `5) any legible text on the band, verbatim, or "no text"\n` +
-    `6) border or edge pattern\n` +
-    `7) overall style (e.g. ornate classic, minimalist modern)\n` +
-    `Bruk korte engelske stikkord. Vær konsis og konsekvent.`;
-
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 25_000);
-  try {
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      signal: controller.signal,
+// CLIP-embedding via Jina. Bildet går rett til en 512-d vektor. Prøver ulike
+// input-former for base64, så vi er robuste mot API-format.
+async function clipEmbed(base64: string, jinaKey: string): Promise<number[]> {
+  const variants: Array<Record<string, string>> = [
+    { image: `data:image/jpeg;base64,${base64}` },
+    { image: base64 },
+    { bytes: base64 },
+  ];
+  let lastErr = "ukjent";
+  for (const item of variants) {
+    const r = await fetch("https://api.jina.ai/v1/embeddings", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+      headers: { "Authorization": `Bearer ${jinaKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-5-mini",
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } },
-          ],
-        }],
-        reasoning_effort: "minimal",
-        max_completion_tokens: 400,
+        model: "jina-clip-v2",
+        dimensions: 512,
+        normalized: true,
+        embedding_type: "float",
+        input: [item],
       }),
     });
-    if (!r.ok) throw new Error(`OpenAI vision-feil ${r.status}: ${await r.text()}`);
-    const j = await r.json();
-    return (j.choices?.[0]?.message?.content ?? "").trim();
-  } finally {
-    clearTimeout(t);
+    if (r.ok) {
+      const j = await r.json();
+      const v = j?.data?.[0]?.embedding;
+      if (Array.isArray(v) && v.length === 512) return v as number[];
+      lastErr = "uventet svar: " + JSON.stringify(j).slice(0, 180);
+      continue;
+    }
+    lastErr = `${r.status}: ${(await r.text()).slice(0, 180)}`;
+    if (r.status === 401 || r.status === 403) break; // auth-feil: ingen vits å prøve flere former
   }
-}
-
-async function embed(text: string, key: string): Promise<number[]> {
-  const r = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
-      input: text && text.length > 0 ? text : "unknown cigar band",
-      dimensions: 512,
-    }),
-  });
-  if (!r.ok) throw new Error(`OpenAI embed-feil ${r.status}: ${await r.text()}`);
-  const j = await r.json();
-  return j.data[0].embedding as number[];
+  throw new Error("Jina embed-feil " + lastErr);
 }
 
 function vecLiteral(v: number[]): string {
@@ -128,40 +107,32 @@ function vecLiteral(v: number[]): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const key = Deno.env.get("OPENAI_API_KEY");
-    if (!key) throw new Error("OPENAI_API_KEY er ikke satt som secret");
+    const jinaKey = Deno.env.get("JINA_API_KEY");
     const body = await req.json().catch(() => ({}));
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // C) BACKFILL — fyll manglende embeddings.
-    // Tillatt for (1) service-role i x-admin-key (curl/cron) ELLER
-    // (2) en innlogget admin (JWT + is_admin), slik at admin-panelet kan trigge den.
+    // C) BACKFILL — fyll manglende image_embedding. Service-role ELLER admin-JWT.
     if (body.backfill === true) {
       const viaServiceKey = req.headers.get("x-admin-key") === SERVICE_ROLE;
-      const viaAdminJwt = viaServiceKey ? true : await callerIsAdmin(req);
-      if (!viaServiceKey && !viaAdminJwt) {
-        return new Response(JSON.stringify({ error: "unauthorized" }), {
-          status: 401, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
+      const ok = viaServiceKey ? true : await callerIsAdmin(req);
+      if (!ok) return json({ error: "unauthorized" }, 401);
+      if (!jinaKey) return json({ error: "JINA_API_KEY er ikke satt som secret" }, 500);
       const limit = Math.min(Number(body.limit ?? 20), 50);
       const { data: rows } = await admin
         .from("cigar_image_samples")
-        .select("id, image_url, storage_path, ocr_text")
-        .is("embedding", null)
+        .select("id, image_url, storage_path")
+        .is("image_embedding", null)
         .limit(limit);
       let done = 0, failed = 0;
       for (const row of rows ?? []) {
         try {
-          const url = row.image_url ??
-            (row.storage_path ? publicUrl(row.storage_path) : null);
+          const url = row.image_url ?? (row.storage_path ? publicUrl(row.storage_path) : null);
           if (!url) { failed++; continue; }
           const b64 = await toBase64FromUrl(url);
           if (!b64) { failed++; continue; }
-          const sig = await describeBand(b64, row.ocr_text ?? "", key);
-          const vec = await embed(sig, key);
+          const vec = await clipEmbed(b64, jinaKey);
           await admin.from("cigar_image_samples")
-            .update({ embedding: vecLiteral(vec) }).eq("id", row.id);
+            .update({ image_embedding: vecLiteral(vec) }).eq("id", row.id);
           done++;
         } catch (e) {
           failed++;
@@ -171,28 +142,17 @@ Deno.serve(async (req) => {
       const { count: remaining } = await admin
         .from("cigar_image_samples")
         .select("id", { count: "exact", head: true })
-        .is("embedding", null);
-      return new Response(JSON.stringify({ done, failed, remaining }), {
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+        .is("image_embedding", null);
+      return json({ done, failed, remaining });
     }
 
-    // D) ADMIN LEGG TIL — last opp ett referansebilde, koble til sigar og embed
-    //    med en gang. Gated av innlogget admin (JWT + is_admin). Brukes fra
-    //    drag-and-drop i admin for å styrke gjenkjenningen med flere bilder.
+    // D) ADMIN LEGG TIL — last opp referansebilde, koble til sigar, embed straks.
     if (body.addSample === true) {
-      if (!(await callerIsAdmin(req))) {
-        return new Response(JSON.stringify({ error: "unauthorized" }), {
-          status: 401, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
+      if (!(await callerIsAdmin(req))) return json({ error: "unauthorized" }, 401);
+      if (!jinaKey) return json({ error: "JINA_API_KEY er ikke satt som secret" }, 500);
       const cigarId = body.cigar_id;
       const b64 = body.image;
-      if (!cigarId || !b64) {
-        return new Response(JSON.stringify({ error: "mangler cigar_id eller image" }), {
-          status: 400, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
+      if (!cigarId || !b64) return json({ error: "mangler cigar_id eller image" }, 400);
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       const path = `admin/${cigarId}/${crypto.randomUUID()}.jpg`;
       const up = await admin.storage.from(BAND_BUCKET).upload(path, bytes, {
@@ -205,56 +165,43 @@ Deno.serve(async (req) => {
         source: "admin", reviewed_at: new Date().toISOString(),
       }).select("id").single();
       if (ins.error) throw new Error("kunne ikke lagre prøve: " + ins.error.message);
-      // Embed med en gang, så bildet styrker gjenkjenningen umiddelbart.
-      const sig = await describeBand(b64, "", key);
-      const vec = await embed(sig, key);
+      const vec = await clipEmbed(b64, jinaKey);
       await admin.from("cigar_image_samples")
-        .update({ embedding: vecLiteral(vec) }).eq("id", ins.data.id);
-      return new Response(JSON.stringify({ ok: true, id: ins.data.id, image_url: url }), {
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+        .update({ image_embedding: vecLiteral(vec) }).eq("id", ins.data.id);
+      return json({ ok: true, id: ins.data.id, image_url: url });
     }
 
     // Skaff bildet: enten direkte base64, eller hentet fra storage_path.
     let base64: string | null = body.image ?? null;
-    if (!base64 && body.storage_path) {
-      base64 = await toBase64FromUrl(publicUrl(body.storage_path));
-    }
-    if (!base64) {
-      return new Response(JSON.stringify({ error: "mangler image eller storage_path" }), {
-        status: 400, headers: { ...cors, "Content-Type": "application/json" },
-      });
+    if (!base64 && body.storage_path) base64 = await toBase64FromUrl(publicUrl(body.storage_path));
+    if (!base64) return json({ error: "mangler image eller storage_path" }, 400);
+
+    // Uten Jina-nøkkel: ingen visuell embedding ennå → degrader pent.
+    if (!jinaKey) {
+      if (body.storage_path && body.cigar_id) return json({ ok: true, skipped: true });
+      return json({ signature: "", suggestions: [] });
     }
 
-    const signature = await describeBand(base64, body.ocr_text ?? "", key);
-    const embedding = await embed(signature, key);
+    const embedding = await clipEmbed(base64, jinaKey);
 
-    // B) LAGRE — kalt etter en løst skanning: fest embedding på prøven.
+    // B) LAGRE — etter løst skann: fest image_embedding på prøven.
     if (body.storage_path && body.cigar_id) {
       await admin.from("cigar_image_samples")
-        .update({ embedding: vecLiteral(embedding) })
+        .update({ image_embedding: vecLiteral(embedding) })
         .eq("storage_path", body.storage_path)
         .eq("cigar_id", body.cigar_id);
-      return new Response(JSON.stringify({ ok: true, signature }), {
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+      return json({ ok: true });
     }
 
-    // A) SPØRRING — finn sigarer med lignende bånd blant tidligere løste skann.
-    const { data: suggestions } = await admin.rpc("match_cigar_by_band", {
+    // A) SPØRRING — finn sigarer med lignende bånd (CLIP).
+    const { data: suggestions } = await admin.rpc("match_cigar_by_image", {
       p_embedding: vecLiteral(embedding),
       p_match_count: 6,
       p_min_similarity: 0.72,
     });
-
-    return new Response(JSON.stringify({ signature, suggestions: suggestions ?? [] }), {
-      headers: { ...cors, "Content-Type": "application/json" },
-    });
+    return json({ signature: "", suggestions: suggestions ?? [] });
   } catch (e) {
     console.error("embed-band feilet:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "ukjent feil" }),
-      { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
-    );
+    return json({ error: e instanceof Error ? e.message : "ukjent feil" }, 500);
   }
 });
