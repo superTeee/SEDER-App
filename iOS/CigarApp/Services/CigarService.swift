@@ -189,6 +189,25 @@ class CigarService: ObservableObject {
         return Array(filtered.prefix(12))
     }
 
+    /// Alle offentlige vitolaer i samme linje (nøyaktig samme merke + serie).
+    /// Et sigarbånd er likt på tvers av størrelser, så en skanning kjenner igjen
+    /// SERIEN, ikke vitolaen — dette lar brukeren bytte til riktig størrelse uten
+    /// å legge sigaren inn på nytt. Den skannede raden er alltid med i lista.
+    func siblingVitolas(for cigar: Cigar) async -> [Cigar] {
+        let all = (try? await fetchCigarsByBrand(cigar.brand)) ?? []
+        let cb = cigar.brand.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cs = (cigar.series ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        var sibs = all.filter { c in
+            guard c.isPublic != false else { return false }
+            guard c.brand.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == cb else { return false }
+            return (c.series ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == cs
+        }
+        .sorted { ($0.vitola ?? "").localizedCaseInsensitiveCompare($1.vitola ?? "") == .orderedAscending }
+        // Sørg for at den skannede sigaren alltid er valgbar (kan være privat / utenfor ilike).
+        if !sibs.contains(where: { $0.id == cigar.id }) { sibs.insert(cigar, at: 0) }
+        return sibs
+    }
+
     /// Distinkte feltverdier for autocomplete (land, dekkblad, vitola ...).
     /// Bruker RPC-en distinct_cigar_values (whitelist av felt server-side).
     func distinctValues(field: String, matching query: String) async -> [String] {

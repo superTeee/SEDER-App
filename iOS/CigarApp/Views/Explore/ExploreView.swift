@@ -347,8 +347,8 @@ struct ExploreView: View {
             // Velg humidor (+ antall/dato) før vi legger sigaren til — samme ark
             // som fra sigar-detalj, så brukeren bestemmer HVOR den skal.
             .sheet(item: $pendingHumidorCigar) { cigar in
-                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price, photoData in
-                    finalizeManualScanAdd(cigar, purchasedAt: purchasedAt, addedAt: addedAt,
+                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { chosenCigar, purchasedAt, addedAt, qty, humidorId, store, price, photoData in
+                    finalizeManualScanAdd(chosenCigar, purchasedAt: purchasedAt, addedAt: addedAt,
                                           quantity: qty, humidorId: humidorId, store: store, price: price, photo: photoData)
                 }
                 .environmentObject(authService)

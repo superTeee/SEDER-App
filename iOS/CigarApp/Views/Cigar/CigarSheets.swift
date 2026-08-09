@@ -66,8 +66,8 @@ struct AddToHumidorSheet: View {
 
     let cigar: Cigar
     var userId: UUID? = nil
-    /// (kjøpsdato, humidordato, antall, humidorId, butikk, pris per sigar, bilde)
-    let onSave: (Date, Date, Int, UUID?, String, Double?, Data?) -> Void
+    /// (valgt sigar/vitola, kjøpsdato, humidordato, antall, humidorId, butikk, pris per sigar, bilde)
+    let onSave: (Cigar, Date, Date, Int, UUID?, String, Double?, Data?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var proManager: ProManager
@@ -85,6 +85,12 @@ struct AddToHumidorSheet: View {
     @State private var photoItem: PhotosPickerItem? = nil
     @State private var photoData: Data? = nil
     @State private var photoImage: Image? = nil
+
+    // Vitola-valg: en skanning kjenner igjen merke + serie (båndet), ikke
+    // størrelsen. Lar brukeren bytte til riktig vitola uten å legge inn på nytt.
+    private let cigarService = CigarService()
+    @State private var siblings: [Cigar] = []
+    @State private var selectedCigarId: UUID? = nil
 
     // Humidor-valg
     private let humidorService = HumidorService()
@@ -119,9 +125,23 @@ struct AddToHumidorSheet: View {
                         if let series = cigar.series {
                             Text(series).font(.subheadline).foregroundColor(Color("TextSecondary"))
                         }
-                        if let vitola = cigar.vitola {
-                            Text(vitola).font(.caption).foregroundColor(Color("TextSecondary"))
+                    }
+                    if siblings.count > 1 {
+                        Picker("Vitola", selection: $selectedCigarId) {
+                            ForEach(siblings) { c in
+                                Text(vitolaLabel(c)).tag(Optional(c.id))
+                            }
                         }
+                    } else if let vitola = cigar.vitola {
+                        HStack {
+                            Text("Vitola")
+                            Spacer()
+                            Text(vitola).foregroundColor(Color("TextSecondary"))
+                        }
+                    }
+                } footer: {
+                    if siblings.count > 1 {
+                        Text("Skanningen kjenner igjen merke og serie — men båndet er likt for alle størrelser. Velg riktig vitola.")
                     }
                 }
 
@@ -274,7 +294,8 @@ struct AddToHumidorSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Legg til") {
                         let price = Double(priceText.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces))
-                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId, store, price, photoData)
+                        let chosen = siblings.first(where: { $0.id == selectedCigarId }) ?? cigar
+                        onSave(chosen, purchasedAt, addedAt, quantity, selectedHumidorId, store, price, photoData)
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -290,7 +311,26 @@ struct AddToHumidorSheet: View {
             .sheet(isPresented: $showPaywall) {
                 PaywallView().environmentObject(proManager)
             }
-            .task { await loadHumidors() }
+            .task {
+                await loadHumidors()
+                await loadSiblings()
+            }
+        }
+    }
+
+    // Etikett i vitola-velgeren: «Toro · 54 × 6.0"» — målene hjelper deg å skille
+    // to størrelser når du står med sigaren i hånden.
+    private func vitolaLabel(_ c: Cigar) -> String {
+        let s = [c.vitola, c.dimensionsLabel].compactMap { $0 }.joined(separator: " · ")
+        return s.isEmpty ? "Standard" : s
+    }
+
+    // Hent alle vitolaer i samme linje, og forhåndsvelg den skannede.
+    private func loadSiblings() async {
+        selectedCigarId = cigar.id
+        siblings = await cigarService.siblingVitolas(for: cigar)
+        if !siblings.contains(where: { $0.id == selectedCigarId }) {
+            selectedCigarId = siblings.first?.id ?? cigar.id
         }
     }
 
