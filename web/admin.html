@@ -103,6 +103,11 @@
   .brand-count{font-size:12px;font-weight:600;color:var(--accent-dark);background:#F0ECE2;border-radius:20px;padding:3px 10px;white-space:nowrap}
   /* Grønn antall-chip når sigaren har fått nye bilder */
   .brand-count.new{color:#2E9E68;background:#EAF7F0;border:1px solid #BBE3CC}
+  /* Gjenkjenningsstyrke-badge */
+  .score-badge{flex:0 0 auto;font-size:11px;font-weight:700;border-radius:20px;padding:2px 9px;white-space:nowrap;border:1px solid transparent;cursor:help}
+  .score-badge.s-svak{background:#FBEEEC;color:#b9433a;border-color:#E7C3BE}
+  .score-badge.s-ok{background:#FBF3E6;color:#9A7A2E;border-color:#EBD9B4}
+  .score-badge.s-sterk{background:#EAF7F0;color:#2E9E68;border-color:#BBE3CC}
   /* Kopier-navn / Google-snarvei i sigar-headeren */
   .hdr-btn{flex:0 0 auto;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;
     border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;
@@ -240,6 +245,7 @@
       </div>
       <div class="bf-bar">
         <input id="samp-search" placeholder="Søk sigar…" oninput="renderBilder()" style="width:auto;flex:1;min-width:160px" />
+        <button class="samp-tab" id="weak-sort" onclick="toggleWeakSort(this)" title="Sorter sigarene fra svakest til sterkest gjenkjenning">Svakest først</button>
         <span id="samp-total" class="muted" style="font-size:13px"></span>
       </div>
       <div id="samp-data"><div class="card muted">Laster…</div></div>
@@ -682,7 +688,9 @@ async function savePublishedEdit(id){
 // ---- Bildeprøver (visuell gjenkjenning) ----
 let bilderLoaded = false;
 let SAMPLES = [];
+let SCORES = {};        // cigar_id -> { n_embedded, score, label, nearest_rival_navn, nearest_rival_sim }
 let sampFilter = "emb";
+let sortWeak = false;   // «Svakest først»
 const SRC_NO = { manual_scan: "Skann", journal: "Journal", humidor: "Humidor", band: "Bånd", product: "Produkt", admin: "Admin" };
 
 // "Nytt" bilde = ikke håndtert ennå (ingen reviewed_at) OG registrert de siste
@@ -697,17 +705,30 @@ function isNew(s){
 
 function setSampFilter(f, el){
   sampFilter = f;
-  document.querySelectorAll(".samp-tab").forEach(x => x.classList.toggle("active", x === el));
+  // Behold «Svakest først» sin egen aktiv-tilstand — bytt kun blant filter-chipsene.
+  document.querySelectorAll("#samp-tabs .samp-tab").forEach(x => x.classList.toggle("active", x === el));
   renderBilder();
 }
 window.setSampFilter = setSampFilter;
 
+function toggleWeakSort(el){
+  sortWeak = !sortWeak;
+  el.classList.toggle("active", sortWeak);
+  renderBilder();
+}
+window.toggleWeakSort = toggleWeakSort;
+
 async function loadBilder(){
   const box = $("samp-data");
   box.innerHTML = '<div class="card muted">Laster…</div>';
-  const { data, error } = await db.rpc("admin_image_samples", { p_limit: 500 });
-  if (error){ box.innerHTML = '<div class="card muted">Feil: ' + esc(error.message) + '</div>'; return; }
-  SAMPLES = data || [];
+  const [samplesRes, scoresRes] = await Promise.all([
+    db.rpc("admin_image_samples", { p_limit: 500 }),
+    db.rpc("admin_recognition_scores"),
+  ]);
+  if (samplesRes.error){ box.innerHTML = '<div class="card muted">Feil: ' + esc(samplesRes.error.message) + '</div>'; return; }
+  SAMPLES = samplesRes.data || [];
+  SCORES = {};
+  (scoresRes.data || []).forEach(r => { SCORES[r.cigar_id] = r; });
   renderBilder();
 }
 
@@ -781,8 +802,11 @@ function renderBilder(){
     groups.get(key).items.push(s);
   });
 
+  const scoreOf = (g) => (g.cigarId && SCORES[g.cigarId]) ? SCORES[g.cigarId].score : -1;
   box.innerHTML = [...groups.values()]
-    .sort((a, b) => b.items.length - a.items.length || a.navn.localeCompare(b.navn, "no"))
+    .sort((a, b) => sortWeak
+      ? (scoreOf(a) - scoreOf(b)) || a.navn.localeCompare(b.navn, "no")
+      : (b.items.length - a.items.length) || a.navn.localeCompare(b.navn, "no"))
     .map(g => {
       const n = g.items.length;
       const hasNew = g.items.some(isNew);   // grønn antall-chip når sigaren har nye bilder
@@ -791,8 +815,13 @@ function renderBilder(){
       const cards = g.items.map(s => sampCard(s)).join("");
       const dz = g.cigarId ? dropzoneHtml(g.cigarId) : "";
       const gq = encodeURIComponent(g.navn + " cigar band");
+      const sc = g.cigarId ? SCORES[g.cigarId] : null;
+      const scoreBadge = sc
+        ? `<span class="score-badge s-${(sc.label || "").toLowerCase()}" title="Gjenkjenningsstyrke ${sc.score}/100 · ${sc.n_embedded} ${sc.n_embedded === 1 ? "bilde" : "bilder"}${sc.nearest_rival_sim != null ? ` · nærmeste rival ${Math.round(sc.nearest_rival_sim * 100)}% (${esc(sc.nearest_rival_navn || "")})` : ""}">${sc.score} ${esc(sc.label || "")}</span>`
+        : "";
       return `<details class="brand-group" open>
         <summary class="brand-head"><span class="brand-name">${esc(g.navn)}</span>
+          ${scoreBadge}
           <button class="hdr-btn" title="Kopier navn" data-name="${esc(g.navn)}" onclick="copyName(event, this)">⧉ Kopier</button>
           <a class="hdr-btn" title="Søk bilder på Google" href="https://www.google.com/search?tbm=isch&q=${gq}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔍 Google</a>
           <span class="brand-count${hasNew ? " new" : ""}">${n} ${n === 1 ? "bilde" : "bilder"}</span></summary>
