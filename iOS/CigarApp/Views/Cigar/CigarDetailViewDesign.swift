@@ -169,7 +169,7 @@ struct CigarDetailViewDesign: View {
             }
         }
         .sheet(isPresented: $showAddToHumidorSheet) {
-            AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price in
+            AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price, photoData in
                 guard let userId = authService.userId else { return }
                 isSaving = true
                 Task {
@@ -180,11 +180,11 @@ struct CigarDetailViewDesign: View {
                         self.entry = newEntry
                         self.quantity = newEntry.quantity
                         humidorHasNew = true
-                        // Kom vi hit fra en skanning uten at oppføringen har bilde,
-                        // blir skann-bildet oppføringens bilde (personlig, i din humidor).
-                        if let scan = scanImage,
-                           (newEntry.photoURL ?? "").isEmpty,
-                           let data = scan.jpegData(compressionQuality: 0.9) {
+                        // Brukerens valgte bilde vinner; ellers skann-bildet hvis vi kom
+                        // fra en skanning. Blir oppføringens bilde (personlig, i din humidor).
+                        let effectivePhoto = photoData ?? scanImage?.jpegData(compressionQuality: 0.9)
+                        if let data = effectivePhoto,
+                           (newEntry.photoURL ?? "").isEmpty {
                             if let url = try? await humidorService.uploadPhoto(
                                 entryId: newEntry.id, userId: userId, imageData: data) {
                                 self.entry?.photoURL = url

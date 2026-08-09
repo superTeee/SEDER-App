@@ -66,8 +66,8 @@ struct AddToHumidorSheet: View {
 
     let cigar: Cigar
     var userId: UUID? = nil
-    /// (kjøpsdato, humidordato, antall, humidorId, butikk, pris per sigar)
-    let onSave: (Date, Date, Int, UUID?, String, Double?) -> Void
+    /// (kjøpsdato, humidordato, antall, humidorId, butikk, pris per sigar, bilde)
+    let onSave: (Date, Date, Int, UUID?, String, Double?, Data?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var proManager: ProManager
@@ -79,6 +79,12 @@ struct AddToHumidorSheet: View {
     @State private var storeSuggestions: [String] = KnownStores.norway
     @State private var showPurchasePicker = false
     @State private var showHumidorPicker = false
+
+    // Valgfritt bilde av sigaren/båndet — blir oppføringens bilde og mates til
+    // visuell gjenkjenning (via trigger på humidor-tabellen).
+    @State private var photoItem: PhotosPickerItem? = nil
+    @State private var photoData: Data? = nil
+    @State private var photoImage: Image? = nil
 
     // Humidor-valg
     private let humidorService = HumidorService()
@@ -139,6 +145,51 @@ struct AddToHumidorSheet: View {
 
                 Section("Antall") {
                     Stepper("\(quantity) stk", value: $quantity, in: 1...100)
+                }
+
+                // Valgfritt bilde — hjelper appen å kjenne igjen sigaren neste gang.
+                Section {
+                    if let photoImage {
+                        photoImage
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 160)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        HStack(spacing: 6) {
+                            Image(systemName: photoImage == nil ? "camera.fill" : "arrow.triangle.2.circlepath")
+                            Text(photoImage == nil ? "Legg til bilde" : "Bytt bilde")
+                                .font(.subheadline)
+                        }
+                        .foregroundColor(Color("Accent"))
+                    }
+                    .onChange(of: photoItem) { _, newItem in
+                        Task {
+                            guard let newItem,
+                                  let data = try? await newItem.loadTransferable(type: Data.self),
+                                  let uiImg = UIImage(data: data) else { return }
+                            await MainActor.run {
+                                photoData = data
+                                photoImage = Image(uiImage: uiImg)
+                                photoItem = nil
+                            }
+                        }
+                    }
+                    if photoImage != nil {
+                        Button(role: .destructive) {
+                            photoData = nil
+                            photoImage = nil
+                        } label: {
+                            Label("Fjern bilde", systemImage: "trash")
+                        }
+                    }
+                } header: {
+                    Text("Bilde")
+                } footer: {
+                    Text("Valgfritt. Ta et bilde av båndet når du legger sigaren i humidoren — det blir oppføringens bilde og hjelper appen å kjenne igjen sigaren neste gang du skanner.")
                 }
 
                 Section {
@@ -223,7 +274,7 @@ struct AddToHumidorSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Legg til") {
                         let price = Double(priceText.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces))
-                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId, store, price)
+                        onSave(purchasedAt, addedAt, quantity, selectedHumidorId, store, price, photoData)
                         dismiss()
                     }
                     .fontWeight(.semibold)

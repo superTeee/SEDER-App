@@ -47,13 +47,17 @@ struct CigarQuickActions: ViewModifier {
                 }
             }
             .sheet(isPresented: $showAddHumidor) {
-                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price in
+                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price, photoData in
                     guard let uid = authService.userId else { return }
                     Task {
                         await attempt("Legg i humidor") {
-                            try await humidorService.addToHumidor(
+                            let entry = try await humidorService.addToHumidor(
                                 cigarId: cigar.id, userId: uid, humidorId: humidorId,
                                 quantity: qty, purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store, purchasePrice: price)
+                            // Valgfritt bilde → oppføringens bilde (mates til gjenkjenning via trigger).
+                            if let data = photoData {
+                                _ = try await humidorService.uploadPhoto(entryId: entry.id, userId: uid, imageData: data)
+                            }
                         }
                     }
                 }

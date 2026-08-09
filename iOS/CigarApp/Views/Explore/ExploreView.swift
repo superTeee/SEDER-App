@@ -347,9 +347,9 @@ struct ExploreView: View {
             // Velg humidor (+ antall/dato) før vi legger sigaren til — samme ark
             // som fra sigar-detalj, så brukeren bestemmer HVOR den skal.
             .sheet(item: $pendingHumidorCigar) { cigar in
-                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price in
+                AddToHumidorSheet(cigar: cigar, userId: authService.userId) { purchasedAt, addedAt, qty, humidorId, store, price, photoData in
                     finalizeManualScanAdd(cigar, purchasedAt: purchasedAt, addedAt: addedAt,
-                                          quantity: qty, humidorId: humidorId, store: store, price: price)
+                                          quantity: qty, humidorId: humidorId, store: store, price: price, photo: photoData)
                 }
                 .environmentObject(authService)
             }
@@ -532,22 +532,24 @@ struct ExploreView: View {
     // rød badge og bekrefter med en gang. Selve læringen (bilde-embedding, 6–7 s)
     // kjøres ETTERPÅ i bakgrunnen, så bekreftelsen ikke henger.
     private func finalizeManualScanAdd(_ cigar: Cigar, purchasedAt: Date, addedAt: Date,
-                                       quantity: Int, humidorId: UUID?, store: String, price: Double?) {
+                                       quantity: Int, humidorId: UUID?, store: String, price: Double?,
+                                       photo: Data? = nil) {
         guard let userId = authService.userId else { return }
         isAddingToHumidor = true
         let ocr = scanService.extractedText
         let scanImg = capturedImage
-        let band = scanImg?.jpegData(compressionQuality: 0.8)
+        // Brukerens valgte bilde vinner over skann-bildet (kan legges inn uten skann).
+        let entryPhoto = photo ?? scanImg?.jpegData(compressionQuality: 0.9)
+        let band = photo ?? scanImg?.jpegData(compressionQuality: 0.8)
         Task {
             // 1) Legg i den VALGTE humidoren
             let entry = try? await humidorService.addToHumidor(
                 cigarId: cigar.id, userId: userId, humidorId: humidorId, quantity: quantity,
                 purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store, purchasePrice: price)
 
-            // 2) Skann-bildet blir oppføringens bilde (vises på detalj) hvis vi har
-            //    det og oppføringen ikke har bilde fra før.
-            if let entry, let scanImg, (entry.photoURL ?? "").isEmpty,
-               let data = scanImg.jpegData(compressionQuality: 0.9) {
+            // 2) Bildet blir oppføringens bilde (vises på detalj) hvis vi har det
+            //    og oppføringen ikke har bilde fra før.
+            if let entry, let data = entryPhoto, (entry.photoURL ?? "").isEmpty {
                 _ = try? await humidorService.uploadPhoto(
                     entryId: entry.id, userId: userId, imageData: data)
             }
