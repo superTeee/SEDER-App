@@ -11,19 +11,27 @@
     --line:#E1DCCF; --accent:#6E5E45; --accent-dark:#43392D;
   }
   *{box-sizing:border-box}
+  html,body{max-width:100%;overflow-x:hidden}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-  header{display:flex;align-items:center;justify-content:space-between;
-    padding:16px 24px;border-bottom:1px solid var(--line);background:var(--card);}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;
+    padding:14px 24px;border-bottom:1px solid var(--line);background:var(--card);}
   header h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.2px}
-  main{max-width:960px;margin:0 auto;padding:24px}
+  .brand-title{font-size:18px;font-weight:600;letter-spacing:.2px;white-space:nowrap}
+  /* Faner som nav-lenker i toppbaren */
+  .topnav{display:flex;gap:2px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+  .navlink{background:transparent;border:1px solid transparent;border-radius:8px;
+    padding:8px 12px;color:var(--muted);font-weight:600;white-space:nowrap}
+  .navlink:hover{color:var(--ink);background:#F4F1E8}
+  .navlink.active{color:var(--accent-dark);background:#F0ECE2;border-color:var(--line)}
+  main{max-width:960px;margin:0 auto;padding:24px;width:100%}
   .muted{color:var(--muted)}
   button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
     background:var(--card);padding:9px 14px;color:var(--ink)}
   button.primary{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark)}
   button:disabled{opacity:.5;cursor:default}
   input,select,textarea{font:inherit;width:100%;padding:9px 11px;border:1px solid var(--line);
-    border-radius:8px;background:var(--card);color:var(--ink)}
+    border-radius:8px;background:var(--card);color:var(--ink);max-width:100%}
   .tabs{display:flex;gap:8px;margin-bottom:20px}
   .tabs button.active{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark)}
   .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
@@ -135,16 +143,16 @@
 
 <div id="app-main" class="hidden">
   <header>
-    <h1>SEDER · Admin</h1>
+    <div class="brand-title">SEDER · Admin</div>
+    <nav class="topnav">
+      <button class="navlink active" data-tab="dekning">Dekning</button>
+      <button class="navlink" data-tab="datahull">Datahull</button>
+      <button class="navlink" data-tab="publisert">Publisert</button>
+      <button class="navlink" data-tab="bilder">Bildeprøver</button>
+    </nav>
     <button id="logout">Logg ut</button>
   </header>
   <main>
-    <div class="tabs">
-      <button data-tab="dekning" class="active">Dekning</button>
-      <button data-tab="datahull">Datahull</button>
-      <button data-tab="publisert">Publisert</button>
-      <button data-tab="bilder">Bildeprøver</button>
-    </div>
 
     <section id="tab-dekning">
       <div class="cards">
@@ -186,9 +194,9 @@
 
     <section id="tab-bilder" class="hidden">
       <div class="note">Bilder appen har koblet til sigarer, gruppert per sigar og brukt til <strong>visuell gjenkjenning</strong> ved skanning. <strong>Flytt</strong> et bilde til riktig sigar hvis det er feilkoblet (beholder fingeravtrykket), eller <strong>Fjern</strong> ekte dårlige bilder. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
-      <div class="bf-bar">
+      <div class="bf-bar" id="bf-bar" style="display:none">
         <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
-        <span id="bf-msg" class="muted" style="font-size:13px"></span>
+        <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
       </div>
       <div class="bf-bar">
         <select id="samp-filter" onchange="renderBilder()" style="width:auto">
@@ -240,10 +248,10 @@ $("logout").onclick = $("logout2").onclick = async () => { await db.auth.signOut
 
 db.auth.onAuthStateChange((_e, session) => { if (session) boot(); });
 
-// ---- Tabs ----
+// ---- Tabs (nav-lenker i toppbaren) ----
 const TABS = ["dekning", "datahull", "publisert", "bilder"];
-document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
-  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("active", x === b));
+document.querySelectorAll(".topnav .navlink").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".topnav .navlink").forEach(x => x.classList.toggle("active", x === b));
   TABS.forEach(t => $("tab-" + t).classList.toggle("hidden", b.dataset.tab !== t));
   if (b.dataset.tab === "publisert" && !pubLoaded) { pubLoaded = true; loadPublisert(); }
   if (b.dataset.tab === "bilder" && !bilderLoaded) { bilderLoaded = true; loadBilder(); }
@@ -677,6 +685,9 @@ function sampCard(s){
 
 function renderBilder(){
   const filter = $("samp-filter").value;
+  // Backfill-knappen hører hjemme der den gjør noe: kun blant bildene uten fingeravtrykk.
+  const bfBar = $("bf-bar");
+  if (bfBar) bfBar.style.display = (filter === "noemb") ? "flex" : "none";
   const nameQ = ($("samp-search") ? $("samp-search").value : "").toLowerCase().trim();
   let list = SAMPLES;
   if (filter === "emb") list = list.filter(s => s.has_embedding);
