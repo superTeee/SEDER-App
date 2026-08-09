@@ -177,6 +177,44 @@ Deno.serve(async (req) => {
       });
     }
 
+    // D) ADMIN LEGG TIL — last opp ett referansebilde, koble til sigar og embed
+    //    med en gang. Gated av innlogget admin (JWT + is_admin). Brukes fra
+    //    drag-and-drop i admin for å styrke gjenkjenningen med flere bilder.
+    if (body.addSample === true) {
+      if (!(await callerIsAdmin(req))) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), {
+          status: 401, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const cigarId = body.cigar_id;
+      const b64 = body.image;
+      if (!cigarId || !b64) {
+        return new Response(JSON.stringify({ error: "mangler cigar_id eller image" }), {
+          status: 400, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const path = `admin/${cigarId}/${crypto.randomUUID()}.jpg`;
+      const up = await admin.storage.from(BAND_BUCKET).upload(path, bytes, {
+        contentType: "image/jpeg", upsert: false,
+      });
+      if (up.error) throw new Error("opplasting feilet: " + up.error.message);
+      const url = publicUrl(path);
+      const ins = await admin.from("cigar_image_samples").insert({
+        cigar_id: cigarId, image_url: url, storage_path: path,
+        source: "admin", reviewed_at: new Date().toISOString(),
+      }).select("id").single();
+      if (ins.error) throw new Error("kunne ikke lagre prøve: " + ins.error.message);
+      // Embed med en gang, så bildet styrker gjenkjenningen umiddelbart.
+      const sig = await describeBand(b64, "", key);
+      const vec = await embed(sig, key);
+      await admin.from("cigar_image_samples")
+        .update({ embedding: vecLiteral(vec) }).eq("id", ins.data.id);
+      return new Response(JSON.stringify({ ok: true, id: ins.data.id, image_url: url }), {
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
     // Skaff bildet: enten direkte base64, eller hentet fra storage_path.
     let base64: string | null = body.image ?? null;
     if (!base64 && body.storage_path) {
