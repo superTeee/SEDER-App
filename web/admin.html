@@ -101,10 +101,20 @@
   .brand-group[open] .brand-head{border-bottom:1px solid var(--line)}
   .brand-name{flex:1}
   .brand-count{font-size:12px;font-weight:600;color:var(--accent-dark);background:#F0ECE2;border-radius:20px;padding:3px 10px;white-space:nowrap}
+  /* Grønn antall-chip når sigaren har fått nye bilder */
+  .brand-count.new{color:#2E9E68;background:#EAF7F0;border:1px solid #BBE3CC}
   .brand-body{padding:12px 12px 4px}
   .brand-body .card{margin-bottom:8px}
   /* Bildeprøver (visuell gjenkjenning) */
   .bf-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  /* Filter-chips (segmentert) */
+  .samp-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .samp-tab{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:7px 14px;
+    font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .samp-tab:hover{color:var(--ink)}
+  .samp-tab.active{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
+  .chip-count{font-size:11px;font-weight:700;background:#2E9E68;color:#fff;border-radius:20px;padding:1px 7px;line-height:1.5}
+  .samp-tab.active .chip-count{background:#fff;color:var(--accent-dark)}
   .samp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:4px}
   .samp{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
   .samp .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;background:#F0ECE2;display:block}
@@ -207,12 +217,13 @@
         <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
       </div>
+      <div class="samp-tabs" id="samp-tabs">
+        <button class="samp-tab active" data-f="all" onclick="setSampFilter('all', this)">Alle bilder</button>
+        <button class="samp-tab" data-f="emb" onclick="setSampFilter('emb', this)">Med fingeravtrykk</button>
+        <button class="samp-tab" data-f="noemb" onclick="setSampFilter('noemb', this)">Uten fingeravtrykk</button>
+        <button class="samp-tab" data-f="new" onclick="setSampFilter('new', this)">Nye bilder <span class="chip-count" id="new-count" style="display:none"></span></button>
+      </div>
       <div class="bf-bar">
-        <select id="samp-filter" onchange="renderBilder()" style="width:auto">
-          <option value="all">Alle bilder</option>
-          <option value="emb">Kun med fingeravtrykk</option>
-          <option value="noemb">Kun uten fingeravtrykk</option>
-        </select>
         <input id="samp-search" placeholder="Søk sigar…" oninput="renderBilder()" style="width:auto;flex:1;min-width:160px" />
         <span id="samp-total" class="muted" style="font-size:13px"></span>
       </div>
@@ -656,7 +667,23 @@ async function savePublishedEdit(id){
 // ---- Bildeprøver (visuell gjenkjenning) ----
 let bilderLoaded = false;
 let SAMPLES = [];
+let sampFilter = "all";
 const SRC_NO = { manual_scan: "Skann", journal: "Journal", humidor: "Humidor", band: "Bånd", product: "Produkt" };
+
+// "Nytt" bilde = registrert de siste 14 dagene (fanger bildene brukerne nettopp
+// har lagt til via humidor/journal, så du kan gjennomgå dem fortløpende).
+const NEW_DAYS = 14;
+function isNew(s){
+  if (!s.created_at) return false;
+  return (Date.now() - new Date(s.created_at).getTime()) < NEW_DAYS * 86400000;
+}
+
+function setSampFilter(f, el){
+  sampFilter = f;
+  document.querySelectorAll(".samp-tab").forEach(x => x.classList.toggle("active", x === el));
+  renderBilder();
+}
+window.setSampFilter = setSampFilter;
 
 async function loadBilder(){
   const box = $("samp-data");
@@ -693,14 +720,21 @@ function sampCard(s){
 }
 
 function renderBilder(){
-  const filter = $("samp-filter").value;
+  const filter = sampFilter;
   // Backfill-knappen hører hjemme der den gjør noe: kun blant bildene uten fingeravtrykk.
   const bfBar = $("bf-bar");
   if (bfBar) bfBar.style.display = (filter === "noemb") ? "flex" : "none";
+
+  // Antall-teller på «Nye bilder»-chipen: hvor mange sigarer har fått nye bilder.
+  const newCigars = new Set(SAMPLES.filter(isNew).map(s => s.cigar_id)).size;
+  const nc = $("new-count");
+  if (nc){ nc.textContent = newCigars || ""; nc.style.display = newCigars ? "" : "none"; }
+
   const nameQ = ($("samp-search") ? $("samp-search").value : "").toLowerCase().trim();
   let list = SAMPLES;
   if (filter === "emb") list = list.filter(s => s.has_embedding);
   else if (filter === "noemb") list = list.filter(s => !s.has_embedding);
+  else if (filter === "new") list = list.filter(isNew);
   if (nameQ) list = list.filter(s => (s.cigar_navn || s.brand || "").toLowerCase().includes(nameQ));
 
   const emb = SAMPLES.filter(s => s.has_embedding).length;
@@ -708,7 +742,12 @@ function renderBilder(){
     `${SAMPLES.length} bilder · ${emb} med fingeravtrykk · ${SAMPLES.length - emb} uten`;
 
   const box = $("samp-data");
-  if (!list.length){ box.innerHTML = '<div class="card muted">Ingen bilder i dette filteret.</div>'; return; }
+  if (!list.length){
+    box.innerHTML = '<div class="card muted">' +
+      (filter === "new" ? "Ingen nye bilder de siste 14 dagene." : "Ingen bilder i dette filteret.") +
+      '</div>';
+    return;
+  }
 
   // Grupper per sigar — én seksjon per sigar, flest bilder først.
   const groups = new Map();
@@ -722,10 +761,11 @@ function renderBilder(){
     .sort((a, b) => b.items.length - a.items.length || a.navn.localeCompare(b.navn, "no"))
     .map(g => {
       const n = g.items.length;
+      const hasNew = g.items.some(isNew);   // grønn antall-chip når sigaren har nye bilder
       const cards = g.items.map(s => sampCard(s)).join("");
       return `<details class="brand-group" open>
         <summary class="brand-head"><span class="brand-name">${esc(g.navn)}</span>
-          <span class="brand-count">${n} ${n === 1 ? "bilde" : "bilder"}</span></summary>
+          <span class="brand-count${hasNew ? " new" : ""}">${n} ${n === 1 ? "bilde" : "bilder"}</span></summary>
         <div class="brand-body"><div class="samp-grid">${cards}</div></div>
       </details>`;
     }).join("");
