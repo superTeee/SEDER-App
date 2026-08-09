@@ -99,8 +99,18 @@
   .badge.emb{background:#EAF7F0;border-color:#BBE3CC;color:#2E9E68}
   .badge.noemb{background:#FBF3E6;border-color:#EBD9B4;color:#9A7A2E}
   .badge.src{background:#F0ECE2;color:var(--accent)}
-  .samp .rm{margin:0 11px 11px;border:1px solid #E7C3BE;background:#FBEEEC;color:#b9433a;font-size:13px;padding:7px;border-radius:8px;cursor:pointer}
+  .samp .badges .badge.emb, .samp .badges .badge.noemb{padding:2px 6px}
+  .samp-actions{display:flex;gap:6px;margin:0 11px 11px}
+  .samp-actions button{flex:1;font-size:12px;padding:6px;border-radius:8px;cursor:pointer}
+  .samp-actions .mv{border:1px solid #CBD9E8;background:#EEF4FB;color:#2C5A87}
+  .samp-actions .rm{border:1px solid #E7C3BE;background:#FBEEEC;color:#b9433a}
   .samp.gone{opacity:.35;pointer-events:none}
+  .move-panel{display:none;padding:0 11px 11px}
+  .move-panel.open{display:block}
+  .move-input{width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+  .move-results{margin-top:6px;display:flex;flex-direction:column;gap:4px;max-height:170px;overflow:auto}
+  .move-opt{text-align:left;font-size:12px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer;width:100%}
+  .move-opt:hover{background:#F0ECE2;border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -175,7 +185,7 @@
     </section>
 
     <section id="tab-bilder" class="hidden">
-      <div class="note">Bilder appen har koblet til sigarer, brukt til <strong>visuell gjenkjenning</strong> ved skanning. Fjern bilder som er koblet til feil sigar, eller som er for dårlige til å kjenne igjen båndet. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
+      <div class="note">Bilder appen har koblet til sigarer, gruppert per sigar og brukt til <strong>visuell gjenkjenning</strong> ved skanning. <strong>Flytt</strong> et bilde til riktig sigar hvis det er feilkoblet (beholder fingeravtrykket), eller <strong>Fjern</strong> ekte dårlige bilder. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
       <div class="bf-bar">
         <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
         <span id="bf-msg" class="muted" style="font-size:13px"></span>
@@ -186,6 +196,7 @@
           <option value="emb">Kun med fingeravtrykk</option>
           <option value="noemb">Kun uten fingeravtrykk</option>
         </select>
+        <input id="samp-search" placeholder="Søk sigar…" oninput="renderBilder()" style="width:auto;flex:1;min-width:160px" />
         <span id="samp-total" class="muted" style="font-size:13px"></span>
       </div>
       <div id="samp-data"><div class="card muted">Laster…</div></div>
@@ -639,11 +650,38 @@ async function loadBilder(){
   renderBilder();
 }
 
+function sampCard(s){
+  const src = SRC_NO[s.source] || s.source || "?";
+  const embBadge = s.has_embedding
+    ? '<span class="badge emb">✓ fingeravtrykk</span>'
+    : '<span class="badge noemb">○ mangler</span>';
+  const img = s.image_url
+    ? `<img class="thumb" loading="lazy" src="${esc(s.image_url)}" alt=""
+         onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb miss',textContent:'Bilde utilgjengelig'}))">`
+    : `<div class="thumb miss">Ingen bilde-URL</div>`;
+  return `<div class="samp" id="samp-${s.id}">
+    ${img}
+    <div class="meta">
+      <div class="badges"><span class="badge src">${esc(src)}</span>${embBadge}</div>
+    </div>
+    <div class="samp-actions">
+      <button class="mv" onclick="toggleMove('${s.id}')">Flytt</button>
+      <button class="rm" onclick="removeSample('${s.id}', this)">Fjern</button>
+    </div>
+    <div class="move-panel" id="move-${s.id}">
+      <input class="move-input" placeholder="Søk riktig sigar…" oninput="searchReassign('${s.id}', this.value)" />
+      <div class="move-results" id="move-res-${s.id}"></div>
+    </div>
+  </div>`;
+}
+
 function renderBilder(){
   const filter = $("samp-filter").value;
+  const nameQ = ($("samp-search") ? $("samp-search").value : "").toLowerCase().trim();
   let list = SAMPLES;
-  if (filter === "emb") list = SAMPLES.filter(s => s.has_embedding);
-  else if (filter === "noemb") list = SAMPLES.filter(s => !s.has_embedding);
+  if (filter === "emb") list = list.filter(s => s.has_embedding);
+  else if (filter === "noemb") list = list.filter(s => !s.has_embedding);
+  if (nameQ) list = list.filter(s => (s.cigar_navn || s.brand || "").toLowerCase().includes(nameQ));
 
   const emb = SAMPLES.filter(s => s.has_embedding).length;
   $("samp-total").textContent =
@@ -651,26 +689,63 @@ function renderBilder(){
 
   const box = $("samp-data");
   if (!list.length){ box.innerHTML = '<div class="card muted">Ingen bilder i dette filteret.</div>'; return; }
-  box.innerHTML = '<div class="samp-grid">' + list.map(s => {
-    const navn = s.cigar_navn && s.cigar_navn.length ? s.cigar_navn : (s.brand || "(ukjent sigar)");
-    const src = SRC_NO[s.source] || s.source || "?";
-    const embBadge = s.has_embedding
-      ? '<span class="badge emb">✓ fingeravtrykk</span>'
-      : '<span class="badge noemb">○ mangler</span>';
-    const img = s.image_url
-      ? `<img class="thumb" loading="lazy" src="${esc(s.image_url)}" alt=""
-           onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb miss',textContent:'Bilde utilgjengelig'}))">`
-      : `<div class="thumb miss">Ingen bilde-URL</div>`;
-    return `<div class="samp" id="samp-${s.id}">
-      ${img}
-      <div class="meta">
-        <div class="nm">${esc(navn)}</div>
-        <div class="badges"><span class="badge src">${esc(src)}</span>${embBadge}</div>
-      </div>
-      <button class="rm" onclick="removeSample('${s.id}', this)">Fjern</button>
-    </div>`;
-  }).join("") + '</div>';
+
+  // Grupper per sigar — én seksjon per sigar, flest bilder først.
+  const groups = new Map();
+  list.forEach(s => {
+    const key = s.cigar_id || "ukjent";
+    if (!groups.has(key)) groups.set(key, { navn: s.cigar_navn || s.brand || "(ukjent sigar)", items: [] });
+    groups.get(key).items.push(s);
+  });
+
+  box.innerHTML = [...groups.values()]
+    .sort((a, b) => b.items.length - a.items.length || a.navn.localeCompare(b.navn, "no"))
+    .map(g => {
+      const n = g.items.length;
+      const cards = g.items.map(s => sampCard(s)).join("");
+      return `<details class="brand-group" open>
+        <summary class="brand-head"><span class="brand-name">${esc(g.navn)}</span>
+          <span class="brand-count">${n} ${n === 1 ? "bilde" : "bilder"}</span></summary>
+        <div class="brand-body"><div class="samp-grid">${cards}</div></div>
+      </details>`;
+    }).join("");
 }
+
+function toggleMove(id){
+  const p = document.getElementById("move-" + id);
+  if (p) p.classList.toggle("open");
+}
+window.toggleMove = toggleMove;
+
+let moveTimer = null;
+function searchReassign(id, q){
+  clearTimeout(moveTimer);
+  const box = document.getElementById("move-res-" + id);
+  if (!box) return;
+  const query = (q || "").trim();
+  if (query.length < 2){ box.innerHTML = '<div class="muted" style="font-size:12px;padding:4px">Skriv minst 2 tegn…</div>'; return; }
+  moveTimer = setTimeout(async () => {
+    box.innerHTML = '<div class="muted" style="font-size:12px;padding:4px">Søker…</div>';
+    const { data, error } = await db.rpc("admin_search_cigars", { p_query: query, p_limit: 15 });
+    if (error){ box.innerHTML = '<div class="muted" style="font-size:12px;padding:4px">Feil: ' + esc(error.message) + '</div>'; return; }
+    if (!data || !data.length){ box.innerHTML = '<div class="muted" style="font-size:12px;padding:4px">Ingen treff.</div>'; return; }
+    box.innerHTML = data.map(c =>
+      `<button class="move-opt" onclick="reassignSample('${id}','${c.id}', this)">${esc(c.cigar_navn || c.brand)}</button>`
+    ).join("");
+  }, 250);
+}
+window.searchReassign = searchReassign;
+
+async function reassignSample(id, cigarId, btn){
+  const navn = btn ? btn.textContent : "";
+  if (!confirm("Flytte bildet til «" + navn + "»?")) return;
+  const { error } = await db.rpc("admin_reassign_image_sample", { p_id: id, p_cigar_id: cigarId });
+  if (error){ alert("Feil: " + error.message); return; }
+  const s = SAMPLES.find(x => x.id === id);
+  if (s){ s.cigar_id = cigarId; s.cigar_navn = navn; }
+  renderBilder();
+}
+window.reassignSample = reassignSample;
 
 async function removeSample(id, btn){
   if (!confirm("Fjerne dette bildet fra visuell gjenkjenning? Koblingen slettes permanent.")) return;
