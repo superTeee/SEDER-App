@@ -292,10 +292,11 @@ struct AddCigarSheet: View {
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 250_000_000)
             if Task.isCancelled { return }
-            var matches = await cigarService.seriesForBrand(currentBrand)
+            var matches = await cigarService.seriesForBrand(currentBrand, matching: currentSeries)
             let sl = currentSeries.lowercased()
             if !sl.isEmpty {
-                matches = matches.filter { $0.lowercased().contains(sl) && $0.lowercased() != sl }
+                // Ikke foreslå det som allerede er skrevet helt ut.
+                matches = matches.filter { $0.lowercased() != sl }
             }
             if Task.isCancelled { return }
             seriesMatches = matches

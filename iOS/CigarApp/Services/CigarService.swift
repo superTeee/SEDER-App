@@ -140,13 +140,18 @@ class CigarService: ObservableObject {
     }
 
     /// Distinkte serie-/navn-forslag for et valgt merke (autocomplete).
-    func seriesForBrand(_ brand: String) async -> [String] {
+    /// `matching` filtrerer på det brukeren har skrevet FØR vi kutter til 6 —
+    /// ellers forsvinner serier lenger nede i alfabetet (f.eks. «White Series»
+    /// på Cavalier Genève, som er nr. 9) selv om brukeren skriver navnet.
+    func seriesForBrand(_ brand: String, matching query: String = "") async -> [String] {
         let cigars = (try? await fetchCigarsByBrand(brand)) ?? []
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         var seen = Set<String>()
         var out: [String] = []
         for c in cigars {
             guard let s = c.series, !s.isEmpty else { continue }
             let key = s.lowercased()
+            if !q.isEmpty && !key.contains(q) { continue }   // filtrer FØR .prefix
             if !seen.contains(key) { seen.insert(key); out.append(s) }
         }
         return Array(out.prefix(6))
