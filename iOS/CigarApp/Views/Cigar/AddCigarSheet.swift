@@ -165,7 +165,7 @@ struct AddCigarSheet: View {
                     }
                 }
 
-                Section("Detaljer") {
+                Section {
                     TextField("Opprinnelsesland", text: $country)
                         .textInputAutocapitalization(.words)
                         .focused($focus, equals: .country)
@@ -187,12 +187,16 @@ struct AddCigarSheet: View {
                         }
                     }
                     HStack {
-                        TextField("Ringmål", text: $ringGauge)
+                        TextField("Ringmål (valgfritt)", text: $ringGauge)
                             .keyboardType(.numberPad)
                         Divider()
-                        TextField("Lengde i tommer", text: $lengthInches)
+                        TextField("Lengde i tommer (valgfritt)", text: $lengthInches)
                             .keyboardType(.decimalPad)
                     }
+                } header: {
+                    Text("Detaljer")
+                } footer: {
+                    Text("Alt her er valgfritt. Vet du ikke ringmål eller lengde, la dem stå tomme — eller trykk en vitola over for typiske mål. Blir sigaren godkjent til basen, fyller vi inn de riktige målene mot kilden.")
                 }
 
                 Section {
@@ -325,6 +329,25 @@ struct AddCigarSheet: View {
     private func refreshDBMatches() async {
         let matches = await cigarService.matchingCigars(brand: brand, series: series)
         dbCigars = matches
+        prefillFromSeries()
+    }
+
+    /// Finnes serien allerede i basen med felles land/dekkblad, forhåndsutfyll de
+    /// feltene (kun hvis de er tomme). En serie deler nesten alltid land og
+    /// dekkblad på tvers av vitolaer — så når du legger til en manglende vitola
+    /// (f.eks. Black II Torpedo) slipper du å skrive dem på nytt. Fritt å endre.
+    private func prefillFromSeries() {
+        guard !dbCigars.isEmpty else { return }
+        if country.trimmingCharacters(in: .whitespaces).isEmpty {
+            let vals = Set(dbCigars.compactMap {
+                $0.countryOrigin?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
+            if vals.count == 1 { country = vals.first! }
+        }
+        if wrapper.trimmingCharacters(in: .whitespaces).isEmpty {
+            let vals = Set(dbCigars.compactMap {
+                $0.wrapperLeaf?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
+            if vals.count == 1 { wrapper = vals.first! }
+        }
     }
 
     private func pickBrand(_ name: String) {
