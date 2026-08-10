@@ -1067,17 +1067,21 @@ window.removeSample = removeSample;
 async function runBackfill(){
   const btn = $("bf-run"); const msg = $("bf-msg");
   btn.disabled = true;
-  let total = 0;
+  let total = 0, lastErr = null, remaining = null;
   try {
     for (let round = 0; round < 20; round++){
       msg.textContent = `Kjører… (${total} behandlet)`;
       const { data, error } = await db.functions.invoke("embed-band", { body: { backfill: true, limit: 20 } });
       if (error) throw error;
       total += (data.done || 0);
-      msg.textContent = `Behandlet ${total} · ${data.remaining ?? 0} igjen`;
-      if (!data.done || (data.remaining ?? 0) === 0) break;
+      remaining = data.remaining ?? 0;
+      if (data.lastError) lastErr = data.lastError;
+      msg.textContent = `Behandlet ${total} · ${remaining} igjen`;
+      if (!data.done || remaining === 0) break;
     }
-    msg.textContent = `Ferdig — ${total} nye fingeravtrykk laget.`;
+    msg.textContent = `Ferdig — ${total} nye fingeravtrykk laget.`
+      + (remaining ? ` · ${remaining} igjen` : "")
+      + (lastErr ? ` · Jina svarte: ${lastErr}` : "");
   } catch (e){
     msg.textContent = "Feil: " + (e && e.message ? e.message : e);
   } finally {

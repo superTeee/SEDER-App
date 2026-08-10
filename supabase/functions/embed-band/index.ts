@@ -18,6 +18,9 @@ const BAND_BUCKET = "band-samples";
 
 const storageAdmin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+let lastJinaError = "";
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 function bufToB64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let bin = "";
@@ -117,7 +120,8 @@ async function jinaEmbed(item: Record<string, string>, jinaKey: string): Promise
     }),
   });
   if (!r.ok) {
-    console.error("Jina " + r.status + ": " + (await r.text()).slice(0, 200));
+    lastJinaError = r.status + ": " + (await r.text()).slice(0, 200);
+    console.error("Jina " + lastJinaError);
     return null;
   }
   const j = await r.json();
@@ -168,6 +172,7 @@ Deno.serve(async (req) => {
         .select("id, image_url, storage_path")
         .is("image_embedding", null)
         .limit(limit);
+      lastJinaError = "";
       let done = 0, failed = 0;
       for (const row of rows ?? []) {
         try {
@@ -178,6 +183,7 @@ Deno.serve(async (req) => {
           await admin.from("cigar_image_samples")
             .update({ image_embedding: vecLiteral(vec) }).eq("id", row.id);
           done++;
+          await sleep(700);   // hold oss under Jina sin rate-grense
         } catch (e) {
           failed++;
           console.error("backfill-rad feilet", row.id, e);
@@ -187,7 +193,7 @@ Deno.serve(async (req) => {
         .from("cigar_image_samples")
         .select("id", { count: "exact", head: true })
         .is("image_embedding", null);
-      return json({ done, failed, remaining });
+      return json({ done, failed, remaining, lastError: lastJinaError || null });
     }
 
     // D) ADMIN LEGG TIL (base64 eller URL)
