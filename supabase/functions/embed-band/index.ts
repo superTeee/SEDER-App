@@ -108,25 +108,34 @@ async function toBase64FromUrl(url: string): Promise<string | null> {
 }
 
 async function jinaEmbed(item: Record<string, string>, jinaKey: string): Promise<number[] | null> {
-  const r = await fetch("https://api.jina.ai/v1/embeddings", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${jinaKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "jina-clip-v2",
-      dimensions: 512,
-      normalized: true,
-      embedding_type: "float",
-      input: [item],
-    }),
-  });
-  if (!r.ok) {
+  // Prøv opptil 3 ganger; ved 429/503 (rate-limit) venter vi og prøver igjen.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await fetch("https://api.jina.ai/v1/embeddings", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${jinaKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "jina-clip-v2",
+        dimensions: 512,
+        normalized: true,
+        embedding_type: "float",
+        input: [item],
+      }),
+    });
+    if (r.ok) {
+      const j = await r.json();
+      const v = j?.data?.[0]?.embedding;
+      return (Array.isArray(v) && v.length === 512) ? v as number[] : null;
+    }
     lastJinaError = r.status + ": " + (await r.text()).slice(0, 200);
+    if (r.status === 429 || r.status === 503) {
+      await sleep(2000 * (attempt + 1));   // rate-limit → vent og prøv igjen
+      continue;
+    }
     console.error("Jina " + lastJinaError);
-    return null;
+    return null;   // annen feil (kvote/format) → gi opp
   }
-  const j = await r.json();
-  const v = j?.data?.[0]?.embedding;
-  return (Array.isArray(v) && v.length === 512) ? v as number[] : null;
+  console.error("Jina rate-limit ga opp: " + lastJinaError);
+  return null;
 }
 
 // Embed et lagret bilde: la Jina hente en signert URL. Faller tilbake til
