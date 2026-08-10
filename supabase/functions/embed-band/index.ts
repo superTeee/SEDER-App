@@ -1,14 +1,7 @@
 // supabase/functions/embed-band/index.ts
-// Ekte bilde-embedding (CLIP via Jina) — bildet blir en vektor DIREKTE, uten
-// tekst-mellomledd. Vektoren (512-d) lagres i cigar_image_samples.image_embedding.
-//
-// Bruksmåter (samme funksjon):
-//   A) { image }                          -> { signature:"", suggestions }  (skanne-spørring)
-//   B) { storage_path, cigar_id }         -> lagrer image_embedding på prøven (etter løst skann)
-//   C) { backfill:true, limit }           -> fyller manglende image_embedding   (admin)
-//   D) { addSample:true, image, cigar_id }-> last opp + embed nytt referansebilde (admin)
-//
-// Krever secret JINA_API_KEY. Uten nøkkel degraderer den pent (tomme forslag).
+// Ekte bilde-embedding (CLIP via Jina). For lagrede bilder lar vi Jina HENTE
+// bildet selv via en signert URL (robust for private buckets, format og storrelse);
+// bare live-skann sendes som base64.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -23,7 +16,6 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const BAND_BUCKET = "band-samples";
 
-// Service-role-klient for å laste ned lagrings-objekter (også fra private bøtter).
 const storageAdmin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
 function bufToB64(buf: ArrayBuffer): string {
@@ -46,8 +38,6 @@ function publicUrl(path: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/${BAND_BUCKET}/${path}`;
 }
 
-// Innlogget admin? Kallerens egen JWT (anon-klient med Authorization), så is_admin()
-// ser auth.uid(). Brukes for backfill/addSample uten å eksponere service-nøkkelen.
 async function callerIsAdmin(req: Request): Promise<boolean> {
   try {
     const authHeader = req.headers.get("Authorization");
@@ -63,10 +53,27 @@ async function callerIsAdmin(req: Request): Promise<boolean> {
   }
 }
 
+// Hvis URL-en peker til Supabase-lagring: returner en signert URL (funker for
+// private buckets). Ellers returner URL-en uendret.
+async function signedIfStorage(url: string): Promise<string> {
+  const marker = "/storage/v1/object/";
+  const idx = url.indexOf(marker);
+  if (idx < 0 || !url.includes(".supabase.co")) return url;
+  let rest = url.slice(idx + marker.length);
+  if (rest.startsWith("public/")) rest = rest.slice(7);
+  else if (rest.startsWith("sign/")) rest = rest.slice(5);
+  const q = rest.indexOf("?");
+  if (q >= 0) rest = rest.slice(0, q);
+  const slash = rest.indexOf("/");
+  if (slash <= 0) return url;
+  const bucket = rest.slice(0, slash);
+  const path = decodeURIComponent(rest.slice(slash + 1));
+  const { data } = await storageAdmin.storage.from(bucket).createSignedUrl(path, 600);
+  return data?.signedUrl ?? url;
+}
+
 async function toBase64FromUrl(url: string): Promise<string | null> {
   try {
-    // Supabase-lagrings-URL → last ned via service-role. Funker for private bøtter
-    // (f.eks. log-photos) og unngår at «public»-URL avvises. (Streng-parsing, ikke regex.)
     const marker = "/storage/v1/object/";
     const idx = url.indexOf(marker);
     if (idx >= 0 && url.includes(".supabase.co")) {
@@ -84,7 +91,6 @@ async function toBase64FromUrl(url: string): Promise<string | null> {
         return bufToB64(await data.arrayBuffer());
       }
     }
-    // Ekstern URL → send en vanlig nettleser-User-Agent (mange sider blokkerer default).
     const r = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
@@ -98,38 +104,45 @@ async function toBase64FromUrl(url: string): Promise<string | null> {
   }
 }
 
-// CLIP-embedding via Jina. Bildet går rett til en 512-d vektor. Prøver ulike
-// input-former for base64, så vi er robuste mot API-format.
-async function clipEmbed(base64: string, jinaKey: string): Promise<number[]> {
-  const variants: Array<Record<string, string>> = [
-    { image: `data:image/jpeg;base64,${base64}` },
-    { image: base64 },
-    { bytes: base64 },
-  ];
-  let lastErr = "ukjent";
-  for (const item of variants) {
-    const r = await fetch("https://api.jina.ai/v1/embeddings", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${jinaKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "jina-clip-v2",
-        dimensions: 512,
-        normalized: true,
-        embedding_type: "float",
-        input: [item],
-      }),
-    });
-    if (r.ok) {
-      const j = await r.json();
-      const v = j?.data?.[0]?.embedding;
-      if (Array.isArray(v) && v.length === 512) return v as number[];
-      lastErr = "uventet svar: " + JSON.stringify(j).slice(0, 180);
-      continue;
-    }
-    lastErr = `${r.status}: ${(await r.text()).slice(0, 180)}`;
-    if (r.status === 401 || r.status === 403) break; // auth-feil: ingen vits å prøve flere former
+async function jinaEmbed(item: Record<string, string>, jinaKey: string): Promise<number[] | null> {
+  const r = await fetch("https://api.jina.ai/v1/embeddings", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${jinaKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "jina-clip-v2",
+      dimensions: 512,
+      normalized: true,
+      embedding_type: "float",
+      input: [item],
+    }),
+  });
+  if (!r.ok) {
+    console.error("Jina " + r.status + ": " + (await r.text()).slice(0, 200));
+    return null;
   }
-  throw new Error("Jina embed-feil " + lastErr);
+  const j = await r.json();
+  const v = j?.data?.[0]?.embedding;
+  return (Array.isArray(v) && v.length === 512) ? v as number[] : null;
+}
+
+// Embed et lagret bilde: la Jina hente en signert URL. Faller tilbake til
+// nedlasting + base64 hvis URL-metoden ikke gir vektor.
+async function embedStoredUrl(rawUrl: string, jinaKey: string): Promise<number[] | null> {
+  const signed = await signedIfStorage(rawUrl);
+  const viaUrl = await jinaEmbed({ image: signed }, jinaKey);
+  if (viaUrl) return viaUrl;
+  const b64 = await toBase64FromUrl(rawUrl);
+  if (!b64) return null;
+  return await embedB64(b64, jinaKey);
+}
+
+// Embed fra base64 (live-skann). Prover ulike input-former.
+async function embedB64(base64: string, jinaKey: string): Promise<number[] | null> {
+  for (const item of [{ image: `data:image/jpeg;base64,${base64}` }, { image: base64 }, { bytes: base64 }]) {
+    const v = await jinaEmbed(item, jinaKey);
+    if (v) return v;
+  }
+  return null;
 }
 
 function vecLiteral(v: number[]): string {
@@ -143,7 +156,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // C) BACKFILL — fyll manglende image_embedding. Service-role ELLER admin-JWT.
+    // C) BACKFILL
     if (body.backfill === true) {
       const viaServiceKey = req.headers.get("x-admin-key") === SERVICE_ROLE;
       const ok = viaServiceKey ? true : await callerIsAdmin(req);
@@ -160,9 +173,8 @@ Deno.serve(async (req) => {
         try {
           const url = row.image_url ?? (row.storage_path ? publicUrl(row.storage_path) : null);
           if (!url) { failed++; continue; }
-          const b64 = await toBase64FromUrl(url);
-          if (!b64) { failed++; continue; }
-          const vec = await clipEmbed(b64, jinaKey);
+          const vec = await embedStoredUrl(url, jinaKey);
+          if (!vec) { failed++; continue; }
           await admin.from("cigar_image_samples")
             .update({ image_embedding: vecLiteral(vec) }).eq("id", row.id);
           done++;
@@ -178,13 +190,11 @@ Deno.serve(async (req) => {
       return json({ done, failed, remaining });
     }
 
-    // D) ADMIN LEGG TIL — last opp referansebilde, koble til sigar, embed straks.
+    // D) ADMIN LEGG TIL (base64 eller URL)
     if (body.addSample === true) {
       if (!(await callerIsAdmin(req))) return json({ error: "unauthorized" }, 401);
       if (!jinaKey) return json({ error: "JINA_API_KEY er ikke satt som secret" }, 500);
       const cigarId = body.cigar_id;
-      // Bildet kan komme som base64 (opplasting) ELLER som en URL (dratt/limt fra
-      // nettet) — da henter serveren det og lagrer vår egen kopi.
       let b64: string | null = body.image ?? null;
       if (!b64 && body.image_url) {
         b64 = await toBase64FromUrl(String(body.image_url));
@@ -202,27 +212,29 @@ Deno.serve(async (req) => {
         cigar_id: cigarId, image_url: url, storage_path: path,
         source: "admin", reviewed_at: new Date().toISOString(),
       }).select("id").single();
-      if (ins.error) throw new Error("kunne ikke lagre prøve: " + ins.error.message);
-      const vec = await clipEmbed(b64, jinaKey);
-      await admin.from("cigar_image_samples")
-        .update({ image_embedding: vecLiteral(vec) }).eq("id", ins.data.id);
-      return json({ ok: true, id: ins.data.id, image_url: url });
+      if (ins.error) throw new Error("kunne ikke lagre prove: " + ins.error.message);
+      const vec = await embedStoredUrl(url, jinaKey);
+      if (vec) {
+        await admin.from("cigar_image_samples")
+          .update({ image_embedding: vecLiteral(vec) }).eq("id", ins.data.id);
+      }
+      return json({ ok: true, id: ins.data.id, image_url: url, embedded: !!vec });
     }
 
-    // Skaff bildet: enten direkte base64, eller hentet fra storage_path.
+    // Skaff bildet for live-skann / lagre
     let base64: string | null = body.image ?? null;
-    if (!base64 && body.storage_path) base64 = await toBase64FromUrl(publicUrl(body.storage_path));
-    if (!base64) return json({ error: "mangler image eller storage_path" }, 400);
 
-    // Uten Jina-nøkkel: ingen visuell embedding ennå → degrader pent.
     if (!jinaKey) {
       if (body.storage_path && body.cigar_id) return json({ ok: true, skipped: true });
       return json({ signature: "", suggestions: [] });
     }
 
-    const embedding = await clipEmbed(base64, jinaKey);
+    let embedding: number[] | null = null;
+    if (base64) embedding = await embedB64(base64, jinaKey);
+    else if (body.storage_path) embedding = await embedStoredUrl(publicUrl(body.storage_path), jinaKey);
+    if (!embedding) return json({ error: "kunne ikke lage embedding" }, 400);
 
-    // B) LAGRE — etter løst skann: fest image_embedding på prøven.
+    // B) LAGRE
     if (body.storage_path && body.cigar_id) {
       await admin.from("cigar_image_samples")
         .update({ image_embedding: vecLiteral(embedding) })
@@ -231,7 +243,7 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
-    // A) SPØRRING — finn sigarer med lignende bånd (CLIP).
+    // A) SPORRING
     const { data: suggestions } = await admin.rpc("match_cigar_by_image", {
       p_embedding: vecLiteral(embedding),
       p_match_count: 6,
