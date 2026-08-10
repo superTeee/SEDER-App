@@ -151,8 +151,14 @@ Deno.serve(async (req) => {
       if (!(await callerIsAdmin(req))) return json({ error: "unauthorized" }, 401);
       if (!jinaKey) return json({ error: "JINA_API_KEY er ikke satt som secret" }, 500);
       const cigarId = body.cigar_id;
-      const b64 = body.image;
-      if (!cigarId || !b64) return json({ error: "mangler cigar_id eller image" }, 400);
+      // Bildet kan komme som base64 (opplasting) ELLER som en URL (dratt/limt fra
+      // nettet) — da henter serveren det og lagrer vår egen kopi.
+      let b64: string | null = body.image ?? null;
+      if (!b64 && body.image_url) {
+        b64 = await toBase64FromUrl(String(body.image_url));
+        if (!b64) return json({ error: "kunne ikke hente bildet fra URL-en" }, 400);
+      }
+      if (!cigarId || !b64) return json({ error: "mangler cigar_id eller image/image_url" }, 400);
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       const path = `admin/${cigarId}/${crypto.randomUUID()}.jpg`;
       const up = await admin.storage.from(BAND_BUCKET).upload(path, bytes, {

@@ -133,6 +133,10 @@
   .dropzone:hover{border-color:var(--accent);color:var(--ink)}
   .dropzone.drag{border-color:#2E9E68;background:#EAF7F0;color:#2E9E68}
   .dropzone.busy{opacity:.7;pointer-events:none}
+  .dz-url{display:flex;gap:6px;margin:-4px 0 10px}
+  .dz-url-input{flex:1;font-size:12px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+  .dz-url-btn{font-size:12px;font-weight:600;padding:6px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer;white-space:nowrap}
+  .dz-url-btn:hover{border-color:var(--accent)}
   .samp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:4px}
   .samp{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
   .samp .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;background:#F0ECE2;display:block}
@@ -929,24 +933,53 @@ window.keepSample = keepSample;
 
 // ---- Last opp referansebilder (drag-and-drop per sigar) ----
 function dropzoneHtml(cigarId){
-  // <label> med skjult input → klikk åpner filvelger automatisk; drag/drop håndteres av event-ene.
+  // <label> med skjult input → klikk åpner filvelger. Drag/drop tar imot både filer
+  // fra disk OG bilder dratt rett fra en nettside (Google Images o.l.).
   return `<label class="dropzone" ondragover="dzOver(event,this)" ondragleave="dzLeave(this)" ondrop="dzDrop(event,'${cigarId}',this)">
-    <span class="dz-text">＋ Dra bilder hit (eller klikk) for å lære opp gjenkjenningen</span>
+    <span class="dz-text">＋ Dra bilder hit — fra disk eller rett fra en Google-fane — for å lære opp gjenkjenningen</span>
     <input type="file" accept="image/*" multiple hidden onchange="dzFiles(event,'${cigarId}',this.closest('.dropzone'))" />
-  </label>`;
+  </label>
+  <div class="dz-url">
+    <input class="dz-url-input" placeholder="…eller lim inn bilde-URL (Google: høyreklikk bildet → «Kopier bildeadresse»)" onkeydown="dzUrlKey(event,'${cigarId}',this)" />
+    <button type="button" class="dz-url-btn" onclick="dzUrlAdd('${cigarId}', this)">Hent</button>
+  </div>`;
 }
 function dzOver(e, el){ e.preventDefault(); el.classList.add("drag"); }
 function dzLeave(el){ el.classList.remove("drag"); }
 function dzDrop(e, cigarId, el){
   e.preventDefault(); el.classList.remove("drag");
-  const files = [...(e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : [])].filter(f => f.type.startsWith("image/"));
-  if (files.length) uploadSamples(files, cigarId, el);
+  const dt = e.dataTransfer;
+  const files = [...(dt && dt.files ? dt.files : [])].filter(f => f.type.startsWith("image/"));
+  if (files.length){ uploadSamples(files, cigarId, el); return; }
+  // Dratt fra en nettside (Google Images o.l.) → hent bilde-URL fra dataTransfer.
+  const url = extractDragUrl(dt);
+  if (url) uploadUrls([url], cigarId, el);
 }
 function dzFiles(e, cigarId, el){
   const files = [...(e.target.files || [])].filter(f => f.type.startsWith("image/"));
   if (files.length) uploadSamples(files, cigarId, el);
 }
+function extractDragUrl(dt){
+  if (!dt) return null;
+  let u = (dt.getData("text/uri-list") || dt.getData("text/plain") || "").trim().split("\n")[0].trim();
+  if (/^https?:\/\//i.test(u)) return u;
+  const html = dt.getData("text/html") || "";
+  const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return (m && /^https?:\/\//i.test(m[1])) ? m[1] : null;
+}
+function dzUrlAdd(cigarId, btn){
+  const wrap = btn.closest(".dz-url");
+  const input = wrap.querySelector(".dz-url-input");
+  const url = (input.value || "").trim();
+  if (!/^https?:\/\//i.test(url)){ alert("Lim inn en gyldig bilde-URL (https://…)"); return; }
+  input.value = "";
+  uploadUrls([url], cigarId, wrap.previousElementSibling);   // .dropzone rett før
+}
+function dzUrlKey(e, cigarId, input){
+  if (e.key === "Enter"){ e.preventDefault(); dzUrlAdd(cigarId, input.parentElement.querySelector(".dz-url-btn")); }
+}
 window.dzOver = dzOver; window.dzLeave = dzLeave; window.dzDrop = dzDrop; window.dzFiles = dzFiles;
+window.dzUrlAdd = dzUrlAdd; window.dzUrlKey = dzUrlKey;
 
 // Nedskalering i nettleseren før opplasting, så payloaden holdes liten.
 function fileToJpegBase64(file, maxDim){
@@ -1000,6 +1033,26 @@ async function uploadSamples(files, cigarId, el){
   await loadBilder();   // hent på nytt så de nye bildene (med fingeravtrykk) vises
 }
 window.uploadSamples = uploadSamples;
+
+// Legg til bilder fra URL-er (dratt fra web / limt inn) — serveren henter og embedder.
+async function uploadUrls(urls, cigarId, el){
+  const txt = el ? el.querySelector(".dz-text") : null;
+  if (el) el.classList.add("busy");
+  let done = 0, failed = 0;
+  for (let i = 0; i < urls.length; i++){
+    if (txt) txt.textContent = `Henter ${i + 1}/${urls.length}…`;
+    try {
+      const { data, error } = await db.functions.invoke("embed-band", { body: { addSample: true, cigar_id: cigarId, image_url: urls[i] } });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      done++;
+    } catch (e){ failed++; console.error("URL-henting feilet", e); }
+  }
+  if (txt) txt.textContent = `Ferdig: ${done} lagt til${failed ? `, ${failed} feilet` : ""}. Oppdaterer…`;
+  if (el) el.classList.remove("busy");
+  await loadBilder();
+}
+window.uploadUrls = uploadUrls;
 
 async function removeSample(id, btn){
   if (!confirm("Fjerne dette bildet fra visuell gjenkjenning? Koblingen slettes permanent.")) return;
