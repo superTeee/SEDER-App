@@ -23,6 +23,19 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const BAND_BUCKET = "band-samples";
 
+// Service-role-klient for å laste ned lagrings-objekter (også fra private bøtter).
+const storageAdmin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+function bufToB64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
     status, headers: { ...cors, "Content-Type": "application/json" },
@@ -52,15 +65,34 @@ async function callerIsAdmin(req: Request): Promise<boolean> {
 
 async function toBase64FromUrl(url: string): Promise<string | null> {
   try {
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    const buf = new Uint8Array(await r.arrayBuffer());
-    let bin = "";
-    const chunk = 0x8000;
-    for (let i = 0; i < buf.length; i += chunk) {
-      bin += String.fromCharCode(...buf.subarray(i, i + chunk));
+    // Supabase-lagrings-URL → last ned via service-role. Funker for private bøtter
+    // (f.eks. log-photos) og unngår at «public»-URL avvises. (Streng-parsing, ikke regex.)
+    const marker = "/storage/v1/object/";
+    const idx = url.indexOf(marker);
+    if (idx >= 0 && url.includes(".supabase.co")) {
+      let rest = url.slice(idx + marker.length);
+      if (rest.startsWith("public/")) rest = rest.slice(7);
+      else if (rest.startsWith("sign/")) rest = rest.slice(5);
+      const q = rest.indexOf("?");
+      if (q >= 0) rest = rest.slice(0, q);
+      const slash = rest.indexOf("/");
+      if (slash > 0) {
+        const bucket = rest.slice(0, slash);
+        const path = decodeURIComponent(rest.slice(slash + 1));
+        const { data, error } = await storageAdmin.storage.from(bucket).download(path);
+        if (error || !data) return null;
+        return bufToB64(await data.arrayBuffer());
+      }
     }
-    return btoa(bin);
+    // Ekstern URL → send en vanlig nettleser-User-Agent (mange sider blokkerer default).
+    const r = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        "Accept": "image/avif,image/webp,image/png,image/jpeg,*/*",
+      },
+    });
+    if (!r.ok) return null;
+    return bufToB64(await r.arrayBuffer());
   } catch {
     return null;
   }
