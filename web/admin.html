@@ -253,7 +253,7 @@
         <button class="samp-tab" data-f="all" onclick="setSampFilter('all', this)">Alle sigarer <span class="tab-count" id="all-count"></span></button>
       </div>
       <div class="bf-bar">
-        <input id="samp-search" placeholder="Søk sigar…" oninput="onSampSearch(this.value)" style="width:auto;flex:1;min-width:160px" />
+        <input id="samp-search" placeholder="Søk i hele katalogen…" oninput="onSampSearch(this.value)" style="width:auto;flex:1;min-width:160px" />
         <button class="samp-tab" id="weak-sort" onclick="toggleWeakSort(this)" title="Sorter sigarene fra svakest til sterkest gjenkjenning">Svakest først</button>
         <span id="samp-total" class="muted" style="font-size:13px"></span>
       </div>
@@ -719,9 +719,9 @@ function setSampFilter(f, el){
   // Behold «Svakest først» sin egen aktiv-tilstand — bytt kun blant filter-chipsene.
   document.querySelectorAll("#samp-tabs .samp-tab").forEach(x => x.classList.toggle("active", x === el));
   const s = $("samp-search");
-  if (s) s.placeholder = (f === "all") ? "Søk opp en sigar å legge til bilder på…" : "Søk sigar…";
-  if (f === "all") onSampSearch(s ? s.value : "");   // server-søk (eller vis prompt hvis tomt)
-  else renderBilder();
+  if (s) s.placeholder = "Søk i hele katalogen…";
+  // Søket er globalt: hvis det står noe i feltet, behold treffene; ellers vis fanens innhold.
+  renderBilder();
 }
 window.setSampFilter = setSampFilter;
 
@@ -799,6 +799,21 @@ function renderBilder(){
   setTC("all-count", TOTAL_CIGARS);
 
   const box = $("samp-data");
+
+  // Globalt søk: har du skrevet minst 2 tegn, viser vi treff fra HELE katalogen
+  // (også sigarer uten bilder), uansett hvilken fane du står i.
+  const searchQ = ($("samp-search") ? $("samp-search").value : "").trim();
+  if (searchQ.length >= 2){
+    $("samp-total").textContent = "";
+    if (!allResults.length){ box.innerHTML = `<div class="card muted">Ingen treff for «${esc(searchQ)}».</div>`; return; }
+    const groups = allResults.map(c => ({
+      cigarId: c.id,
+      navn: c.cigar_navn || c.brand || "(ukjent sigar)",
+      items: SAMPLES.filter(s => s.cigar_id === c.id),
+    }));
+    renderGroupList(box, groups);
+    return;
+  }
 
   // «Alle sigarer»: server-søk. Viser hvilken som helst sigar (også uten bilder)
   // med sine evt. bilder + drop-sone, så du kan legge til bilder på den.
@@ -1032,11 +1047,11 @@ function fileToJpegBase64(file, maxDim){
   });
 }
 
-// Søkefeltet: i «Alle sigarer» gjør det et server-søk (finn hvilken som helst
-// sigar, også uten bilder). I andre faner filtrerer det gruppene lokalt på navn.
+// Søkefeltet gjør ALLTID et server-søk i hele katalogen (uansett fane), så du
+// finner hvilken som helst sigar — også de uten bilder. Delvise treff funker
+// (ILIKE på hvert ord), f.eks. «10» finner «10th Anniversary».
 let allSearchTimer = null;
 function onSampSearch(v){
-  if (sampFilter !== "all"){ renderBilder(); return; }
   clearTimeout(allSearchTimer);
   const query = (v || "").trim();
   if (query.length < 2){ allResults = []; renderBilder(); return; }
