@@ -108,8 +108,8 @@ async function toBase64FromUrl(url: string): Promise<string | null> {
 }
 
 async function jinaEmbed(item: Record<string, string>, jinaKey: string): Promise<number[] | null> {
-  // Prøv opptil 3 ganger; ved 429/503 (rate-limit) venter vi og prøver igjen.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Prøv opptil 2 ganger; ved 429/503 (rate-limit) venter vi kort og prøver igjen.
+  for (let attempt = 0; attempt < 2; attempt++) {
     const r = await fetch("https://api.jina.ai/v1/embeddings", {
       method: "POST",
       headers: { "Authorization": `Bearer ${jinaKey}`, "Content-Type": "application/json" },
@@ -128,7 +128,7 @@ async function jinaEmbed(item: Record<string, string>, jinaKey: string): Promise
     }
     lastJinaError = r.status + ": " + (await r.text()).slice(0, 200);
     if (r.status === 429 || r.status === 503) {
-      await sleep(2000 * (attempt + 1));   // rate-limit → vent og prøv igjen
+      await sleep(1000);   // rate-limit → kort pause, prøv igjen
       continue;
     }
     console.error("Jina " + lastJinaError);
@@ -175,7 +175,8 @@ Deno.serve(async (req) => {
       const ok = viaServiceKey ? true : await callerIsAdmin(req);
       if (!ok) return json({ error: "unauthorized" }, 401);
       if (!jinaKey) return json({ error: "JINA_API_KEY er ikke satt som secret" }, 500);
-      const limit = Math.min(Number(body.limit ?? 20), 50);
+      // Bevisst liten batch per kall, så vi aldri treffer tidsgrensen (retry tar tid).
+      const limit = Math.min(Number(body.limit ?? 8), 8);
       const { data: rows } = await admin
         .from("cigar_image_samples")
         .select("id, image_url, storage_path")
@@ -192,7 +193,7 @@ Deno.serve(async (req) => {
           await admin.from("cigar_image_samples")
             .update({ image_embedding: vecLiteral(vec) }).eq("id", row.id);
           done++;
-          await sleep(700);   // hold oss under Jina sin rate-grense
+          await sleep(250);   // liten pause mellom kall
         } catch (e) {
           failed++;
           console.error("backfill-rad feilet", row.id, e);
