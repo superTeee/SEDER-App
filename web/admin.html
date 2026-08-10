@@ -127,6 +127,8 @@
   .samp-tab.active{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
   .chip-count{font-size:11px;font-weight:700;background:#2E9E68;color:#fff;border-radius:20px;padding:1px 7px;line-height:1.5}
   .samp-tab.active .chip-count{background:#fff;color:var(--accent-dark)}
+  .tab-count{font-size:11px;font-weight:600;opacity:.55;margin-left:1px}
+  .samp-tab.active .tab-count{opacity:.85}
   /* Drag-and-drop-sone per sigar — lær opp gjenkjenningen med flere bilder */
   .dropzone{display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;
     border:2px dashed #CDBB93;border-radius:12px;padding:14px;margin:2px 0 10px;
@@ -245,10 +247,10 @@
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
       </div>
       <div class="samp-tabs" id="samp-tabs">
-        <button class="samp-tab active" data-f="emb" onclick="setSampFilter('emb', this)">Med fingeravtrykk</button>
-        <button class="samp-tab" data-f="noemb" onclick="setSampFilter('noemb', this)">Uten fingeravtrykk</button>
+        <button class="samp-tab active" data-f="emb" onclick="setSampFilter('emb', this)">Med fingeravtrykk <span class="tab-count" id="emb-count"></span></button>
+        <button class="samp-tab" data-f="noemb" onclick="setSampFilter('noemb', this)">Uten fingeravtrykk <span class="tab-count" id="noemb-count"></span></button>
         <button class="samp-tab" data-f="new" onclick="setSampFilter('new', this)">Nye bilder <span class="chip-count" id="new-count" style="display:none"></span></button>
-        <button class="samp-tab" data-f="all" onclick="setSampFilter('all', this)">Alle sigarer</button>
+        <button class="samp-tab" data-f="all" onclick="setSampFilter('all', this)">Alle sigarer <span class="tab-count" id="all-count"></span></button>
       </div>
       <div class="bf-bar">
         <input id="samp-search" placeholder="Søk sigar…" oninput="onSampSearch(this.value)" style="width:auto;flex:1;min-width:160px" />
@@ -696,6 +698,7 @@ async function savePublishedEdit(id){
 let bilderLoaded = false;
 let SAMPLES = [];
 let SCORES = {};        // cigar_id -> { n_embedded, score, label, nearest_rival_navn, nearest_rival_sim }
+let TOTAL_CIGARS = 0;   // totalt antall sigarer i basen (for «Alle sigarer»-telleren)
 let sampFilter = "emb";
 let sortWeak = false;   // «Svakest først»
 let allResults = [];    // treff i «Alle sigarer»-fanen (server-søk)
@@ -735,6 +738,13 @@ async function loadBilder(){
   const samplesRes = await db.rpc("admin_image_samples", { p_limit: 500 });
   if (samplesRes.error){ box.innerHTML = '<div class="card muted">Feil: ' + esc(samplesRes.error.message) + '</div>'; return; }
   SAMPLES = samplesRes.data || [];
+  // Totalt antall sigarer (for «Alle sigarer»-telleren) — hentes én gang, i bakgrunnen.
+  if (!TOTAL_CIGARS){
+    db.from("cigars").select("id", { count: "exact", head: true }).then(({ count }) => {
+      TOTAL_CIGARS = count || 0;
+      const e = $("all-count"); if (e) e.textContent = TOTAL_CIGARS ? String(TOTAL_CIGARS) : "";
+    }).catch(() => {});
+  }
   renderBilder();   // vis lista med en gang
   // Score beregnes litt tyngre (O(n²)); hent den etterpå og fyll inn merkene uten å blokkere.
   db.rpc("admin_recognition_scores").then(({ data }) => {
@@ -781,6 +791,13 @@ function renderBilder(){
   const nc = $("new-count");
   if (nc){ nc.textContent = newCigars || ""; nc.style.display = newCigars ? "" : "none"; }
 
+  // Antall i liten skrift på de andre chipsene.
+  const embN = SAMPLES.filter(s => s.has_embedding).length;
+  const setTC = (id, v) => { const e = $(id); if (e) e.textContent = v ? String(v) : ""; };
+  setTC("emb-count", embN);
+  setTC("noemb-count", SAMPLES.length - embN);
+  setTC("all-count", TOTAL_CIGARS);
+
   const box = $("samp-data");
 
   // «Alle sigarer»: server-søk. Viser hvilken som helst sigar (også uten bilder)
@@ -788,7 +805,22 @@ function renderBilder(){
   if (filter === "all"){
     $("samp-total").textContent = "";
     const q = ($("samp-search") ? $("samp-search").value : "").trim();
-    if (q.length < 2){ box.innerHTML = '<div class="card muted">Søk opp en sigar for å se eller legge til bilder.</div>'; return; }
+    // Tomt søk: vis sigarene som allerede HAR bilder (så fanen aldri er tom),
+    // med et hint om at du kan søke opp hvilken som helst av alle sigarene.
+    if (q.length < 2){
+      const grpMap = new Map();
+      SAMPLES.forEach(s => {
+        const key = s.cigar_id || "ukjent";
+        if (!grpMap.has(key)) grpMap.set(key, { cigarId: s.cigar_id, navn: s.cigar_navn || s.brand || "(ukjent sigar)", items: [] });
+        grpMap.get(key).items.push(s);
+      });
+      const totalTxt = TOTAL_CIGARS ? TOTAL_CIGARS.toLocaleString("no") : "alle";
+      const hint = `<div class="card muted" style="margin-bottom:10px">Viser de ${grpMap.size} sigarene som har bilder. Skriv minst 2 tegn i søkefeltet for å finne hvilken som helst av ${totalTxt} sigarer og legge til bilder.</div>`;
+      if (!grpMap.size){ box.innerHTML = hint; return; }
+      box.innerHTML = hint + '<div id="all-list"></div>';
+      renderGroupList(document.getElementById("all-list"), [...grpMap.values()]);
+      return;
+    }
     if (!allResults.length){ box.innerHTML = `<div class="card muted">Ingen treff for «${esc(q)}».</div>`; return; }
     const groups = allResults.map(c => ({
       cigarId: c.id,

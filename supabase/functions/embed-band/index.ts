@@ -1,9 +1,11 @@
 // supabase/functions/embed-band/index.ts
-// Ekte bilde-embedding (CLIP via Jina). For lagrede bilder lar vi Jina HENTE
-// bildet selv via en signert URL (robust for private buckets, format og storrelse);
-// bare live-skann sendes som base64.
+// Ekte bilde-embedding (CLIP via Jina). Alle bilder nedskaleres til maks 512px
+// FØR embedding — Jina prises etter bildestørrelse, så dette kutter token-kostnaden
+// kraftig (typisk 10-20x) og unngår rate-limits. Vi henter bytene selv (service-role
+// for private buckets), krymper med imagescript, og sender det lille bildet til Jina.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -21,8 +23,7 @@ const storageAdmin = createClient(SUPABASE_URL, SERVICE_ROLE);
 let lastJinaError = "";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function bufToB64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
+function u8ToB64(bytes: Uint8Array): string {
   let bin = "";
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
@@ -56,26 +57,9 @@ async function callerIsAdmin(req: Request): Promise<boolean> {
   }
 }
 
-// Hvis URL-en peker til Supabase-lagring: returner en signert URL (funker for
-// private buckets). Ellers returner URL-en uendret.
-async function signedIfStorage(url: string): Promise<string> {
-  const marker = "/storage/v1/object/";
-  const idx = url.indexOf(marker);
-  if (idx < 0 || !url.includes(".supabase.co")) return url;
-  let rest = url.slice(idx + marker.length);
-  if (rest.startsWith("public/")) rest = rest.slice(7);
-  else if (rest.startsWith("sign/")) rest = rest.slice(5);
-  const q = rest.indexOf("?");
-  if (q >= 0) rest = rest.slice(0, q);
-  const slash = rest.indexOf("/");
-  if (slash <= 0) return url;
-  const bucket = rest.slice(0, slash);
-  const path = decodeURIComponent(rest.slice(slash + 1));
-  const { data } = await storageAdmin.storage.from(bucket).createSignedUrl(path, 600);
-  return data?.signedUrl ?? url;
-}
-
-async function toBase64FromUrl(url: string): Promise<string | null> {
+// Hent bildebytes. Supabase-lagring: service-role-nedlasting (funker for private
+// buckets). Ellers vanlig fetch med nettleser-User-Agent.
+async function fetchBytes(url: string): Promise<Uint8Array | null> {
   try {
     const marker = "/storage/v1/object/";
     const idx = url.indexOf(marker);
@@ -91,7 +75,7 @@ async function toBase64FromUrl(url: string): Promise<string | null> {
         const path = decodeURIComponent(rest.slice(slash + 1));
         const { data, error } = await storageAdmin.storage.from(bucket).download(path);
         if (error || !data) return null;
-        return bufToB64(await data.arrayBuffer());
+        return new Uint8Array(await data.arrayBuffer());
       }
     }
     const r = await fetch(url, {
@@ -101,14 +85,29 @@ async function toBase64FromUrl(url: string): Promise<string | null> {
       },
     });
     if (!r.ok) return null;
-    return bufToB64(await r.arrayBuffer());
+    return new Uint8Array(await r.arrayBuffer());
   } catch {
     return null;
   }
 }
 
+// Nedskaler til maks 512px og returner base64 (JPEG). Faller tilbake til
+// originalen hvis dekoding feiler.
+async function downscaleToB64(bytes: Uint8Array, maxDim = 512): Promise<string> {
+  try {
+    const img = await Image.decode(bytes);
+    const m = Math.max(img.width, img.height);
+    if (m > maxDim) {
+      img.resize(Math.round(img.width * maxDim / m), Math.round(img.height * maxDim / m));
+    }
+    const jpeg = await img.encodeJPEG(80);
+    return u8ToB64(jpeg);
+  } catch {
+    return u8ToB64(bytes);
+  }
+}
+
 async function jinaEmbed(item: Record<string, string>, jinaKey: string): Promise<number[] | null> {
-  // Prøv opptil 2 ganger; ved 429/503 (rate-limit) venter vi kort og prøver igjen.
   for (let attempt = 0; attempt < 2; attempt++) {
     const r = await fetch("https://api.jina.ai/v1/embeddings", {
       method: "POST",
@@ -128,34 +127,34 @@ async function jinaEmbed(item: Record<string, string>, jinaKey: string): Promise
     }
     lastJinaError = r.status + ": " + (await r.text()).slice(0, 200);
     if (r.status === 429 || r.status === 503) {
-      await sleep(1000);   // rate-limit → kort pause, prøv igjen
+      await sleep(1000);
       continue;
     }
     console.error("Jina " + lastJinaError);
-    return null;   // annen feil (kvote/format) → gi opp
+    return null;
   }
   console.error("Jina rate-limit ga opp: " + lastJinaError);
   return null;
 }
 
-// Embed et lagret bilde: la Jina hente en signert URL. Faller tilbake til
-// nedlasting + base64 hvis URL-metoden ikke gir vektor.
-async function embedStoredUrl(rawUrl: string, jinaKey: string): Promise<number[] | null> {
-  const signed = await signedIfStorage(rawUrl);
-  const viaUrl = await jinaEmbed({ image: signed }, jinaKey);
-  if (viaUrl) return viaUrl;
-  const b64 = await toBase64FromUrl(rawUrl);
-  if (!b64) return null;
-  return await embedB64(b64, jinaKey);
-}
-
-// Embed fra base64 (live-skann). Prover ulike input-former.
 async function embedB64(base64: string, jinaKey: string): Promise<number[] | null> {
   for (const item of [{ image: `data:image/jpeg;base64,${base64}` }, { image: base64 }, { bytes: base64 }]) {
     const v = await jinaEmbed(item, jinaKey);
     if (v) return v;
   }
   return null;
+}
+
+// Embed fra rå bytes: nedskaler først, deretter Jina.
+async function embedBytes(bytes: Uint8Array, jinaKey: string): Promise<number[] | null> {
+  const b64 = await downscaleToB64(bytes);
+  return await embedB64(b64, jinaKey);
+}
+
+async function embedStoredUrl(url: string, jinaKey: string): Promise<number[] | null> {
+  const bytes = await fetchBytes(url);
+  if (!bytes) return null;
+  return await embedBytes(bytes, jinaKey);
 }
 
 function vecLiteral(v: number[]): string {
@@ -175,8 +174,7 @@ Deno.serve(async (req) => {
       const ok = viaServiceKey ? true : await callerIsAdmin(req);
       if (!ok) return json({ error: "unauthorized" }, 401);
       if (!jinaKey) return json({ error: "JINA_API_KEY er ikke satt som secret" }, 500);
-      // Bevisst liten batch per kall, så vi aldri treffer tidsgrensen (retry tar tid).
-      const limit = Math.min(Number(body.limit ?? 8), 8);
+      const limit = Math.min(Number(body.limit ?? 12), 20);
       const { data: rows } = await admin
         .from("cigar_image_samples")
         .select("id, image_url, storage_path")
@@ -193,7 +191,6 @@ Deno.serve(async (req) => {
           await admin.from("cigar_image_samples")
             .update({ image_embedding: vecLiteral(vec) }).eq("id", row.id);
           done++;
-          await sleep(250);   // liten pause mellom kall
         } catch (e) {
           failed++;
           console.error("backfill-rad feilet", row.id, e);
@@ -211,15 +208,12 @@ Deno.serve(async (req) => {
       if (!(await callerIsAdmin(req))) return json({ error: "unauthorized" }, 401);
       if (!jinaKey) return json({ error: "JINA_API_KEY er ikke satt som secret" }, 500);
       const cigarId = body.cigar_id;
-      let b64: string | null = body.image ?? null;
-      if (!b64 && body.image_url) {
-        b64 = await toBase64FromUrl(String(body.image_url));
-        if (!b64) return json({ error: "kunne ikke hente bildet fra URL-en" }, 400);
-      }
-      if (!cigarId || !b64) return json({ error: "mangler cigar_id eller image/image_url" }, 400);
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      let srcBytes: Uint8Array | null = null;
+      if (body.image) srcBytes = Uint8Array.from(atob(String(body.image)), (c) => c.charCodeAt(0));
+      else if (body.image_url) srcBytes = await fetchBytes(String(body.image_url));
+      if (!cigarId || !srcBytes) return json({ error: "mangler cigar_id eller image/image_url" }, 400);
       const path = `admin/${cigarId}/${crypto.randomUUID()}.jpg`;
-      const up = await admin.storage.from(BAND_BUCKET).upload(path, bytes, {
+      const up = await admin.storage.from(BAND_BUCKET).upload(path, srcBytes, {
         contentType: "image/jpeg", upsert: false,
       });
       if (up.error) throw new Error("opplasting feilet: " + up.error.message);
@@ -229,26 +223,28 @@ Deno.serve(async (req) => {
         source: "admin", reviewed_at: new Date().toISOString(),
       }).select("id").single();
       if (ins.error) throw new Error("kunne ikke lagre prove: " + ins.error.message);
-      const vec = await embedStoredUrl(url, jinaKey);
+      const vec = await embedBytes(srcBytes, jinaKey);
       if (vec) {
         await admin.from("cigar_image_samples")
           .update({ image_embedding: vecLiteral(vec) }).eq("id", ins.data.id);
       }
-      return json({ ok: true, id: ins.data.id, image_url: url, embedded: !!vec });
+      return json({ ok: true, id: ins.data.id, image_url: url, embedded: !!vec, lastError: lastJinaError || null });
     }
 
-    // Skaff bildet for live-skann / lagre
-    let base64: string | null = body.image ?? null;
-
+    // Live-skann / lagre
     if (!jinaKey) {
       if (body.storage_path && body.cigar_id) return json({ ok: true, skipped: true });
       return json({ signature: "", suggestions: [] });
     }
 
     let embedding: number[] | null = null;
-    if (base64) embedding = await embedB64(base64, jinaKey);
-    else if (body.storage_path) embedding = await embedStoredUrl(publicUrl(body.storage_path), jinaKey);
-    if (!embedding) return json({ error: "kunne ikke lage embedding" }, 400);
+    if (body.image) {
+      const bytes = Uint8Array.from(atob(String(body.image)), (c) => c.charCodeAt(0));
+      embedding = await embedBytes(bytes, jinaKey);
+    } else if (body.storage_path) {
+      embedding = await embedStoredUrl(publicUrl(body.storage_path), jinaKey);
+    }
+    if (!embedding) return json({ error: "kunne ikke lage embedding", jina: lastJinaError || null }, 400);
 
     // B) LAGRE
     if (body.storage_path && body.cigar_id) {
