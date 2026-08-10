@@ -234,6 +234,7 @@
 
     <section id="tab-bilder" class="hidden">
       <div class="note">Bilder appen har koblet til sigarer, gruppert per sigar og brukt til <strong>visuell gjenkjenning</strong> ved skanning. Under <strong>Nye bilder</strong> gjennomgår du innkomne bilder — <strong>Behold</strong> (riktig), <strong>Flytt</strong> (feil sigar, beholder fingeravtrykket) eller <strong>Fjern</strong> (dårlig) — så forsvinner de fra køen. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
+
       <div class="bf-bar" id="bf-bar" style="display:none">
         <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
@@ -242,9 +243,10 @@
         <button class="samp-tab active" data-f="emb" onclick="setSampFilter('emb', this)">Med fingeravtrykk</button>
         <button class="samp-tab" data-f="noemb" onclick="setSampFilter('noemb', this)">Uten fingeravtrykk</button>
         <button class="samp-tab" data-f="new" onclick="setSampFilter('new', this)">Nye bilder <span class="chip-count" id="new-count" style="display:none"></span></button>
+        <button class="samp-tab" data-f="all" onclick="setSampFilter('all', this)">Alle sigarer</button>
       </div>
       <div class="bf-bar">
-        <input id="samp-search" placeholder="Søk sigar…" oninput="renderBilder()" style="width:auto;flex:1;min-width:160px" />
+        <input id="samp-search" placeholder="Søk sigar…" oninput="onSampSearch(this.value)" style="width:auto;flex:1;min-width:160px" />
         <button class="samp-tab" id="weak-sort" onclick="toggleWeakSort(this)" title="Sorter sigarene fra svakest til sterkest gjenkjenning">Svakest først</button>
         <span id="samp-total" class="muted" style="font-size:13px"></span>
       </div>
@@ -691,6 +693,7 @@ let SAMPLES = [];
 let SCORES = {};        // cigar_id -> { n_embedded, score, label, nearest_rival_navn, nearest_rival_sim }
 let sampFilter = "emb";
 let sortWeak = false;   // «Svakest først»
+let allResults = [];    // treff i «Alle sigarer»-fanen (server-søk)
 const SRC_NO = { manual_scan: "Skann", journal: "Journal", humidor: "Humidor", band: "Bånd", product: "Produkt", admin: "Admin" };
 
 // "Nytt" bilde = ikke håndtert ennå (ingen reviewed_at) OG registrert de siste
@@ -707,7 +710,10 @@ function setSampFilter(f, el){
   sampFilter = f;
   // Behold «Svakest først» sin egen aktiv-tilstand — bytt kun blant filter-chipsene.
   document.querySelectorAll("#samp-tabs .samp-tab").forEach(x => x.classList.toggle("active", x === el));
-  renderBilder();
+  const s = $("samp-search");
+  if (s) s.placeholder = (f === "all") ? "Søk opp en sigar å legge til bilder på…" : "Søk sigar…";
+  if (f === "all") onSampSearch(s ? s.value : "");   // server-søk (eller vis prompt hvis tomt)
+  else renderBilder();
 }
 window.setSampFilter = setSampFilter;
 
@@ -721,15 +727,16 @@ window.toggleWeakSort = toggleWeakSort;
 async function loadBilder(){
   const box = $("samp-data");
   box.innerHTML = '<div class="card muted">Laster…</div>';
-  const [samplesRes, scoresRes] = await Promise.all([
-    db.rpc("admin_image_samples", { p_limit: 500 }),
-    db.rpc("admin_recognition_scores"),
-  ]);
+  const samplesRes = await db.rpc("admin_image_samples", { p_limit: 500 });
   if (samplesRes.error){ box.innerHTML = '<div class="card muted">Feil: ' + esc(samplesRes.error.message) + '</div>'; return; }
   SAMPLES = samplesRes.data || [];
-  SCORES = {};
-  (scoresRes.data || []).forEach(r => { SCORES[r.cigar_id] = r; });
-  renderBilder();
+  renderBilder();   // vis lista med en gang
+  // Score beregnes litt tyngre (O(n²)); hent den etterpå og fyll inn merkene uten å blokkere.
+  db.rpc("admin_recognition_scores").then(({ data }) => {
+    SCORES = {};
+    (data || []).forEach(r => { SCORES[r.cigar_id] = r; });
+    renderBilder();
+  }).catch(() => {});
 }
 
 function sampCard(s){
@@ -761,7 +768,6 @@ function sampCard(s){
 
 function renderBilder(){
   const filter = sampFilter;
-  // Backfill-knappen hører hjemme der den gjør noe: kun blant bildene uten fingeravtrykk.
   const bfBar = $("bf-bar");
   if (bfBar) bfBar.style.display = (filter === "noemb") ? "flex" : "none";
 
@@ -770,13 +776,30 @@ function renderBilder(){
   const nc = $("new-count");
   if (nc){ nc.textContent = newCigars || ""; nc.style.display = newCigars ? "" : "none"; }
 
+  const box = $("samp-data");
+
+  // «Alle sigarer»: server-søk. Viser hvilken som helst sigar (også uten bilder)
+  // med sine evt. bilder + drop-sone, så du kan legge til bilder på den.
+  if (filter === "all"){
+    $("samp-total").textContent = "";
+    const q = ($("samp-search") ? $("samp-search").value : "").trim();
+    if (q.length < 2){ box.innerHTML = '<div class="card muted">Søk opp en sigar for å se eller legge til bilder.</div>'; return; }
+    if (!allResults.length){ box.innerHTML = `<div class="card muted">Ingen treff for «${esc(q)}».</div>`; return; }
+    const groups = allResults.map(c => ({
+      cigarId: c.id,
+      navn: c.cigar_navn || c.brand || "(ukjent sigar)",
+      items: SAMPLES.filter(s => s.cigar_id === c.id),
+    }));
+    renderGroupList(box, groups);
+    return;
+  }
+
   const nameQ = ($("samp-search") ? $("samp-search").value : "").toLowerCase().trim();
   let list = SAMPLES;
   if (filter === "emb") list = list.filter(s => s.has_embedding);
   else if (filter === "noemb") list = list.filter(s => !s.has_embedding);
   else if (filter === "new") {
-    // Vis ALLE bildene til sigarer som har fått nye bilder — ikke bare de nye —
-    // så du kan sammenligne det nye bildet mot de eksisterende for sigaren.
+    // Vis ALLE bildene til sigarer som har fått nye bilder — så du kan sammenligne.
     const newCigarIds = new Set(SAMPLES.filter(isNew).map(s => s.cigar_id));
     list = list.filter(s => newCigarIds.has(s.cigar_id));
   }
@@ -786,7 +809,6 @@ function renderBilder(){
   $("samp-total").textContent =
     `${SAMPLES.length} bilder · ${emb} med fingeravtrykk · ${SAMPLES.length - emb} uten`;
 
-  const box = $("samp-data");
   if (!list.length){
     box.innerHTML = '<div class="card muted">' +
       (filter === "new" ? "✅ Køen er tom — ingen nye bilder å gjennomgå." : "Ingen bilder i dette filteret.") +
@@ -794,23 +816,26 @@ function renderBilder(){
     return;
   }
 
-  // Grupper per sigar — én seksjon per sigar, flest bilder først.
   const groups = new Map();
   list.forEach(s => {
     const key = s.cigar_id || "ukjent";
     if (!groups.has(key)) groups.set(key, { cigarId: s.cigar_id, navn: s.cigar_navn || s.brand || "(ukjent sigar)", items: [] });
     groups.get(key).items.push(s);
   });
+  renderGroupList(box, [...groups.values()]);
+}
 
+// Felles gruppe-rendering (brukt av alle filtre): sortering, score-badge,
+// kopier/Google, bildekort og drop-sone.
+function renderGroupList(box, groupArr){
   const scoreOf = (g) => (g.cigarId && SCORES[g.cigarId]) ? SCORES[g.cigarId].score : -1;
-  box.innerHTML = [...groups.values()]
+  box.innerHTML = groupArr
     .sort((a, b) => sortWeak
       ? (scoreOf(a) - scoreOf(b)) || a.navn.localeCompare(b.navn, "no")
       : (b.items.length - a.items.length) || a.navn.localeCompare(b.navn, "no"))
     .map(g => {
       const n = g.items.length;
-      const hasNew = g.items.some(isNew);   // grønn antall-chip når sigaren har nye bilder
-      // Nye bilder først, så eldste — gjør det lett å sammenligne mot de kjente.
+      const hasNew = g.items.some(isNew);
       g.items.sort((a, b) => (isNew(b) - isNew(a)) || (new Date(b.created_at || 0) - new Date(a.created_at || 0)));
       const cards = g.items.map(s => sampCard(s)).join("");
       const dz = g.cigarId ? dropzoneHtml(g.cigarId) : "";
@@ -940,6 +965,22 @@ function fileToJpegBase64(file, maxDim){
     img.src = URL.createObjectURL(file);
   });
 }
+
+// Søkefeltet: i «Alle sigarer» gjør det et server-søk (finn hvilken som helst
+// sigar, også uten bilder). I andre faner filtrerer det gruppene lokalt på navn.
+let allSearchTimer = null;
+function onSampSearch(v){
+  if (sampFilter !== "all"){ renderBilder(); return; }
+  clearTimeout(allSearchTimer);
+  const query = (v || "").trim();
+  if (query.length < 2){ allResults = []; renderBilder(); return; }
+  allSearchTimer = setTimeout(async () => {
+    const { data } = await db.rpc("admin_search_cigars", { p_query: query, p_limit: 40 });
+    allResults = data || [];
+    renderBilder();
+  }, 250);
+}
+window.onSampSearch = onSampSearch;
 
 async function uploadSamples(files, cigarId, el){
   const txt = el.querySelector(".dz-text");
