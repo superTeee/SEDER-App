@@ -257,8 +257,8 @@
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
       </div>
       <div class="samp-tabs" id="samp-tabs">
-        <button class="samp-tab active" data-f="emb" onclick="setSampFilter('emb', this)">Med fingeravtrykk <span class="tab-count" id="emb-count"></span></button>
-        <button class="samp-tab" data-f="noemb" onclick="setSampFilter('noemb', this)">Uten fingeravtrykk <span class="tab-count" id="noemb-count"></span></button>
+        <button class="samp-tab active" data-f="emb" onclick="setSampFilter('emb', this)">Dekket <span class="tab-count" id="emb-count"></span></button>
+        <button class="samp-tab" data-f="noemb" onclick="setSampFilter('noemb', this)">Ikke dekket <span class="tab-count" id="noemb-count"></span></button>
         <button class="samp-tab" data-f="new" onclick="setSampFilter('new', this)">Nye bilder <span class="chip-count" id="new-count" style="display:none"></span></button>
         <button class="samp-tab" data-f="all" onclick="setSampFilter('all', this)">Alle sigarer <span class="tab-count" id="all-count"></span></button>
       </div>
@@ -747,6 +747,9 @@ let bilderLoaded = false;
 let SAMPLES = [];
 let SCORES = {};        // cigar_id -> { n_embedded, score, label, nearest_rival_navn, nearest_rival_sim }
 let TOTAL_CIGARS = 0;   // totalt antall sigarer i basen (for «Alle sigarer»-telleren)
+let COV_TOTAL = 0, COV_COVERED = 0;   // dekning (fra admin_coverage_stats)
+let UNCOVERED = [];     // udekkede sigarer (fra admin_uncovered_cigars)
+let uncoveredLoaded = false;
 let sampFilter = "emb";
 let sortWeak = false;   // «Svakest først»
 let allResults = [];    // treff i «Alle sigarer»-fanen (server-søk)
@@ -769,10 +772,20 @@ function setSampFilter(f, el){
   document.querySelectorAll("#samp-tabs .samp-tab").forEach(x => x.classList.toggle("active", x === el));
   const s = $("samp-search");
   if (s) s.placeholder = "Søk i hele katalogen…";
+  if (f === "noemb" && !uncoveredLoaded) loadUncovered();   // hent udekkede første gang
   // Søket er globalt: hvis det står noe i feltet, behold treffene; ellers vis fanens innhold.
   renderBilder();
 }
 window.setSampFilter = setSampFilter;
+
+// Hent udekkede sigarer (serie uten trent bånd) – for «Ikke dekket»-fanen.
+async function loadUncovered(){
+  const { data, error } = await db.rpc("admin_uncovered_cigars", { p_limit: 4000 });
+  if (!error) UNCOVERED = data || [];
+  uncoveredLoaded = true;
+  if (sampFilter === "noemb") renderBilder();
+}
+window.loadUncovered = loadUncovered;
 
 function toggleWeakSort(el){
   sortWeak = !sortWeak;
@@ -796,6 +809,7 @@ async function loadBilder(){
   }
   renderBilder();   // vis lista med en gang
   loadCoverage();   // serie-bevisst dekningstall (oppdateres også etter opplasting via loadBilder)
+  if (uncoveredLoaded) loadUncovered();   // hold «Ikke dekket» oppdatert etter opplasting
   // Score beregnes litt tyngre (O(n²)); hent den etterpå og fyll inn merkene uten å blokkere.
   db.rpc("admin_recognition_scores").then(({ data }) => {
     SCORES = {};
@@ -812,6 +826,7 @@ async function loadCoverage(){
   const s = Array.isArray(data) ? data[0] : data;
   if (!s) return;
   const total = s.total || 0, covered = s.covered || 0;
+  COV_TOTAL = total; COV_COVERED = covered;
   const pct = total ? Math.round(covered / total * 100) : 0;
   const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
   const box = $("covgame"); if (box) box.style.display = "block";
@@ -819,6 +834,9 @@ async function loadCoverage(){
   set("cov-done", covered.toLocaleString("nb-NO"));
   set("cov-left", (total - covered).toLocaleString("nb-NO"));
   const fill = $("cov-fill"); if (fill) fill.style.width = pct + "%";
+  // Chip-tellere i sigarer (ikke bilder): Dekket / Ikke dekket
+  set("emb-count", covered ? String(covered) : "");
+  set("noemb-count", (total - covered) ? String(total - covered) : "");
 }
 window.loadCoverage = loadCoverage;
 
@@ -852,18 +870,16 @@ function sampCard(s){
 function renderBilder(){
   const filter = sampFilter;
   const bfBar = $("bf-bar");
-  if (bfBar) bfBar.style.display = (filter === "noemb") ? "flex" : "none";
+  if (bfBar) bfBar.style.display = "none";   // backfill utgått – alle bilder har fingeravtrykk
 
   // Antall-teller på «Nye bilder»-chipen: hvor mange sigarer har fått nye bilder.
   const newCigars = new Set(SAMPLES.filter(isNew).map(s => s.cigar_id)).size;
   const nc = $("new-count");
   if (nc){ nc.textContent = newCigars || ""; nc.style.display = newCigars ? "" : "none"; }
 
-  // Antall i liten skrift på de andre chipsene.
-  const embN = SAMPLES.filter(s => s.has_embedding).length;
+  // Chip-tellere i SIGARER: Dekket / Ikke dekket (fra dekningstall) + Alle.
   const setTC = (id, v) => { const e = $(id); if (e) e.textContent = v ? String(v) : ""; };
-  setTC("emb-count", embN);
-  setTC("noemb-count", SAMPLES.length - embN);
+  if (COV_TOTAL){ setTC("emb-count", COV_COVERED); setTC("noemb-count", COV_TOTAL - COV_COVERED); }
   setTC("all-count", TOTAL_CIGARS);
 
   const box = $("samp-data");
@@ -882,6 +898,21 @@ function renderBilder(){
           items: SAMPLES.filter(s => s.cigar_id === c.id),
         }));
     renderGroupList(box, groups);
+    return;
+  }
+
+  // «Ikke dekket»: udekkede serier (ingen trent bånd), størst først, med dropzone.
+  if (filter === "noemb"){
+    if (!uncoveredLoaded){ box.innerHTML = '<div class="card muted">Laster udekkede sigarer…</div>'; return; }
+    const groups = seriesGroupsFrom(UNCOVERED).sort((a, b) => (b.sizeCount || 0) - (a.sizeCount || 0));
+    if (!groups.length){ $("samp-total").textContent = ""; box.innerHTML = '<div class="card muted">🎉 Alt er dekket!</div>'; return; }
+    const shown = groups.slice(0, 120);
+    $("samp-total").textContent = `${(COV_TOTAL - COV_COVERED).toLocaleString("no")} sigarer ikke dekket`;
+    const hint = groups.length > shown.length
+      ? `<div class="card muted" style="margin-bottom:10px">Viser de ${shown.length} seriene med flest størrelser (av ${groups.length} udekkede serier). Søk øverst for å finne en spesifikk sigar.</div>`
+      : "";
+    box.innerHTML = hint + '<div id="unc-list"></div>';
+    renderGroupList(document.getElementById("unc-list"), shown, true);
     return;
   }
 
@@ -929,9 +960,9 @@ function renderBilder(){
   }
   if (nameQ) list = list.filter(s => (s.cigar_navn || s.brand || "").toLowerCase().includes(nameQ));
 
-  const emb = SAMPLES.filter(s => s.has_embedding).length;
-  $("samp-total").textContent =
-    `${SAMPLES.length} bilder · ${emb} med fingeravtrykk · ${SAMPLES.length - emb} uten`;
+  $("samp-total").textContent = (filter === "emb" && COV_TOTAL)
+    ? `${COV_COVERED.toLocaleString("no")} sigarer dekket — sorter «Svakest først» for å styrke de svakeste`
+    : "";
 
   if (!list.length){
     box.innerHTML = '<div class="card muted">' +
@@ -951,12 +982,14 @@ function renderBilder(){
 
 // Felles gruppe-rendering (brukt av alle filtre): sortering, score-badge,
 // kopier/Google, bildekort og drop-sone.
-function renderGroupList(box, groupArr){
+function renderGroupList(box, groupArr, coverMode = false){
   const scoreOf = (g) => (g.cigarId && SCORES[g.cigarId]) ? SCORES[g.cigarId].score : -1;
   box.innerHTML = groupArr
-    .sort((a, b) => sortWeak
-      ? (scoreOf(a) - scoreOf(b)) || a.navn.localeCompare(b.navn, "no")
-      : (b.items.length - a.items.length) || a.navn.localeCompare(b.navn, "no"))
+    .sort((a, b) => coverMode
+      ? ((b.sizeCount || 0) - (a.sizeCount || 0)) || a.navn.localeCompare(b.navn, "no")
+      : sortWeak
+        ? (scoreOf(a) - scoreOf(b)) || a.navn.localeCompare(b.navn, "no")
+        : (b.items.length - a.items.length) || a.navn.localeCompare(b.navn, "no"))
     .map(g => {
       const n = g.items.length;
       const hasNew = g.items.some(isNew);
@@ -964,16 +997,20 @@ function renderGroupList(box, groupArr){
       const cards = g.items.map(s => sampCard(s)).join("");
       const dz = g.cigarId ? dropzoneHtml(g.cigarId) : "";
       const gq = encodeURIComponent(g.navn + " cigar band");
-      const sc = g.cigarId ? SCORES[g.cigarId] : null;
+      const sc = (!coverMode && g.cigarId) ? SCORES[g.cigarId] : null;
       const scoreBadge = sc
         ? `<span class="score-badge s-${(sc.label || "").toLowerCase()}" title="Gjenkjenningsstyrke ${sc.score}/100 · ${sc.n_embedded} ${sc.n_embedded === 1 ? "bilde" : "bilder"}${sc.nearest_rival_sim != null ? ` · nærmeste rival ${Math.round(sc.nearest_rival_sim * 100)}% (${esc(sc.nearest_rival_navn || "")})` : ""}">${sc.score} ${esc(sc.label || "")}</span>`
         : "";
+      // Ikke dekket: vis antall størrelser (ikke bilder). Ellers: antall bilder.
+      const countBadge = coverMode
+        ? `<span class="brand-count">${g.sizeCount || 1} ${(g.sizeCount || 1) === 1 ? "størrelse" : "størrelser"}</span>`
+        : `<span class="brand-count${hasNew ? " new" : ""}">${n} ${n === 1 ? "bilde" : "bilder"}</span>`;
       return `<details class="brand-group" open>
         <summary class="brand-head"><span class="brand-name">${esc(g.navn)}</span>
           ${scoreBadge}
           <button class="hdr-btn" title="Kopier navn" data-name="${esc(g.navn)}" onclick="copyName(event, this)">⧉ Kopier</button>
           <a class="hdr-btn" title="Søk bilder på Google" href="https://www.google.com/search?tbm=isch&q=${gq}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔍 Google</a>
-          <span class="brand-count${hasNew ? " new" : ""}">${n} ${n === 1 ? "bilde" : "bilder"}</span></summary>
+          ${countBadge}</summary>
         <div class="brand-body">${g.sub ? `<div class="muted" style="font-size:12px;margin:0 0 8px">${esc(g.sub)}</div>` : ""}<div class="samp-grid">${cards}</div>${dz}</div>
       </details>`;
     }).join("");
@@ -1003,6 +1040,7 @@ function seriesGroupsFrom(results){
       cigarId: anchor,
       navn: g.navn,
       items,
+      sizeCount: g.ids.length,
       sub: g.ids.length > 1 ? `Dekker ${g.ids.length} størrelser — ett bilde trener hele serien` : null,
     };
   });
