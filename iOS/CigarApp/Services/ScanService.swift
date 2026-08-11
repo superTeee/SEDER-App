@@ -608,8 +608,50 @@ class ScanService: ObservableObject {
                     ))
                 }
             }
+            // Server-sidens konfidensvurdering (match_cigar_decision) styrer
+            // HVORDAN treffet presenteres — se applyBandDecision.
+            await applyBandDecision(res.decision)
         } catch {
             print("⚠️ Visuell båndmatch feilet: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Konfidensvurdering fra bånd-embedding (match_cigar_decision)
+    // Bruker `decision` fra edge-funksjonen til å avgjøre presentasjonen:
+    //   confident → ett klart treff: hopp rett til detalj.
+    //   brand     → delt bånd (f.eks. Montecristo): merket er sikkert, men
+    //               ikke linjen. Vis HELE merket som valgliste, så brukeren
+    //               plukker riktig linje/størrelse selv. Den eksisterende
+    //               form-avklaringen (needsShapePhoto) trigges automatisk
+    //               etterpå hvis kandidatene har ulik form.
+    //   ellers    → uncertain/ambiguous/none: behold dagens oppførsel.
+    private func applyBandDecision(_ decision: BandDecision?) async {
+        guard let d = decision else { return }
+        switch d.decision {
+        case "confident":
+            if let id = d.topCigarId,
+               let cigar = try? await cigarService.fetchCigar(id: id) {
+                if !scanResults.contains(where: { $0.cigar.id == cigar.id }) {
+                    scanResults.append(ScanResult(
+                        cigar: cigar, confidence: 0.95,
+                        matchReason: "Tydelig båndtreff"))
+                }
+                autoSelectedCigar = cigar
+                boostToTop(ids: Set([cigar.id]))
+            }
+        case "brand":
+            guard let brand = d.topBrand else { return }
+            let brandCigars = (try? await cigarService.fetchCigarsByBrand(brand)) ?? []
+            for c in brandCigars where c.isPublic != false {
+                if scanResults.contains(where: { $0.cigar.id == c.id }) { continue }
+                scanResults.append(ScanResult(
+                    cigar: c, confidence: 0.5,
+                    matchReason: "Samme merke — velg riktig linje"))
+            }
+            // Delt bånd: aldri auto-velg én linje. La brukeren plukke.
+            autoSelectedCigar = nil
+        default:
+            break   // uncertain / ambiguous / none — uendret
         }
     }
 
@@ -678,9 +720,25 @@ struct BandSuggestion: Decodable {
     }
 }
 
+// Konfidensvurdering fra match_cigar_decision (via embed-band).
+// decision ∈ { confident, brand, ambiguous, uncertain, none }.
+struct BandDecision: Decodable {
+    let decision: String
+    let topBrand: String?
+    let topCigarId: UUID?
+    let topSimilarity: Double?
+    enum CodingKeys: String, CodingKey {
+        case decision
+        case topBrand      = "top_brand"
+        case topCigarId    = "top_cigar_id"
+        case topSimilarity = "top_similarity"
+    }
+}
+
 struct BandMatchResponse: Decodable {
     let signature: String?
     let suggestions: [BandSuggestion]?
+    let decision: BandDecision?
 }
 
 // MARK: - AI Match (respons fra Edge Function)

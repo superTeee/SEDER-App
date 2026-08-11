@@ -256,12 +256,18 @@ Deno.serve(async (req) => {
     }
 
     // A) SPORRING
+    const vec = vecLiteral(embedding);
     const { data: suggestions } = await admin.rpc("match_cigar_by_image", {
-      p_embedding: vecLiteral(embedding),
+      p_embedding: vec,
       p_match_count: 6,
       p_min_similarity: 0.72,
     });
-    return json({ signature: "", suggestions: suggestions ?? [] });
+    // Konfidensvurdering: confident / brand / ambiguous / uncertain / none.
+    // Appen bruker denne til aa avgjore om den tor si «X funnet» og hvor bred velger som vises.
+    const { data: decision } = await admin.rpc("match_cigar_decision", {
+      p_embedding: vec,
+    });
+    return json({ signature: "", suggestions: suggestions ?? [], decision: decision ?? null });
   } catch (e) {
     console.error("embed-band feilet:", e);
     return json({ error: e instanceof Error ? e.message : "ukjent feil" }, 500);
