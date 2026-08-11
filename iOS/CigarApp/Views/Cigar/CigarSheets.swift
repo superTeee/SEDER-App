@@ -8,20 +8,31 @@ import UIKit
 // (CigarQuickActions) — derfor bor de her, ikke inne i ett enkelt view.
 
 // MARK: - Butikk-forslag
-// Kjent norsk sortiment + brukerens egne tidligere butikker. Fritekst-feltet
-// beholder friheten (utland, tax-free, gaver) — forslagene gjør det bare raskt
-// og konsistent for det vanlige norske kjøpet.
+// Forslagene bygges KUN fra brukerens egne tidligere butikker (historikk).
+// Ingen forhåndsdefinert liste — det skalerer på tvers av land, og hver bruker
+// får bare sine egne butikker. Fritekst-feltet beholder friheten (utland,
+// tax-free, gaver); man skriver en ny butikk én gang, så foreslås den siden.
 
 enum KnownStores {
-    static let norway = ["Sol Cigar", "Augusto Cigars", "M. Sørensen", "No Smoke", "Nordic Cigars", "Fuego Cigars"]
-
-    /// Brukerens egne butikker først (mest relevant), så de norske som ikke alt er med.
+    /// Brukerens egne butikker, renset (tomme fjernet) og deduplisert – rekkefølgen bevares.
     static func merged(withUser userStores: [String]) -> [String] {
-        var out = userStores
-        for s in norway where !out.contains(where: { $0.localizedCaseInsensitiveCompare(s) == .orderedSame }) {
-            out.append(s)
+        var seen = Set<String>()
+        var out: [String] = []
+        for s in userStores {
+            let name = s.trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else { continue }
+            if seen.insert(name.lowercased()).inserted { out.append(name) }
         }
         return out
+    }
+}
+
+// MARK: - Lokal valuta
+// Valutasymbolet følger enhetens region: «kr» i Norge, «$» i USA osv.
+// Prisen lagres som et tall uten enhet — dette styrer kun visningen.
+enum AppLocale {
+    static var currencySymbol: String {
+        Locale.autoupdatingCurrent.currencySymbol ?? "kr"
     }
 }
 
@@ -76,7 +87,7 @@ struct AddToHumidorSheet: View {
     @State private var quantity: Int = 1
     @State private var priceText: String = ""
     @State private var store: String = ""
-    @State private var storeSuggestions: [String] = KnownStores.norway
+    @State private var storeSuggestions: [String] = []
     @State private var showPurchasePicker = false
     @State private var showHumidorPicker = false
 
@@ -112,7 +123,7 @@ struct AddToHumidorSheet: View {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none
-        f.locale = Locale(identifier: "nb_NO")
+        f.locale = .autoupdatingCurrent   // følger enhetens språk/region
         return f
     }()
 
@@ -216,7 +227,7 @@ struct AddToHumidorSheet: View {
                     HStack {
                         TextField("0", text: $priceText)
                             .keyboardType(.decimalPad)
-                        Text("kr").foregroundColor(Color("TextSecondary"))
+                        Text(AppLocale.currencySymbol).foregroundColor(Color("TextSecondary"))
                     }
                 } header: {
                     Text("Pris per sigar")
@@ -374,7 +385,7 @@ struct SmokingLogSheet: View {
     @State private var flavorRating: Int     = 0
     @State private var notes: String         = ""
     @State private var store: String         = ""
-    @State private var storeSuggestions: [String] = KnownStores.norway
+    @State private var storeSuggestions: [String] = []
     @State private var showSubRatings: Bool  = false
     private let humidorService = HumidorService()
     @State private var selectedCutType: CutType? = nil
@@ -1043,8 +1054,9 @@ struct ReceiptConfirmView: View {
     // Butikk (redigerbart) + dato som ren tekst i toppen — ikke i et kort.
     private var todayString: String {
         let df = DateFormatter()
-        df.locale = Locale(identifier: "nb_NO")
-        df.dateFormat = "d. MMM yyyy"
+        df.locale = .autoupdatingCurrent   // følger enhetens språk/region
+        df.dateStyle = .medium
+        df.timeStyle = .none
         return df.string(from: Date())
     }
 
@@ -1082,7 +1094,7 @@ struct ReceiptConfirmView: View {
                         Text(item.name)
                             .font(.subheadline)
                             .foregroundColor(Color("TextPrimary"))
-                        Text("\(item.quantity) stk\(item.unitPrice.map { " · \(formatReceiptPrice($0)) kr" } ?? "")")
+                        Text("\(item.quantity) stk\(item.unitPrice.map { " · \(formatReceiptPrice($0)) \(AppLocale.currencySymbol)" } ?? "")")
                             .font(.caption)
                             .foregroundColor(Color("TextSecondary"))
                     }
@@ -1156,7 +1168,7 @@ struct ReceiptConfirmView: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 52)
-                    Text("kr").font(.caption).foregroundColor(Color("TextSecondary"))
+                    Text(AppLocale.currencySymbol).font(.caption).foregroundColor(Color("TextSecondary"))
                 }
 
                 Spacer()

@@ -131,15 +131,11 @@
   .samp-tab.active .tab-count{opacity:.85}
   /* Drag-and-drop-sone per sigar — lær opp gjenkjenningen med flere bilder */
   .dropzone{display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;
-    border:2px dashed #CDBB93;border-radius:12px;padding:14px;margin:2px 0 10px;
+    border:2px dashed #CDBB93;border-radius:12px;padding:14px;margin:2px 0 10px;min-height:94px;
     color:var(--muted);font-size:13px;cursor:pointer;background:#FBFAF6;transition:.15s}
   .dropzone:hover{border-color:var(--accent);color:var(--ink)}
   .dropzone.drag{border-color:#2E9E68;background:#EAF7F0;color:#2E9E68}
   .dropzone.busy{opacity:.7;pointer-events:none}
-  .dz-url{display:flex;gap:6px;margin:-4px 0 10px}
-  .dz-url-input{flex:1;font-size:12px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
-  .dz-url-btn{font-size:12px;font-weight:600;padding:6px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer;white-space:nowrap}
-  .dz-url-btn:hover{border-color:var(--accent)}
   .samp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:4px}
   .samp{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
   .samp .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;background:#F0ECE2;display:block}
@@ -196,6 +192,7 @@
       <button class="navlink" data-tab="datahull">Datahull</button>
       <button class="navlink" data-tab="publisert">Publisert</button>
       <button class="navlink" data-tab="bilder">Bildeprøver</button>
+      <button class="navlink" data-tab="innsikt">Innsikt</button>
     </nav>
     <button id="logout">Logg ut</button>
   </header>
@@ -242,6 +239,19 @@
     <section id="tab-bilder" class="hidden">
       <div class="note">Bilder appen har koblet til sigarer, gruppert per sigar og brukt til <strong>visuell gjenkjenning</strong> ved skanning. Under <strong>Nye bilder</strong> gjennomgår du innkomne bilder — <strong>Behold</strong> (riktig), <strong>Flytt</strong> (feil sigar, beholder fingeravtrykket) eller <strong>Fjern</strong> (dårlig) — så forsvinner de fra køen. «Fingeravtrykk» = bildet er omgjort til en søkbar vektor.</div>
 
+      <div class="gapgame" id="covgame" style="display:none;margin-bottom:14px">
+        <div class="gg-head">
+          <span class="gg-title">Sigarer dekket av gjenkjenning</span>
+          <span class="gg-pct" id="cov-pct">–</span>
+        </div>
+        <div class="gg-sub">
+          <span>Dekket: <b id="cov-done" style="color:var(--ink)">–</b></span>
+          <span>Igjen: <b id="cov-left" style="color:var(--ink)">–</b></span>
+        </div>
+        <div class="gg-track"><div class="gg-fill" id="cov-fill"></div></div>
+        <div class="gg-nudge" id="cov-note" style="margin-top:6px">Én trent serie dekker alle størrelsene i den — båndet er delt.</div>
+      </div>
+
       <div class="bf-bar" id="bf-bar" style="display:none">
         <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
@@ -259,6 +269,21 @@
         <span id="samp-total" class="muted" style="font-size:13px"></span>
       </div>
       <div id="samp-data"><div class="card muted">Laster…</div></div>
+    </section>
+
+    <section id="tab-innsikt" class="hidden">
+      <div class="note">Statistikk på brukerne. Filtrer på hvilken versjon de har. Denne siden bygges videre etter hvert.</div>
+      <div class="samp-tabs" id="ins-filter">
+        <button class="samp-tab active" data-v="all" onclick="setInsFilter('all', this)">Alle</button>
+        <button class="samp-tab" data-v="standard" onclick="setInsFilter('standard', this)">Standard</button>
+        <button class="samp-tab" data-v="pro" onclick="setInsFilter('pro', this)">Pro</button>
+      </div>
+      <div class="cards">
+        <div class="stat"><div class="v" id="ins-count">–</div><div class="l" id="ins-label">Brukere totalt</div></div>
+        <div class="stat"><div class="v" id="ins-standard">–</div><div class="l">Standard</div></div>
+        <div class="stat"><div class="v" id="ins-pro">–</div><div class="l">Pro</div></div>
+      </div>
+      <div class="note" style="margin-top:4px">Pro-tallet fylles ut når appen begynner å skrive kjøpsstatus til profilen (kobles på i StoreManager). Til da vises alle som Standard.</div>
     </section>
   </main>
 </div>
@@ -300,13 +325,35 @@ $("logout").onclick = $("logout2").onclick = async () => { await db.auth.signOut
 db.auth.onAuthStateChange((_e, session) => { if (session) boot(); });
 
 // ---- Tabs (nav-lenker i toppbaren) ----
-const TABS = ["dekning", "datahull", "publisert", "bilder"];
+const TABS = ["dekning", "datahull", "publisert", "bilder", "innsikt"];
 document.querySelectorAll(".topnav .navlink").forEach(b => b.onclick = () => {
   document.querySelectorAll(".topnav .navlink").forEach(x => x.classList.toggle("active", x === b));
   TABS.forEach(t => $("tab-" + t).classList.toggle("hidden", b.dataset.tab !== t));
   if (b.dataset.tab === "publisert" && !pubLoaded) { pubLoaded = true; loadPublisert(); }
   if (b.dataset.tab === "bilder" && !bilderLoaded) { bilderLoaded = true; loadBilder(); }
+  if (b.dataset.tab === "innsikt" && !insLoaded) { insLoaded = true; loadInnsikt(); }
 });
+
+// ---- Innsikt (brukerstatistikk) ----
+let insLoaded = false;
+let insStats = { total: 0, pro: 0, standard: 0 };
+async function loadInnsikt() {
+  const { data, error } = await db.rpc("admin_user_stats");
+  const s = Array.isArray(data) ? data[0] : data;
+  if (error || !s) { $("ins-count").textContent = "–"; return; }
+  insStats = { total: s.total || 0, pro: s.pro || 0, standard: s.standard || 0 };
+  $("ins-standard").textContent = insStats.standard;
+  $("ins-pro").textContent = insStats.pro;
+  setInsFilter("all", document.querySelector('#ins-filter .samp-tab[data-v="all"]'));
+}
+function setInsFilter(v, el) {
+  document.querySelectorAll("#ins-filter .samp-tab").forEach(x => x.classList.toggle("active", x === el));
+  const map = { all: ["total", "Brukere totalt"], standard: ["standard", "Standard-brukere"], pro: ["pro", "Pro-brukere"] };
+  const [key, label] = map[v] || map.all;
+  $("ins-count").textContent = insStats[key];
+  $("ins-label").textContent = label;
+}
+window.setInsFilter = setInsFilter;
 
 // ---- Dekning ----
 async function loadDekning() {
@@ -748,6 +795,7 @@ async function loadBilder(){
     }).catch(() => {});
   }
   renderBilder();   // vis lista med en gang
+  loadCoverage();   // serie-bevisst dekningstall (oppdateres også etter opplasting via loadBilder)
   // Score beregnes litt tyngre (O(n²)); hent den etterpå og fyll inn merkene uten å blokkere.
   db.rpc("admin_recognition_scores").then(({ data }) => {
     SCORES = {};
@@ -755,6 +803,24 @@ async function loadBilder(){
     renderBilder();
   }).catch(() => {});
 }
+
+// Serie-bevisst dekning: hvor mange sigarer er gjenkjennbare (én trent serie = alle
+// størrelsene i den). Teller dekkede sigarer, ikke antall bilder.
+async function loadCoverage(){
+  const { data, error } = await db.rpc("admin_coverage_stats");
+  if (error) return;
+  const s = Array.isArray(data) ? data[0] : data;
+  if (!s) return;
+  const total = s.total || 0, covered = s.covered || 0;
+  const pct = total ? Math.round(covered / total * 100) : 0;
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  const box = $("covgame"); if (box) box.style.display = "block";
+  set("cov-pct", pct + " %");
+  set("cov-done", covered.toLocaleString("nb-NO"));
+  set("cov-left", (total - covered).toLocaleString("nb-NO"));
+  const fill = $("cov-fill"); if (fill) fill.style.width = pct + "%";
+}
+window.loadCoverage = loadCoverage;
 
 function sampCard(s){
   const src = SRC_NO[s.source] || s.source || "?";
@@ -1026,13 +1092,9 @@ function dropzoneHtml(cigarId){
   // <label> med skjult input → klikk åpner filvelger. Drag/drop tar imot både filer
   // fra disk OG bilder dratt rett fra en nettside (Google Images o.l.).
   return `<label class="dropzone" ondragover="dzOver(event,this)" ondragleave="dzLeave(this)" ondrop="dzDrop(event,'${cigarId}',this)">
-    <span class="dz-text">＋ Dra bilder hit — fra disk eller rett fra en Google-fane — for å lære opp gjenkjenningen</span>
+    <span class="dz-text">＋ Dra bilder hit — eller klikk for å velge filer — for å lære opp gjenkjenningen</span>
     <input type="file" accept="image/*" multiple hidden onchange="dzFiles(event,'${cigarId}',this.closest('.dropzone'))" />
-  </label>
-  <div class="dz-url">
-    <input class="dz-url-input" placeholder="…eller lim inn bilde-URL (Google: høyreklikk bildet → «Kopier bildeadresse»)" onkeydown="dzUrlKey(event,'${cigarId}',this)" />
-    <button type="button" class="dz-url-btn" onclick="dzUrlAdd('${cigarId}', this)">Hent</button>
-  </div>`;
+  </label>`;
 }
 function dzOver(e, el){ e.preventDefault(); el.classList.add("drag"); }
 function dzLeave(el){ el.classList.remove("drag"); }
@@ -1040,36 +1102,13 @@ function dzDrop(e, cigarId, el){
   e.preventDefault(); el.classList.remove("drag");
   const dt = e.dataTransfer;
   const files = [...(dt && dt.files ? dt.files : [])].filter(f => f.type.startsWith("image/"));
-  if (files.length){ uploadSamples(files, cigarId, el); return; }
-  // Dratt fra en nettside (Google Images o.l.) → hent bilde-URL fra dataTransfer.
-  const url = extractDragUrl(dt);
-  if (url) uploadUrls([url], cigarId, el);
+  if (files.length) uploadSamples(files, cigarId, el);
 }
 function dzFiles(e, cigarId, el){
   const files = [...(e.target.files || [])].filter(f => f.type.startsWith("image/"));
   if (files.length) uploadSamples(files, cigarId, el);
 }
-function extractDragUrl(dt){
-  if (!dt) return null;
-  let u = (dt.getData("text/uri-list") || dt.getData("text/plain") || "").trim().split("\n")[0].trim();
-  if (/^https?:\/\//i.test(u)) return u;
-  const html = dt.getData("text/html") || "";
-  const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return (m && /^https?:\/\//i.test(m[1])) ? m[1] : null;
-}
-function dzUrlAdd(cigarId, btn){
-  const wrap = btn.closest(".dz-url");
-  const input = wrap.querySelector(".dz-url-input");
-  const url = (input.value || "").trim();
-  if (!/^https?:\/\//i.test(url)){ alert("Lim inn en gyldig bilde-URL (https://…)"); return; }
-  input.value = "";
-  uploadUrls([url], cigarId, wrap.previousElementSibling);   // .dropzone rett før
-}
-function dzUrlKey(e, cigarId, input){
-  if (e.key === "Enter"){ e.preventDefault(); dzUrlAdd(cigarId, input.parentElement.querySelector(".dz-url-btn")); }
-}
 window.dzOver = dzOver; window.dzLeave = dzLeave; window.dzDrop = dzDrop; window.dzFiles = dzFiles;
-window.dzUrlAdd = dzUrlAdd; window.dzUrlKey = dzUrlKey;
 
 // Nedskalering i nettleseren før opplasting, så payloaden holdes liten.
 function fileToJpegBase64(file, maxDim){
