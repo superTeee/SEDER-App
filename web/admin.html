@@ -830,7 +830,8 @@ async function loadCoverage(){
   set("cov-pct", pct + " %");
   set("cov-done", covered.toLocaleString("nb-NO"));
   set("cov-left", (total - covered).toLocaleString("nb-NO"));
-  const fill = $("cov-fill"); if (fill){ fill.style.width = pct + "%"; fill.style.background = "var(--accent-dark)"; fill.style.minWidth = covered ? "10px" : "0"; }
+  const fill = $("cov-fill"); if (fill){ fill.style.width = pct + "%"; fill.style.background = `linear-gradient(90deg, ${ggColor(Math.max(0, pct - 18))}, ${ggColor(pct)})`; fill.style.minWidth = covered ? "10px" : "0"; }
+  const pctEl = $("cov-pct"); if (pctEl) pctEl.style.color = ggColor(pct);
   // Chip-tellere i sigarer (ikke bilder): Dekket / Ikke dekket
   set("emb-count", covered ? String(covered) : "");
   set("noemb-count", (total - covered) ? String(total - covered) : "");
