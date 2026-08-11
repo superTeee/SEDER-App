@@ -799,7 +799,7 @@ async function loadBilder(){
   SAMPLES = samplesRes.data || [];
   // Totalt antall sigarer (for «Alle sigarer»-telleren) — hentes én gang, i bakgrunnen.
   if (!TOTAL_CIGARS){
-    db.from("cigars").select("id", { count: "exact", head: true }).then(({ count }) => {
+    db.from("cigars").select("id", { count: "exact", head: true }).eq("is_public", true).then(({ count }) => {
       TOTAL_CIGARS = count || 0;
       const e = $("all-count"); if (e) e.textContent = TOTAL_CIGARS ? String(TOTAL_CIGARS) : "";
     }).catch(() => {});
