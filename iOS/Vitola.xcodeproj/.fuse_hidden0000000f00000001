@@ -1,0 +1,769 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		018C13BCF709ED8FE8563F63 /* PINUnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */; };
+		049C64C7CAE75A3F42357820 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038EFE70A641325AE1E1126B /* AuthService.swift */; };
+		0C961807024378FF6186CDB2 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BD105BAB7D21C10D1289623 /* ExploreView.swift */; };
+		11CD2586D2F7EEBC5DF601BA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */; };
+		150B458F3A80EAB119528FE7 /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFDAFD471ECD732AD0BC15DA /* UserProfileView.swift */; };
+		177A7186F1630F0803865214 /* MailComposeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01E2818C7850701195E98C9 /* MailComposeView.swift */; };
+		1C6013B1827F341DD6399DC5 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1699BCF102E89578F9D6B763 /* ScanView.swift */; };
+		1CFA93F58EBCD08A3B967EF0 /* PINService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F123712707C6A8B25490C /* PINService.swift */; };
+		24594AE2F632DFBC7C23B7FB /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = D1EEF6BE6627FFD5DE0C2C4B /* GoogleSignIn */; };
+		38EAE0227590945771B2C132 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DE84548D3017B15393EC79 /* ResultsView.swift */; };
+		3D36F1531BCFE08DAE911572 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADD7BE75C71D3917352206D /* AvatarView.swift */; };
+		4915774688B3426F3B1553D8 /* PINComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940D2F398ECEDA8C8B017BEF /* PINComponents.swift */; };
+		4F0CA86037D09C97F5BACE89 /* FeedbackSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C95ABF9625A3D548A7FA88F /* FeedbackSheet.swift */; };
+		587CF733F8E275C6C93F8E94 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FA22E9CEDD719507D54C5C19 /* Assets.xcassets */; };
+		5D46BD1B60BFD1B7BD1FDF96 /* FriendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F456A8E60766707FEA12C6AB /* FriendService.swift */; };
+		6078259E0765EE39E8346EB9 /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */; };
+		68216E0F02E404929F7CB849 /* OnboardingProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D880C526BA2ED3FDC6288E7 /* OnboardingProfileView.swift */; };
+		6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4268E9B5C5FFA4E0654230A9 /* CigarService.swift */; };
+		AC10ADMINSERVICEBUILD00000001 /* AdminService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC10ADMINSERVICEFILE000000001 /* AdminService.swift */; };
+		AC20SUPADECODER0BUILD00000001 /* SupabaseDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */; };
+		AC30ADMINVIEW000BUILD00000001 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30ADMINVIEW000FILE000000001 /* AdminView.swift */; };
+		AC30FILLSHEET000BUILD0000001 /* CigarFillSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */; };
+		AA80ATTEMPTBUILD00000001 /* Attempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80ATTEMPTFILE000000001 /* Attempt.swift */; };
+		AA60EXPLORESTOREBUILD001 /* ExploreStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */; };
+		6D9D07638987891501525A6A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */; };
+		7B07D356712571FB07ABF6B4 /* WishlistService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA86F7FB975163C27756E0F /* WishlistService.swift */; };
+		8018111CFDBB54A5702F371A /* CigarDetailViewDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */; };
+		AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */; };
+		AA90REPORTSHEETBUILD0001 /* CigarReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */; };
+		AB10ADDCIGARBUILD0000001 /* AddCigarSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */; };
+		810CF96C823CB1A8465D1947 /* VennerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DEE5F5271AB26DBC443EBCB /* VennerView.swift */; };
+		8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909149207DD9D2747DEE4727 /* ContentView.swift */; };
+		86E35448369E1D3E22BBACD7 /* MacroCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB5951CED5DF53CB34646C9 /* MacroCameraView.swift */; };
+		874AB1DB022CC70E373E7D08 /* UnknownBarcodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B47B6CE2C77268EDACBCADA /* UnknownBarcodeView.swift */; };
+		89F8550E1C3BCA13B41F03C5 /* ScanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 775627F695B6D8E09B10E267 /* ScanService.swift */; };
+		8A3CCBAC4B54E17D339183BE /* FeedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88921AF95DA591733B22CC6 /* FeedModels.swift */; };
+		8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99853265E9A2AA623B941165 /* CigarAppApp.swift */; };
+		8F4595BBECB6909AE790319C /* BarcodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0DA58E65C4D170ADE5C31BF /* BarcodeService.swift */; };
+		9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F387CE9EB627A94583C36905 /* CigarIcon.swift */; };
+		AA10AA10PHOTO0001BUILD01 /* PhotoButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */; };
+		AA30IMAGESUPPORTBUILD001 /* ImageSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */; };
+		AA40QUICKACTIONSBUILD001 /* CigarQuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */; };
+		AA50LAUNCHSPLASHBUILD001 /* LaunchSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA50LAUNCHSPLASHFILE0001 /* LaunchSplashView.swift */; };
+		9ED2C29D15EA6574A7968BD3 /* FeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B396E61F32632853E4FAB9B /* FeedService.swift */; };
+		A884C17B44F5394512640A17 /* PrivacyConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E9A02AA6944A0B73171140 /* PrivacyConsentView.swift */; };
+		B1CE78687C4775D7CDD62BF1 /* ProfileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C89DE87D59170A59BF29DB /* ProfileService.swift */; };
+		B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45A0F899263EDC54E49B8EA /* Cigar.swift */; };
+		B7A807ECE12F39CDF4092B48 /* PINSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6574A222EED0313457BD6D /* PINSetupView.swift */; };
+		BB8D3B415547CA4BA1FC0A8A /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1DAC674D82E358AFA54243 /* JournalView.swift */; };
+		BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 333232B66274F8E65263E2F7 /* Supabase */; };
+		AA20KINGFISHERBUILD01000 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = AA20KINGFISHERPROD010000 /* Kingfisher */; };
+		AA20MANTISBUILD010000000 /* Mantis in Frameworks */ = {isa = PBXBuildFile; productRef = AA20MANTISPROD0100000000 /* Mantis */; };
+		AA20REVCATBUILD010000000 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = AA20REVCATPROD0100000000 /* RevenueCat */; };
+		C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831F95D91D3339D747199BE9 /* HumidorView.swift */; };
+		AA00000000000000000000B1 /* HumidorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B2 /* HumidorModels.swift */; };
+		AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000C2 /* CreateHumidorSheet.swift */; };
+		AA00000000000000000000D1 /* HumidorDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000D2 /* HumidorDetailView.swift */; };
+		C997089A85720FBA25E6575D /* FriendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */; };
+		C9E028D726AD7AE3394F9E31 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED781FACD8808BE8540BBD9C /* ProfileView.swift */; };
+		D6850B81775379622B3BE2E5 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */; };
+		DCF283B6483397354151D0DE /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71AF6BC818D389CFF8CC1858 /* FeedView.swift */; };
+		E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */; };
+		F846567A1031B0255EEAD978 /* StarRatingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D90177D2555F69A2182BB66 /* StarRatingRow.swift */; };
+		FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB0B9043F2D93F6611FC592 /* UserModels.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		038EFE70A641325AE1E1126B /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		1699BCF102E89578F9D6B763 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
+		17E9A02AA6944A0B73171140 /* PrivacyConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyConsentView.swift; sourceTree = "<group>"; };
+		21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		2B396E61F32632853E4FAB9B /* FeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedService.swift; sourceTree = "<group>"; };
+		2BD105BAB7D21C10D1289623 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINUnlockView.swift; sourceTree = "<group>"; };
+		3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailViewDesign.swift; sourceTree = "<group>"; };
+		AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarSheets.swift; sourceTree = "<group>"; };
+		AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarReportSheet.swift; sourceTree = "<group>"; };
+		AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCigarSheet.swift; sourceTree = "<group>"; };
+		3D4F123712707C6A8B25490C /* PINService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINService.swift; sourceTree = "<group>"; };
+		4268E9B5C5FFA4E0654230A9 /* CigarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarService.swift; sourceTree = "<group>"; };
+		AC10ADMINSERVICEFILE000000001 /* AdminService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdminService.swift"; sourceTree = "<group>"; };
+		AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SupabaseDecoder.swift"; sourceTree = "<group>"; };
+		AC30ADMINVIEW000FILE000000001 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Admin/AdminView.swift"; sourceTree = "<group>"; };
+		AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Admin/CigarFillSheet.swift"; sourceTree = "<group>"; };
+		AA80ATTEMPTFILE000000001 /* Attempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attempt.swift; sourceTree = "<group>"; };
+		AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreStore.swift; sourceTree = "<group>"; };
+		4ADD7BE75C71D3917352206D /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
+		4B1DAC674D82E358AFA54243 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendModels.swift; sourceTree = "<group>"; };
+		5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		5EB5951CED5DF53CB34646C9 /* MacroCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroCameraView.swift; sourceTree = "<group>"; };
+		6D90177D2555F69A2182BB66 /* StarRatingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRatingRow.swift; sourceTree = "<group>"; };
+		6DEE5F5271AB26DBC443EBCB /* VennerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VennerView.swift; sourceTree = "<group>"; };
+		6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		71AF6BC818D389CFF8CC1858 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		775627F695B6D8E09B10E267 /* ScanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanService.swift; sourceTree = "<group>"; };
+		81DE84548D3017B15393EC79 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
+		831F95D91D3339D747199BE9 /* HumidorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorView.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B2 /* HumidorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorModels.swift; sourceTree = "<group>"; };
+		AA00000000000000000000C2 /* CreateHumidorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateHumidorSheet.swift; sourceTree = "<group>"; };
+		AA00000000000000000000D2 /* HumidorDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorDetailView.swift; sourceTree = "<group>"; };
+		8B47B6CE2C77268EDACBCADA /* UnknownBarcodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnknownBarcodeView.swift; sourceTree = "<group>"; };
+		8C95ABF9625A3D548A7FA88F /* FeedbackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackSheet.swift; sourceTree = "<group>"; };
+		8D880C526BA2ED3FDC6288E7 /* OnboardingProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProfileView.swift; sourceTree = "<group>"; };
+		8EB0B9043F2D93F6611FC592 /* UserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModels.swift; sourceTree = "<group>"; };
+		909149207DD9D2747DEE4727 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		940D2F398ECEDA8C8B017BEF /* PINComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINComponents.swift; sourceTree = "<group>"; };
+		99853265E9A2AA623B941165 /* CigarAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarAppApp.swift; sourceTree = "<group>"; };
+		A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
+		A73F63ADC1F4B94C040887F2 /* Vitola.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vitola.entitlements; sourceTree = "<group>"; };
+		B0DA58E65C4D170ADE5C31BF /* BarcodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeService.swift; sourceTree = "<group>"; };
+		B4C89DE87D59170A59BF29DB /* ProfileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileService.swift; sourceTree = "<group>"; };
+		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD6574A222EED0313457BD6D /* PINSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINSetupView.swift; sourceTree = "<group>"; };
+		C88921AF95DA591733B22CC6 /* FeedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedModels.swift; sourceTree = "<group>"; };
+		DFDAFD471ECD732AD0BC15DA /* UserProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileView.swift; sourceTree = "<group>"; };
+		E01E2818C7850701195E98C9 /* MailComposeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposeView.swift; sourceTree = "<group>"; };
+		E7283863F25CF40E1B3513A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		ED781FACD8808BE8540BBD9C /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		F387CE9EB627A94583C36905 /* CigarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarIcon.swift; sourceTree = "<group>"; };
+		AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoButtons.swift; sourceTree = "<group>"; };
+		AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSupport.swift; sourceTree = "<group>"; };
+		AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarQuickActions.swift; sourceTree = "<group>"; };
+		AA50LAUNCHSPLASHFILE0001 /* LaunchSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchSplashView.swift; sourceTree = "<group>"; };
+		F456A8E60766707FEA12C6AB /* FriendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendService.swift; sourceTree = "<group>"; };
+		F45A0F899263EDC54E49B8EA /* Cigar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cigar.swift; sourceTree = "<group>"; };
+		F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
+		FA22E9CEDD719507D54C5C19 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FEA86F7FB975163C27756E0F /* WishlistService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WishlistService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		96AFFEF21FC19A677708B7F6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */,
+				24594AE2F632DFBC7C23B7FB /* GoogleSignIn in Frameworks */,
+				AA20KINGFISHERBUILD01000 /* Kingfisher in Frameworks */,
+				AA20MANTISBUILD010000000 /* Mantis in Frameworks */,
+				AA20REVCATBUILD010000000 /* RevenueCat in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		267D4DDCCB36A66B5803A328 /* Humidor */ = {
+			isa = PBXGroup;
+			children = (
+				831F95D91D3339D747199BE9 /* HumidorView.swift */,
+				AA00000000000000000000C2 /* CreateHumidorSheet.swift */,
+				AA00000000000000000000D2 /* HumidorDetailView.swift */,
+			);
+			path = Humidor;
+			sourceTree = "<group>";
+		};
+		26D8711B8BF3A784CA8B36DF /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */,
+				6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */,
+				940D2F398ECEDA8C8B017BEF /* PINComponents.swift */,
+				BD6574A222EED0313457BD6D /* PINSetupView.swift */,
+				3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */,
+				17E9A02AA6944A0B73171140 /* PrivacyConsentView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		2F0509F4A1DC49DE9F02CBEF = {
+			isa = PBXGroup;
+			children = (
+				CC75E0DD266D797153C622EA /* CigarApp */,
+				74FB52B4C2F775FFE89822E3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		40EEFE934072986E234CE62A /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				038EFE70A641325AE1E1126B /* AuthService.swift */,
+				B0DA58E65C4D170ADE5C31BF /* BarcodeService.swift */,
+				4268E9B5C5FFA4E0654230A9 /* CigarService.swift */,
+				AA80ATTEMPTFILE000000001 /* Attempt.swift */,
+				AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */,
+				AC10ADMINSERVICEFILE000000001 /* AdminService.swift */,
+				AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */,
+				2B396E61F32632853E4FAB9B /* FeedService.swift */,
+				F456A8E60766707FEA12C6AB /* FriendService.swift */,
+				3D4F123712707C6A8B25490C /* PINService.swift */,
+				B4C89DE87D59170A59BF29DB /* ProfileService.swift */,
+				775627F695B6D8E09B10E267 /* ScanService.swift */,
+				5B56DC524E00AB5DD7BA090B /* SupabaseConfig.swift */,
+				FEA86F7FB975163C27756E0F /* WishlistService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4E70DB050FBA5B17C4335964 /* Cigar */ = {
+			isa = PBXGroup;
+			children = (
+				3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */,
+				AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */,
+				AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */,
+				AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */,
+			);
+			path = Cigar;
+			sourceTree = "<group>";
+		};
+		5A25E33360319C9EE1C977F4 /* Scan */ = {
+			isa = PBXGroup;
+			children = (
+				A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */,
+				5EB5951CED5DF53CB34646C9 /* MacroCameraView.swift */,
+				81DE84548D3017B15393EC79 /* ResultsView.swift */,
+				1699BCF102E89578F9D6B763 /* ScanView.swift */,
+				8B47B6CE2C77268EDACBCADA /* UnknownBarcodeView.swift */,
+			);
+			path = Scan;
+			sourceTree = "<group>";
+		};
+		5F39B7182D38BC947EF1EA1C /* Friends */ = {
+			isa = PBXGroup;
+			children = (
+				6DEE5F5271AB26DBC443EBCB /* VennerView.swift */,
+			);
+			path = Friends;
+			sourceTree = "<group>";
+		};
+		6347123E62EC54A7E2FEB7C0 /* Feed */ = {
+			isa = PBXGroup;
+			children = (
+				71AF6BC818D389CFF8CC1858 /* FeedView.swift */,
+			);
+			path = Feed;
+			sourceTree = "<group>";
+		};
+		713CF467FBC823796F4B9FC7 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				ED781FACD8808BE8540BBD9C /* ProfileView.swift */,
+				DFDAFD471ECD732AD0BC15DA /* UserProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		74FB52B4C2F775FFE89822E3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B9F107D7AB9A439828124088 /* Vitola.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		75AA68BEDE0DE8C6E0C0F472 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F45A0F899263EDC54E49B8EA /* Cigar.swift */,
+				C88921AF95DA591733B22CC6 /* FeedModels.swift */,
+				4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */,
+				8EB0B9043F2D93F6611FC592 /* UserModels.swift */,
+				AA00000000000000000000B2 /* HumidorModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		85F5803D59AEA8A5B19AF42F /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				4ADD7BE75C71D3917352206D /* AvatarView.swift */,
+				F387CE9EB627A94583C36905 /* CigarIcon.swift */,
+				AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */,
+				AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */,
+				AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */,
+				AA50LAUNCHSPLASHFILE0001 /* LaunchSplashView.swift */,
+				8C95ABF9625A3D548A7FA88F /* FeedbackSheet.swift */,
+				E01E2818C7850701195E98C9 /* MailComposeView.swift */,
+				6D90177D2555F69A2182BB66 /* StarRatingRow.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A33C09926E43D5FE9635B915 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				21E79F86E9E53693903C53C9 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		AF3E8C0E3C1FE5DF9196900C /* Explore */ = {
+			isa = PBXGroup;
+			children = (
+				2BD105BAB7D21C10D1289623 /* ExploreView.swift */,
+			);
+			path = Explore;
+			sourceTree = "<group>";
+		};
+		CC75E0DD266D797153C622EA /* CigarApp */ = {
+			isa = PBXGroup;
+			children = (
+				75AA68BEDE0DE8C6E0C0F472 /* Models */,
+				A33C09926E43D5FE9635B915 /* Preview Content */,
+				40EEFE934072986E234CE62A /* Services */,
+				E8F076DC670DAC0CD98C0043 /* Views */,
+				FA22E9CEDD719507D54C5C19 /* Assets.xcassets */,
+				99853265E9A2AA623B941165 /* CigarAppApp.swift */,
+				E7283863F25CF40E1B3513A7 /* Info.plist */,
+				A73F63ADC1F4B94C040887F2 /* Vitola.entitlements */,
+			);
+			path = CigarApp;
+			sourceTree = "<group>";
+		};
+		E8F076DC670DAC0CD98C0043 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				26D8711B8BF3A784CA8B36DF /* Auth */,
+				4E70DB050FBA5B17C4335964 /* Cigar */,
+				AF3E8C0E3C1FE5DF9196900C /* Explore */,
+				6347123E62EC54A7E2FEB7C0 /* Feed */,
+				5F39B7182D38BC947EF1EA1C /* Friends */,
+				267D4DDCCB36A66B5803A328 /* Humidor */,
+				EF393846CCED1619A2A878A0 /* Journal */,
+				F1521B094AD7492D396290B0 /* Onboarding */,
+				713CF467FBC823796F4B9FC7 /* Profile */,
+				5A25E33360319C9EE1C977F4 /* Scan */,
+				85F5803D59AEA8A5B19AF42F /* Shared */,
+				AC30ADMINVIEW000FILE000000001 /* AdminView.swift */,
+				AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */,
+				909149207DD9D2747DEE4727 /* ContentView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		EF393846CCED1619A2A878A0 /* Journal */ = {
+			isa = PBXGroup;
+			children = (
+				4B1DAC674D82E358AFA54243 /* JournalView.swift */,
+			);
+			path = Journal;
+			sourceTree = "<group>";
+		};
+		F1521B094AD7492D396290B0 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				8D880C526BA2ED3FDC6288E7 /* OnboardingProfileView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8926F3C15BA9A18BCE11896B /* Vitola */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "Vitola" */;
+			buildPhases = (
+				9826BF3DD8BF0B27B15A5D59 /* Sources */,
+				F53AD1EBEB3F6CD9F5626326 /* Resources */,
+				96AFFEF21FC19A677708B7F6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Vitola;
+			packageProductDependencies = (
+				333232B66274F8E65263E2F7 /* Supabase */,
+				D1EEF6BE6627FFD5DE0C2C4B /* GoogleSignIn */,
+				AA20KINGFISHERPROD010000 /* Kingfisher */,
+				AA20MANTISPROD0100000000 /* Mantis */,
+				AA20REVCATPROD0100000000 /* RevenueCat */,
+			);
+			productName = Vitola;
+			productReference = B9F107D7AB9A439828124088 /* Vitola.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		22712C416411416E89CA7B60 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					8926F3C15BA9A18BCE11896B = {
+						DevelopmentTeam = H7NS3V5EFA;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "Vitola" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 2F0509F4A1DC49DE9F02CBEF;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5EA233AC7921F3D1D7D77858 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				AA20KINGFISHERREMOTE0100 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				AA20MANTISREMOTE01000000 /* XCRemoteSwiftPackageReference "Mantis" */,
+				AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 74FB52B4C2F775FFE89822E3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8926F3C15BA9A18BCE11896B /* Vitola */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F53AD1EBEB3F6CD9F5626326 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				587CF733F8E275C6C93F8E94 /* Assets.xcassets in Resources */,
+				11CD2586D2F7EEBC5DF601BA /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9826BF3DD8BF0B27B15A5D59 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6078259E0765EE39E8346EB9 /* AgeGateView.swift in Sources */,
+				049C64C7CAE75A3F42357820 /* AuthService.swift in Sources */,
+				6D9D07638987891501525A6A /* AuthView.swift in Sources */,
+				3D36F1531BCFE08DAE911572 /* AvatarView.swift in Sources */,
+				D6850B81775379622B3BE2E5 /* BarcodeScannerView.swift in Sources */,
+				8F4595BBECB6909AE790319C /* BarcodeService.swift in Sources */,
+				B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */,
+				8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */,
+				8018111CFDBB54A5702F371A /* CigarDetailViewDesign.swift in Sources */,
+				AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */,
+				AA90REPORTSHEETBUILD0001 /* CigarReportSheet.swift in Sources */,
+				AB10ADDCIGARBUILD0000001 /* AddCigarSheet.swift in Sources */,
+				9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */,
+				AA10AA10PHOTO0001BUILD01 /* PhotoButtons.swift in Sources */,
+				AA30IMAGESUPPORTBUILD001 /* ImageSupport.swift in Sources */,
+				AA40QUICKACTIONSBUILD001 /* CigarQuickActions.swift in Sources */,
+				AA50LAUNCHSPLASHBUILD001 /* LaunchSplashView.swift in Sources */,
+				6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */,
+				AA80ATTEMPTBUILD00000001 /* Attempt.swift in Sources */,
+				AC30ADMINVIEW000BUILD00000001 /* AdminView.swift in Sources */,
+				AC30FILLSHEET000BUILD0000001 /* CigarFillSheet.swift in Sources */,
+				AC20SUPADECODER0BUILD00000001 /* SupabaseDecoder.swift in Sources */,
+				AC10ADMINSERVICEBUILD00000001 /* AdminService.swift in Sources */,
+				AA60EXPLORESTOREBUILD001 /* ExploreStore.swift in Sources */,
+				8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */,
+				0C961807024378FF6186CDB2 /* ExploreView.swift in Sources */,
+				8A3CCBAC4B54E17D339183BE /* FeedModels.swift in Sources */,
+				9ED2C29D15EA6574A7968BD3 /* FeedService.swift in Sources */,
+				DCF283B6483397354151D0DE /* FeedView.swift in Sources */,
+				4F0CA86037D09C97F5BACE89 /* FeedbackSheet.swift in Sources */,
+				C997089A85720FBA25E6575D /* FriendModels.swift in Sources */,
+				5D46BD1B60BFD1B7BD1FDF96 /* FriendService.swift in Sources */,
+				C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */,
+				AA00000000000000000000B1 /* HumidorModels.swift in Sources */,
+				AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */,
+				AA00000000000000000000D1 /* HumidorDetailView.swift in Sources */,
+				BB8D3B415547CA4BA1FC0A8A /* JournalView.swift in Sources */,
+				86E35448369E1D3E22BBACD7 /* MacroCameraView.swift in Sources */,
+				177A7186F1630F0803865214 /* MailComposeView.swift in Sources */,
+				68216E0F02E404929F7CB849 /* OnboardingProfileView.swift in Sources */,
+				4915774688B3426F3B1553D8 /* PINComponents.swift in Sources */,
+				1CFA93F58EBCD08A3B967EF0 /* PINService.swift in Sources */,
+				B7A807ECE12F39CDF4092B48 /* PINSetupView.swift in Sources */,
+				018C13BCF709ED8FE8563F63 /* PINUnlockView.swift in Sources */,
+				A884C17B44F5394512640A17 /* PrivacyConsentView.swift in Sources */,
+				B1CE78687C4775D7CDD62BF1 /* ProfileService.swift in Sources */,
+				C9E028D726AD7AE3394F9E31 /* ProfileView.swift in Sources */,
+				38EAE0227590945771B2C132 /* ResultsView.swift in Sources */,
+				89F8550E1C3BCA13B41F03C5 /* ScanService.swift in Sources */,
+				1C6013B1827F341DD6399DC5 /* ScanView.swift in Sources */,
+				F846567A1031B0255EEAD978 /* StarRatingRow.swift in Sources */,
+				E7D9A96EC55AB150A8FDC14A /* SupabaseConfig.swift in Sources */,
+				874AB1DB022CC70E373E7D08 /* UnknownBarcodeView.swift in Sources */,
+				FB17F4306203AAC2489CD565 /* UserModels.swift in Sources */,
+				150B458F3A80EAB119528FE7 /* UserProfileView.swift in Sources */,
+				810CF96C823CB1A8465D1947 /* VennerView.swift in Sources */,
+				7B07D356712571FB07ABF6B4 /* WishlistService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		7AA12BB2A1AE06985663ABE7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AE68DC98A95CAA036BC01169 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 303;
+				DEVELOPMENT_TEAM = H7NS3V5EFA;
+				INFOPLIST_FILE = CigarApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomerikheggedal.vitola;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		B9520257BC520B238292C1FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 303;
+				DEVELOPMENT_TEAM = H7NS3V5EFA;
+				INFOPLIST_FILE = CigarApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomerikheggedal.vitola;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		EA592A9C18B2F205CE926746 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "Vitola" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA592A9C18B2F205CE926746 /* Debug */,
+				7AA12BB2A1AE06985663ABE7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "Vitola" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9520257BC520B238292C1FA /* Debug */,
+				AE68DC98A95CAA036BC01169 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5EA233AC7921F3D1D7D77858 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
+		C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+		AA20KINGFISHERREMOTE0100 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
+		AA20MANTISREMOTE01000000 /* XCRemoteSwiftPackageReference "Mantis" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/guoyingtao/Mantis";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+		AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		333232B66274F8E65263E2F7 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		D1EEF6BE6627FFD5DE0C2C4B /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5EA233AC7921F3D1D7D77858 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		AA20KINGFISHERPROD010000 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA20KINGFISHERREMOTE0100 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+		AA20MANTISPROD0100000000 /* Mantis */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA20MANTISREMOTE01000000 /* XCRemoteSwiftPackageReference "Mantis" */;
+			productName = Mantis;
+		};
+		AA20REVCATPROD0100000000 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 22712C416411416E89CA7B60 /* Project object */;
+}

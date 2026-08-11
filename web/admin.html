@@ -254,6 +254,7 @@
       </div>
       <div class="bf-bar">
         <input id="samp-search" placeholder="Søk i hele katalogen…" oninput="onSampSearch(this.value)" style="width:auto;flex:1;min-width:160px" />
+        <button class="samp-tab active" id="grp-series" onclick="toggleGroupSeries(this)" title="Grupper treff per serie/linje — ett bilde trener hele serien (båndet er likt på tvers av størrelsene)">Grupper per serie</button>
         <button class="samp-tab" id="weak-sort" onclick="toggleWeakSort(this)" title="Sorter sigarene fra svakest til sterkest gjenkjenning">Svakest først</button>
         <span id="samp-total" class="muted" style="font-size:13px"></span>
       </div>
@@ -702,6 +703,7 @@ let TOTAL_CIGARS = 0;   // totalt antall sigarer i basen (for «Alle sigarer»-t
 let sampFilter = "emb";
 let sortWeak = false;   // «Svakest først»
 let allResults = [];    // treff i «Alle sigarer»-fanen (server-søk)
+let groupSeries = true;  // grupper søketreff per serie/linje (ett bånd = én dropzone)
 const SRC_NO = { manual_scan: "Skann", journal: "Journal", humidor: "Humidor", band: "Bånd", product: "Produkt", admin: "Admin" };
 
 // "Nytt" bilde = ikke håndtert ennå (ingen reviewed_at) OG registrert de siste
@@ -806,11 +808,13 @@ function renderBilder(){
   if (searchQ.length >= 2){
     $("samp-total").textContent = "";
     if (!allResults.length){ box.innerHTML = `<div class="card muted">Ingen treff for «${esc(searchQ)}».</div>`; return; }
-    const groups = allResults.map(c => ({
-      cigarId: c.id,
-      navn: c.cigar_navn || c.brand || "(ukjent sigar)",
-      items: SAMPLES.filter(s => s.cigar_id === c.id),
-    }));
+    const groups = groupSeries
+      ? seriesGroupsFrom(allResults)
+      : allResults.map(c => ({
+          cigarId: c.id,
+          navn: c.cigar_navn || c.brand || "(ukjent sigar)",
+          items: SAMPLES.filter(s => s.cigar_id === c.id),
+        }));
     renderGroupList(box, groups);
     return;
   }
@@ -837,11 +841,13 @@ function renderBilder(){
       return;
     }
     if (!allResults.length){ box.innerHTML = `<div class="card muted">Ingen treff for «${esc(q)}».</div>`; return; }
-    const groups = allResults.map(c => ({
-      cigarId: c.id,
-      navn: c.cigar_navn || c.brand || "(ukjent sigar)",
-      items: SAMPLES.filter(s => s.cigar_id === c.id),
-    }));
+    const groups = groupSeries
+      ? seriesGroupsFrom(allResults)
+      : allResults.map(c => ({
+          cigarId: c.id,
+          navn: c.cigar_navn || c.brand || "(ukjent sigar)",
+          items: SAMPLES.filter(s => s.cigar_id === c.id),
+        }));
     renderGroupList(box, groups);
     return;
   }
@@ -902,10 +908,46 @@ function renderGroupList(box, groupArr){
           <button class="hdr-btn" title="Kopier navn" data-name="${esc(g.navn)}" onclick="copyName(event, this)">⧉ Kopier</button>
           <a class="hdr-btn" title="Søk bilder på Google" href="https://www.google.com/search?tbm=isch&q=${gq}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔍 Google</a>
           <span class="brand-count${hasNew ? " new" : ""}">${n} ${n === 1 ? "bilde" : "bilder"}</span></summary>
-        <div class="brand-body"><div class="samp-grid">${cards}</div>${dz}</div>
+        <div class="brand-body">${g.sub ? `<div class="muted" style="font-size:12px;margin:0 0 8px">${esc(g.sub)}</div>` : ""}<div class="samp-grid">${cards}</div>${dz}</div>
       </details>`;
     }).join("");
 }
+
+// Grupper søketreff per SERIE/linje (brand+series) i stedet for per størrelse.
+// Båndet er likt på tvers av størrelsene, så du trener hele serien med ett bilde.
+// Anker = vitolaen som allerede har flest bilder (ellers den første); dropzonen
+// laster opp dit. items = alle bilder på tvers av seriens vitolaer.
+function seriesGroupsFrom(results){
+  const map = new Map();
+  results.forEach(c => {
+    const key = (c.brand || "") + "│" + (c.series || "");
+    if (!map.has(key)){
+      const navn = ((c.brand || "") + " " + (c.series || "")).trim() || (c.cigar_navn || "(ukjent)");
+      map.set(key, { navn, ids: [] });
+    }
+    map.get(key).ids.push(c.id);
+  });
+  return [...map.values()].map(g => {
+    const items = SAMPLES.filter(s => g.ids.includes(s.cigar_id));
+    const counts = {};
+    items.forEach(s => { counts[s.cigar_id] = (counts[s.cigar_id] || 0) + 1; });
+    let anchor = g.ids[0], best = -1;
+    g.ids.forEach(id => { const n = counts[id] || 0; if (n > best){ best = n; anchor = id; } });
+    return {
+      cigarId: anchor,
+      navn: g.navn,
+      items,
+      sub: g.ids.length > 1 ? `Dekker ${g.ids.length} størrelser — ett bilde trener hele serien` : null,
+    };
+  });
+}
+
+function toggleGroupSeries(el){
+  groupSeries = !groupSeries;
+  el.classList.toggle("active", groupSeries);
+  renderBilder();
+}
+window.toggleGroupSeries = toggleGroupSeries;
 
 function toggleMove(id){
   const p = document.getElementById("move-" + id);
