@@ -36,7 +36,7 @@ struct AgeGateView: View {
 
                     Spacer()
 
-                    Text("Appen er kun for personer over 18 år.\nKjøp og promotering av tobakk er ikke en del av appen.")
+                    Text("Tobakk innebærer helserisiko. SEDER gir ingen helseråd og oppfordrer ikke til bruk.\nAppen er kun for personer over 18 år – kjøp og promotering av tobakk er ikke en del av appen.")
                         .font(.caption2)
                         .foregroundColor(Color("TextSecondary"))
                         .multilineTextAlignment(.center)

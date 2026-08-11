@@ -102,6 +102,7 @@
   .brand-group[open] .brand-head{border-bottom:1px solid var(--line)}
   .brand-name{flex:1}
   .brand-count{font-size:12px;font-weight:600;color:var(--accent-dark);background:#F0ECE2;border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .mix-badge{flex:0 0 auto;font-size:11px;font-weight:700;color:#8A4B00;background:#FBEFD6;border:1px solid #E7C688;border-radius:20px;padding:2px 9px;white-space:nowrap;cursor:help}
   /* Grønn antall-chip når sigaren har fått nye bilder */
   .brand-count.new{color:#2E9E68;background:#EAF7F0;border:1px solid #BBE3CC}
   /* Gjenkjenningsstyrke-badge */
@@ -747,6 +748,8 @@ let TOTAL_CIGARS = 0;   // totalt antall sigarer i basen (for «Alle sigarer»-t
 let COV_TOTAL = 0, COV_COVERED = 0;   // dekning (fra admin_coverage_stats)
 let UNCOVERED = [];     // udekkede sigarer (fra admin_uncovered_cigars)
 let uncoveredLoaded = false;
+let MIXED_SET = new Set();   // "brand│series" med blandet dekkblad (mulig flere bånd)
+let mixedLoaded = false;
 let sampFilter = "emb";
 let sortWeak = false;   // «Svakest først»
 let allResults = [];    // treff i «Alle sigarer»-fanen (server-søk)
@@ -807,6 +810,7 @@ async function loadBilder(){
   renderBilder();   // vis lista med en gang
   loadCoverage();   // serie-bevisst dekningstall (oppdateres også etter opplasting via loadBilder)
   if (uncoveredLoaded) loadUncovered();   // hold «Ikke dekket» oppdatert etter opplasting
+  if (!mixedLoaded) loadMixed();   // hvilke serier har blandet dekkblad (advarsel)
   // Score beregnes litt tyngre (O(n²)); hent den etterpå og fyll inn merkene uten å blokkere.
   db.rpc("admin_recognition_scores").then(({ data }) => {
     SCORES = {};
@@ -837,6 +841,16 @@ async function loadCoverage(){
   set("noemb-count", (total - covered) ? String(total - covered) : "");
 }
 window.loadCoverage = loadCoverage;
+
+// Serier med blandet dekkblad (mulig flere bånd) → advarsel på gruppa.
+async function loadMixed(){
+  const { data, error } = await db.rpc("admin_mixed_wrapper_series");
+  mixedLoaded = true;
+  if (error) return;
+  MIXED_SET = new Set((data || []).map(r => (r.brand || "") + "│" + (r.series || "")));
+  renderBilder();   // vis advarslene når lista er lastet
+}
+window.loadMixed = loadMixed;
 
 function sampCard(s){
   const src = SRC_NO[s.source] || s.source || "?";
@@ -1001,8 +1015,13 @@ function renderGroupList(box, groupArr, coverMode = false){
       const countBadge = coverMode
         ? `<span class="brand-count">${g.sizeCount || 1} ${(g.sizeCount || 1) === 1 ? "størrelse" : "størrelser"}</span>`
         : `<span class="brand-count${hasNew ? " new" : ""}">${n} ${n === 1 ? "bilde" : "bilder"}</span>`;
+      // Advarsel: serien har vitolaer med ulikt dekkblad → kan være flere bånd.
+      const mixBadge = (g.key && MIXED_SET.has(g.key))
+        ? `<span class="mix-badge" title="Vitolaene i denne serien har ulikt dekkblad — det kan være flere bånd. Sjekk om serien bør splittes før du trener.">⚠ Blandet dekkblad</span>`
+        : "";
       return `<details class="brand-group" open>
         <summary class="brand-head"><span class="brand-name">${esc(g.navn)}</span>
+          ${mixBadge}
           ${scoreBadge}
           <button class="hdr-btn" title="Kopier navn" data-name="${esc(g.navn)}" onclick="copyName(event, this)">⧉ Kopier</button>
           <a class="hdr-btn" title="Søk bilder på Google" href="https://www.google.com/search?tbm=isch&q=${gq}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔍 Google</a>
@@ -1022,7 +1041,7 @@ function seriesGroupsFrom(results){
     const key = (c.brand || "") + "│" + (c.series || "");
     if (!map.has(key)){
       const navn = ((c.brand || "") + " " + (c.series || "")).trim() || (c.cigar_navn || "(ukjent)");
-      map.set(key, { navn, ids: [] });
+      map.set(key, { navn, ids: [], key });
     }
     map.get(key).ids.push(c.id);
   });
@@ -1035,6 +1054,7 @@ function seriesGroupsFrom(results){
     return {
       cigarId: anchor,
       navn: g.navn,
+      key: g.key,
       items,
       sizeCount: g.ids.length,
       sub: g.ids.length > 1 ? `Dekker ${g.ids.length} størrelser — ett bilde trener hele serien` : null,
@@ -1171,7 +1191,7 @@ function onSampSearch(v){
   const query = (v || "").trim();
   if (query.length < 2){ allResults = []; renderBilder(); return; }
   allSearchTimer = setTimeout(async () => {
-    const { data } = await db.rpc("admin_search_cigars", { p_query: query, p_limit: 40 });
+    const { data } = await db.rpc("admin_search_cigars", { p_query: query, p_limit: 250 });
     allResults = data || [];
     renderBilder();
   }, 250);

@@ -28,7 +28,7 @@ struct HumidorView: View {
 
     /// Åpne «ny humidor» hvis under grensen, ellers vis paywall.
     private func attemptCreateHumidor() {
-        if proManager.isPro || humidors.count < freeHumidorLimit {
+        if proManager.isPro || StoreManager.shared.isPro || humidors.count < freeHumidorLimit {
             showCreateHumidor = true
         } else {
             showPaywall = true
@@ -239,7 +239,9 @@ struct HumidorView: View {
                 }
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView().environmentObject(proManager)
+                SupportView(mode: .unlock,
+                            usedHumidors: humidors.count,
+                            freeHumidorLimit: freeHumidorLimit)
             }
             .onAppear {
                 humidorHasNew = false  // Fjern badge når bruker ser humidor-siden

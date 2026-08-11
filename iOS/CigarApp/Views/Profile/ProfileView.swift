@@ -1,5 +1,4 @@
 import SwiftUI
-import RevenueCat
 
 // MARK: - ProfileView
 // Profil-fane: viser rik UserProfileView for innloggede brukere,
@@ -249,30 +248,8 @@ struct ProfileSettingsView: View {
         .buttonStyle(.plain)
     }
 
-    var body: some View {
-        NavigationStack {
-            List {
-                // Konto
-                Section {
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 34))
-                            .foregroundColor(Color("TextSecondary"))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Innlogget som")
-                                .font(.system(size: 12))
-                                .foregroundColor(Color("TextSecondary"))
-                            Text(authService.currentUser?.email ?? "—")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(Color("TextPrimary"))
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listRowBackground(Color("Card"))
-
-                // SEDER Pro
+    // Pro-status / oppgrader (skilt ut for å lette kompilatoren)
+    private var proSection: some View {
                 Section {
                     if proManager.isPro {
                         HStack(spacing: 12) {
@@ -283,7 +260,7 @@ struct ProfileSettingsView: View {
                                 Text("SEDER Pro")
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(Color("TextPrimary"))
-                                Text(proManager.isFoundingMember ? "Tidlig tester · livstid" : "Abonnement aktivt")
+                                Text(proManager.isFoundingMember ? "Tidlig tester · livstid" : "Pro · livstid")
                                     .font(.system(size: 12))
                                     .foregroundColor(Color("TextSecondary"))
                             }
@@ -318,56 +295,10 @@ struct ProfileSettingsView: View {
                     }
                 }
                 .listRowBackground(Color("Card"))
+    }
 
-                #if DEBUG
-                Section {
-                    Toggle(isOn: $proManager.debugForceFree) {
-                        Text("Test: simuler gratisbruker")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color("TextPrimary"))
-                    }
-                    .tint(Color("Accent"))
-                } footer: {
-                    Text("Kun i testbuilds. Skjuler tidlig tester-Pro så du kan se paywallen og teste kjøp.")
-                }
-                .listRowBackground(Color("Card"))
-                #endif
-
-                // Profil
-                Section("Profil") {
-                    settingsRow("Endre navn", icon: "person.text.rectangle") { showEditName = true }
-                    settingsRow("Endre by og land", icon: "mappin.and.ellipse") { showEditLocation = true }
-                }
-                .listRowBackground(Color("Card"))
-
-                // Utseende
-                Section("Utseende") {
-                    Picker("Tema", selection: $appearance) {
-                        Text("System").tag("system")
-                        Text("Mørk").tag("dark")
-                        Text("Lys").tag("light")
-                    }
-                    .pickerStyle(.segmented)
-                }
-                .listRowBackground(Color("Card"))
-
-                // Sikkerhet
-                Section("Sikkerhet") {
-                    if pinService.isPINSet {
-                        settingsRow("Fjern PIN-kode", icon: "lock.open", destructive: true) { showRemovePINConfirm = true }
-                    } else {
-                        settingsRow("Sett opp 4-sifret kode", icon: "lock") { showPINSetup = true }
-                    }
-                }
-                .listRowBackground(Color("Card"))
-
-                // Tilbakemelding
-                Section("Tilbakemelding") {
-                    settingsRow("Gi tilbakemelding på appen", icon: "bubble.left.and.bubble.right") { showFeedbackSheet = true }
-                }
-                .listRowBackground(Color("Card"))
-
-                // Administrasjon (kun admin — is_admin() sjekkes i basen)
+    // Admin-kø (skilt ut for å lette kompilatoren)
+    @ViewBuilder private var adminSection: some View {
                 if adminService.isAdmin {
                     Section("Administrasjon") {
                         Button {
@@ -399,8 +330,10 @@ struct ProfileSettingsView: View {
                     }
                     .listRowBackground(Color("Card"))
                 }
+    }
 
-                // Konto-handlinger
+    // Konto-handlinger (skilt ut for å lette kompilatoren)
+    private var accountActionsSection: some View {
                 Section {
                     settingsRow("Logg ut", icon: "rectangle.portrait.and.arrow.right", destructive: true) { showSignOutConfirm = true }
                     if isDeletingAccount {
@@ -420,6 +353,111 @@ struct ProfileSettingsView: View {
                         .foregroundColor(Color("TextSecondary"))
                 }
                 .listRowBackground(Color("Card"))
+    }
+
+    private var kontoSection: some View {
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 34))
+                            .foregroundColor(Color("TextSecondary"))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Innlogget som")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color("TextSecondary"))
+                            Text(authService.currentUser?.email ?? "—")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color("Card"))
+    }
+
+    private var profilSection: some View {
+                Section("Profil") {
+                    settingsRow("Endre navn", icon: "person.text.rectangle") { showEditName = true }
+                    settingsRow("Endre by og land", icon: "mappin.and.ellipse") { showEditLocation = true }
+                }
+                .listRowBackground(Color("Card"))
+    }
+
+    private var utseendeSection: some View {
+                Section("Utseende") {
+                    Picker("Tema", selection: $appearance) {
+                        Text("System").tag("system")
+                        Text("Mørk").tag("dark")
+                        Text("Lys").tag("light")
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .listRowBackground(Color("Card"))
+    }
+
+    private var sikkerhetSection: some View {
+                Section("Sikkerhet") {
+                    if pinService.isPINSet {
+                        settingsRow("Fjern PIN-kode", icon: "lock.open", destructive: true) { showRemovePINConfirm = true }
+                    } else {
+                        settingsRow("Sett opp 4-sifret kode", icon: "lock") { showPINSetup = true }
+                    }
+                }
+                .listRowBackground(Color("Card"))
+    }
+
+    private var tilbakemeldingSection: some View {
+                Section("Tilbakemelding") {
+                    settingsRow("Gi tilbakemelding på appen", icon: "bubble.left.and.bubble.right") { showFeedbackSheet = true }
+                }
+                .listRowBackground(Color("Card"))
+    }
+
+    // Om SEDER — helse/formål + juridiske lenker (viktig for App Review)
+    private var omSederSection: some View {
+        Section("Om SEDER") {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Helse og formål")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color("TextPrimary"))
+                Text("Tobakk innebærer helserisiko. SEDER selger ingen produkter, formidler ingen kjøp og oppfordrer ikke til bruk. Appen er et referanse- og registreringsverktøy for voksne over 18 år som ønsker å holde oversikt over en egen samling.")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color("TextSecondary"))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 4)
+            Link("Vilkår for bruk", destination: URL(string: "https://sederappen.no/terms.html")!)
+                .font(.system(size: 15))
+                .foregroundColor(Color("Accent"))
+            Link("Personvern", destination: URL(string: "https://sederappen.no/privacy.html")!)
+                .font(.system(size: 15))
+                .foregroundColor(Color("Accent"))
+        }
+        .listRowBackground(Color("Card"))
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                kontoSection
+
+                proSection
+
+                profilSection
+
+                utseendeSection
+
+                sikkerhetSection
+
+                tilbakemeldingSection
+
+                omSederSection
+
+                adminSection
+
+
+                accountActionsSection
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
@@ -448,7 +486,10 @@ struct ProfileSettingsView: View {
                 AdminView()
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView().environmentObject(proManager)
+                SupportView(mode: .unlock,
+                            unlockTitle: "SEDER Pro",
+                            unlockSubtitle: "Ubegrenset humidor, statistikk og eksport – én betaling, for alltid.",
+                            showQuota: false)
             }
             .task {
                 await adminService.refreshAdminStatus()
@@ -458,7 +499,6 @@ struct ProfileSettingsView: View {
                     isFoundingMember = p.isFoundingMember ?? false
                     proManager.isFoundingMember = isFoundingMember
                 }
-                await proManager.refresh()
             }
             .alert("Logg ut?", isPresented: $showSignOutConfirm) {
                 Button("Avbryt", role: .cancel) {}
@@ -501,260 +541,5 @@ struct ProfileSettingsView: View {
                 Text(deleteAccountError ?? "")
             }
         }
-    }
-}
-
-// MARK: - PaywallView
-// SEDER Pro: ubegrenset humidor + journal-eksport + avansert statistikk + Pro-merke.
-// Ingen skann-grense (skanning er alltid gratis). Kjøps-knapp stubbes til RevenueCat
-// er koblet på — da bytter «Start Pro» ut placeholder-varselet med ekte kjøp.
-struct PaywallView: View {
-
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var proManager: ProManager
-    @State private var yearly = true
-    @State private var showComingSoon = false
-    @State private var purchasing = false
-    @State private var showError = false
-    @State private var showNoRestore = false
-
-    // Ekte App Store-pakker (nil til produktene er lastet fra RevenueCat).
-    private var annualPackage: Package? {
-        proManager.offerings?.current?.availablePackages.first { $0.packageType == .annual }
-    }
-    private var monthlyPackage: Package? {
-        proManager.offerings?.current?.availablePackages.first { $0.packageType == .monthly }
-    }
-    private var selectedPackage: Package? { yearly ? annualPackage : monthlyPackage }
-
-    private var yearlyPrice: String { annualPackage?.storeProduct.localizedPriceString ?? "449 kr" }
-    private var monthlyPrice: String { monthlyPackage?.storeProduct.localizedPriceString ?? "59 kr" }
-
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
-                header
-                comparisonCard
-                Text("Skanning, journal og vurderinger er alltid gratis.")
-                    .font(.footnote)
-                    .foregroundColor(Color("TextSecondary"))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
-                planSelector
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 40)
-            .padding(.bottom, 20)
-        }
-        .background(Color("Background").ignoresSafeArea())
-        .safeAreaInset(edge: .bottom) { bottomBar }
-        .overlay(alignment: .topTrailing) {
-            Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Color("TextSecondary"))
-                    .frame(width: 30, height: 30)
-                    .background(Circle().fill(Color("TextSecondary").opacity(0.12)))
-            }
-            .padding(.trailing, 16)
-            .padding(.top, 12)
-        }
-        .alert("Kommer snart", isPresented: $showComingSoon) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Betaling kobles på i neste oppdatering. Da kan du bli Pro herfra.")
-        }
-        .alert("Kjøpet ble ikke fullført", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Prøv igjen, eller sjekk App Store-kontoen din.")
-        }
-        .alert("Ingen kjøp å gjenopprette", isPresented: $showNoRestore) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Vi fant ingen tidligere kjøp på denne Apple-ID-en.")
-        }
-        .task { await proManager.loadOfferings() }
-    }
-
-    private var header: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "seal.fill")
-                Text("SEDER Pro").fontWeight(.semibold)
-            }
-            .font(.system(size: 12))
-            .foregroundColor(Color("Accent"))
-            .padding(.horizontal, 12).padding(.vertical, 5)
-            .background(Capsule().fill(Color("Accent").opacity(0.12)))
-
-            Text("Få mest ut av samlingen din")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(Color("TextPrimary"))
-                .multilineTextAlignment(.center)
-            Text("Ubegrenset humidor, eksport og innsikt.")
-                .font(.subheadline)
-                .foregroundColor(Color("TextSecondary"))
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var comparisonCard: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("").frame(maxWidth: .infinity, alignment: .leading)
-                Text("Gratis").frame(width: 60)
-                Text("Pro").fontWeight(.semibold).foregroundColor(Color("Accent")).frame(width: 60)
-            }
-            .font(.system(size: 13))
-            .foregroundColor(Color("TextSecondary"))
-            .padding(.horizontal, 16).padding(.vertical, 11)
-            Divider()
-            compareRow(label: "Antall humidorer", free: .text("2"), pro: .text("∞"))
-            Divider().padding(.leading, 16)
-            compareRow(label: "Journal-eksport (PDF/CSV)", free: .no, pro: .yes)
-            Divider().padding(.leading, 16)
-            compareRow(label: "Avansert statistikk", free: .no, pro: .yes)
-            Divider().padding(.leading, 16)
-            compareRow(label: "Pro-merke på profil", free: .no, pro: .yes)
-        }
-        .background(Color("Card"))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
-
-    private enum CellValue { case text(String), yes, no }
-
-    @ViewBuilder
-    private func compareRow(label: String, free: CellValue, pro: CellValue) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 16))
-                .foregroundColor(Color("TextPrimary"))
-                .frame(maxWidth: .infinity, alignment: .leading)
-            cell(free, accent: false).frame(width: 60)
-            cell(pro, accent: true).frame(width: 60)
-        }
-        .padding(.horizontal, 16).padding(.vertical, 13)
-    }
-
-    @ViewBuilder
-    private func cell(_ value: CellValue, accent: Bool) -> some View {
-        switch value {
-        case .text(let t):
-            Text(t)
-                .font(.system(size: 16, weight: accent ? .semibold : .regular))
-                .foregroundColor(accent ? Color("TextPrimary") : Color("TextSecondary"))
-        case .yes:
-            Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold))
-                .foregroundColor(Color("Accent"))
-        case .no:
-            Image(systemName: "minus").font(.system(size: 15))
-                .foregroundColor(Color("TextSecondary").opacity(0.4))
-        }
-    }
-
-    private var planSelector: some View {
-        HStack(spacing: 10) {
-            planCard(title: "Årlig", price: yearlyPrice, note: "≈ 37 kr/mnd", badge: "Spar 37%", selected: yearly) { yearly = true }
-            planCard(title: "Månedlig", price: monthlyPrice, note: "per måned", badge: nil, selected: !yearly) { yearly = false }
-        }
-    }
-
-    @ViewBuilder
-    private func planCard(title: String, price: String, note: String, badge: String?, selected: Bool, tap: @escaping () -> Void) -> some View {
-        Button(action: tap) {
-            VStack(spacing: 2) {
-                Text(title).font(.system(size: 13, weight: .semibold)).foregroundColor(Color("TextPrimary"))
-                Text(price).font(.system(size: 18, weight: .semibold)).foregroundColor(Color("TextPrimary"))
-                Text(note).font(.system(size: 11)).foregroundColor(Color("TextSecondary"))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color("Card"))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(selected ? Color("Accent") : Color("TextSecondary").opacity(0.15),
-                            lineWidth: selected ? 2 : 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(alignment: .top) {
-                if let badge {
-                    Text(badge)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 2)
-                        .background(Capsule().fill(Color("Accent")))
-                        .offset(y: -9)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var bottomBar: some View {
-        VStack(spacing: 10) {
-            Button {
-                if let pkg = selectedPackage {
-                    Task {
-                        purchasing = true
-                        let outcome = await proManager.purchase(pkg)
-                        purchasing = false
-                        switch outcome {
-                        case .success:   dismiss()
-                        case .cancelled: break            // bruker avbrøt — ingen feil
-                        case .failed:    showError = true
-                        }
-                    }
-                } else if ProConfig.isConfigured {
-                    // Konfigurert, men tilbud ikke lastet ennå — prøv igjen.
-                    Task { await proManager.loadOfferings() }
-                } else {
-                    // RevenueCat ikke koblet på ennå (test-oppsett uten produkter).
-                    showComingSoon = true
-                }
-            } label: {
-                Group {
-                    if purchasing {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text("Start Pro").font(.system(size: 16, weight: .semibold))
-                    }
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(Color("Accent"))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .disabled(purchasing)
-
-            // Auto-fornyelses-info (App Store-krav, retningslinje 3.1.2).
-            Text("Abonnementet fornyes automatisk til \(yearly ? yearlyPrice : monthlyPrice) per \(yearly ? "år" : "måned") og belastes Apple-ID-en din. Si opp når som helst i App Store minst 24 timer før perioden er ute.")
-                .font(.system(size: 11))
-                .foregroundColor(Color("TextSecondary"))
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Har du en kampanjekode?") { proManager.redeemPromoCode() }
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(Color("Accent"))
-            HStack(spacing: 14) {
-                Button("Gjenopprett kjøp") {
-                    Task {
-                        let ok = await proManager.restore()
-                        if ok { dismiss() } else { showNoRestore = true }
-                    }
-                }
-                Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
-                Link("Vilkår", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                Text("·").foregroundColor(Color("TextSecondary").opacity(0.5))
-                Link("Personvern", destination: URL(string: "https://sederappen.no/personvern.html")!)
-            }
-            .font(.system(size: 11))
-            .foregroundColor(Color("TextSecondary"))
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
-        .background(Color("Background"))
     }
 }

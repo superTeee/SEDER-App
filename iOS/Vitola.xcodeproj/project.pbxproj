@@ -25,18 +25,12 @@
 		6078259E0765EE39E8346EB9 /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */; };
 		68216E0F02E404929F7CB849 /* OnboardingProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D880C526BA2ED3FDC6288E7 /* OnboardingProfileView.swift */; };
 		6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4268E9B5C5FFA4E0654230A9 /* CigarService.swift */; };
-		AC10ADMINSERVICEBUILD00000001 /* AdminService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC10ADMINSERVICEFILE000000001 /* AdminService.swift */; };
-		AC20SUPADECODER0BUILD00000001 /* SupabaseDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */; };
-		AC30ADMINVIEW000BUILD00000001 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30ADMINVIEW000FILE000000001 /* AdminView.swift */; };
-		AC30FILLSHEET000BUILD0000001 /* CigarFillSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */; };
-		AA80ATTEMPTBUILD00000001 /* Attempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80ATTEMPTFILE000000001 /* Attempt.swift */; };
-		AA60EXPLORESTOREBUILD001 /* ExploreStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */; };
 		6D9D07638987891501525A6A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */; };
+		77E2429D302BAE3800B1E6B0 /* SupportPromptManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E2429C302BAE3800B1E6B0 /* SupportPromptManager.swift */; };
+		77E2429E302BAE3800B1E6B0 /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E2429B302BAE3800B1E6B0 /* StoreManager.swift */; };
+		77E242A0302BB85700B1E6B0 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E2429F302BB85700B1E6B0 /* SupportView.swift */; };
 		7B07D356712571FB07ABF6B4 /* WishlistService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA86F7FB975163C27756E0F /* WishlistService.swift */; };
 		8018111CFDBB54A5702F371A /* CigarDetailViewDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */; };
-		AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */; };
-		AA90REPORTSHEETBUILD0001 /* CigarReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */; };
-		AB10ADDCIGARBUILD0000001 /* AddCigarSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */; };
 		810CF96C823CB1A8465D1947 /* VennerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DEE5F5271AB26DBC443EBCB /* VennerView.swift */; };
 		8358D865D5549A48FDDB7158 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909149207DD9D2747DEE4727 /* ContentView.swift */; };
 		86E35448369E1D3E22BBACD7 /* MacroCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB5951CED5DF53CB34646C9 /* MacroCameraView.swift */; };
@@ -46,24 +40,33 @@
 		8AE38DBCA929008DE08E7ED6 /* CigarAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99853265E9A2AA623B941165 /* CigarAppApp.swift */; };
 		8F4595BBECB6909AE790319C /* BarcodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0DA58E65C4D170ADE5C31BF /* BarcodeService.swift */; };
 		9A625AD588C3C7C5D098D1AC /* CigarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F387CE9EB627A94583C36905 /* CigarIcon.swift */; };
+		9ED2C29D15EA6574A7968BD3 /* FeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B396E61F32632853E4FAB9B /* FeedService.swift */; };
+		A884C17B44F5394512640A17 /* PrivacyConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E9A02AA6944A0B73171140 /* PrivacyConsentView.swift */; };
+		AA00000000000000000000B1 /* HumidorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B2 /* HumidorModels.swift */; };
+		AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000C2 /* CreateHumidorSheet.swift */; };
+		AA00000000000000000000D1 /* HumidorDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000D2 /* HumidorDetailView.swift */; };
 		AA10AA10PHOTO0001BUILD01 /* PhotoButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */; };
+		AA20KINGFISHERBUILD01000 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = AA20KINGFISHERPROD010000 /* Kingfisher */; };
+		AA20MANTISBUILD010000000 /* Mantis in Frameworks */ = {isa = PBXBuildFile; productRef = AA20MANTISPROD0100000000 /* Mantis */; };
+		AA20REVCATBUILD010000000 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = AA20REVCATPROD0100000000 /* RevenueCat */; };
 		AA30IMAGESUPPORTBUILD001 /* ImageSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */; };
 		AA40QUICKACTIONSBUILD001 /* CigarQuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */; };
 		AA50LAUNCHSPLASHBUILD001 /* LaunchSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA50LAUNCHSPLASHFILE0001 /* LaunchSplashView.swift */; };
-		9ED2C29D15EA6574A7968BD3 /* FeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B396E61F32632853E4FAB9B /* FeedService.swift */; };
-		A884C17B44F5394512640A17 /* PrivacyConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E9A02AA6944A0B73171140 /* PrivacyConsentView.swift */; };
+		AA60EXPLORESTOREBUILD001 /* ExploreStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */; };
+		AA70CIGARSHEETSBUILD0001 /* CigarSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */; };
+		AA80ATTEMPTBUILD00000001 /* Attempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80ATTEMPTFILE000000001 /* Attempt.swift */; };
+		AA90REPORTSHEETBUILD0001 /* CigarReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */; };
+		AB10ADDCIGARBUILD0000001 /* AddCigarSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */; };
+		AC10ADMINSERVICEBUILD00000001 /* AdminService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC10ADMINSERVICEFILE000000001 /* AdminService.swift */; };
+		AC20SUPADECODER0BUILD00000001 /* SupabaseDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */; };
+		AC30ADMINVIEW000BUILD00000001 /* Admin/AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30ADMINVIEW000FILE000000001 /* Admin/AdminView.swift */; };
+		AC30FILLSHEET000BUILD0000001 /* Admin/CigarFillSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC30FILLSHEET000FILE00000001 /* Admin/CigarFillSheet.swift */; };
 		B1CE78687C4775D7CDD62BF1 /* ProfileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C89DE87D59170A59BF29DB /* ProfileService.swift */; };
 		B442AB57CEBE67790A549B2E /* Cigar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45A0F899263EDC54E49B8EA /* Cigar.swift */; };
 		B7A807ECE12F39CDF4092B48 /* PINSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6574A222EED0313457BD6D /* PINSetupView.swift */; };
 		BB8D3B415547CA4BA1FC0A8A /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1DAC674D82E358AFA54243 /* JournalView.swift */; };
 		BFD42B6F8B8CDE8589251245 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 333232B66274F8E65263E2F7 /* Supabase */; };
-		AA20KINGFISHERBUILD01000 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = AA20KINGFISHERPROD010000 /* Kingfisher */; };
-		AA20MANTISBUILD010000000 /* Mantis in Frameworks */ = {isa = PBXBuildFile; productRef = AA20MANTISPROD0100000000 /* Mantis */; };
-		AA20REVCATBUILD010000000 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = AA20REVCATPROD0100000000 /* RevenueCat */; };
 		C4682822A7ADAD4349EA50DD /* HumidorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831F95D91D3339D747199BE9 /* HumidorView.swift */; };
-		AA00000000000000000000B1 /* HumidorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B2 /* HumidorModels.swift */; };
-		AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000C2 /* CreateHumidorSheet.swift */; };
-		AA00000000000000000000D1 /* HumidorDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000D2 /* HumidorDetailView.swift */; };
 		C997089A85720FBA25E6575D /* FriendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */; };
 		C9E028D726AD7AE3394F9E31 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED781FACD8808BE8540BBD9C /* ProfileView.swift */; };
 		D6850B81775379622B3BE2E5 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */; };
@@ -82,17 +85,8 @@
 		2BD105BAB7D21C10D1289623 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		3C53B2899A7AF6A4452B61B1 /* PINUnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINUnlockView.swift; sourceTree = "<group>"; };
 		3D4E7F34C774CD0CBC7F3DFD /* CigarDetailViewDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarDetailViewDesign.swift; sourceTree = "<group>"; };
-		AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarSheets.swift; sourceTree = "<group>"; };
-		AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarReportSheet.swift; sourceTree = "<group>"; };
-		AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCigarSheet.swift; sourceTree = "<group>"; };
 		3D4F123712707C6A8B25490C /* PINService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINService.swift; sourceTree = "<group>"; };
 		4268E9B5C5FFA4E0654230A9 /* CigarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarService.swift; sourceTree = "<group>"; };
-		AC10ADMINSERVICEFILE000000001 /* AdminService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdminService.swift"; sourceTree = "<group>"; };
-		AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SupabaseDecoder.swift"; sourceTree = "<group>"; };
-		AC30ADMINVIEW000FILE000000001 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Admin/AdminView.swift"; sourceTree = "<group>"; };
-		AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Admin/CigarFillSheet.swift"; sourceTree = "<group>"; };
-		AA80ATTEMPTFILE000000001 /* Attempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attempt.swift; sourceTree = "<group>"; };
-		AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreStore.swift; sourceTree = "<group>"; };
 		4ADD7BE75C71D3917352206D /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		4B1DAC674D82E358AFA54243 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
 		4BC30EB9DDFBD1FDA18F5504 /* FriendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendModels.swift; sourceTree = "<group>"; };
@@ -103,11 +97,11 @@
 		6E2C0D5EE3592E86DC5B7844 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		71AF6BC818D389CFF8CC1858 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		775627F695B6D8E09B10E267 /* ScanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanService.swift; sourceTree = "<group>"; };
+		77E2429B302BAE3800B1E6B0 /* StoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
+		77E2429C302BAE3800B1E6B0 /* SupportPromptManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportPromptManager.swift; sourceTree = "<group>"; };
+		77E2429F302BB85700B1E6B0 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
 		81DE84548D3017B15393EC79 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
 		831F95D91D3339D747199BE9 /* HumidorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorView.swift; sourceTree = "<group>"; };
-		AA00000000000000000000B2 /* HumidorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorModels.swift; sourceTree = "<group>"; };
-		AA00000000000000000000C2 /* CreateHumidorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateHumidorSheet.swift; sourceTree = "<group>"; };
-		AA00000000000000000000D2 /* HumidorDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorDetailView.swift; sourceTree = "<group>"; };
 		8B47B6CE2C77268EDACBCADA /* UnknownBarcodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnknownBarcodeView.swift; sourceTree = "<group>"; };
 		8C95ABF9625A3D548A7FA88F /* FeedbackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackSheet.swift; sourceTree = "<group>"; };
 		8D880C526BA2ED3FDC6288E7 /* OnboardingProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProfileView.swift; sourceTree = "<group>"; };
@@ -117,6 +111,22 @@
 		99853265E9A2AA623B941165 /* CigarAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarAppApp.swift; sourceTree = "<group>"; };
 		A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
 		A73F63ADC1F4B94C040887F2 /* Vitola.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vitola.entitlements; sourceTree = "<group>"; };
+		AA00000000000000000000B2 /* HumidorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorModels.swift; sourceTree = "<group>"; };
+		AA00000000000000000000C2 /* CreateHumidorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateHumidorSheet.swift; sourceTree = "<group>"; };
+		AA00000000000000000000D2 /* HumidorDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorDetailView.swift; sourceTree = "<group>"; };
+		AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoButtons.swift; sourceTree = "<group>"; };
+		AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSupport.swift; sourceTree = "<group>"; };
+		AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarQuickActions.swift; sourceTree = "<group>"; };
+		AA50LAUNCHSPLASHFILE0001 /* LaunchSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchSplashView.swift; sourceTree = "<group>"; };
+		AA60EXPLORESTOREFILE0001 /* ExploreStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreStore.swift; sourceTree = "<group>"; };
+		AA70CIGARSHEETSFILE00001 /* CigarSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarSheets.swift; sourceTree = "<group>"; };
+		AA80ATTEMPTFILE000000001 /* Attempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attempt.swift; sourceTree = "<group>"; };
+		AA90REPORTSHEETFILE00001 /* CigarReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarReportSheet.swift; sourceTree = "<group>"; };
+		AB10ADDCIGARFILE00000001 /* AddCigarSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCigarSheet.swift; sourceTree = "<group>"; };
+		AC10ADMINSERVICEFILE000000001 /* AdminService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminService.swift; sourceTree = "<group>"; };
+		AC20SUPADECODER0FILE000000001 /* SupabaseDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseDecoder.swift; sourceTree = "<group>"; };
+		AC30ADMINVIEW000FILE000000001 /* Admin/AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Admin/AdminView.swift; sourceTree = "<group>"; };
+		AC30FILLSHEET000FILE00000001 /* Admin/CigarFillSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Admin/CigarFillSheet.swift; sourceTree = "<group>"; };
 		B0DA58E65C4D170ADE5C31BF /* BarcodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeService.swift; sourceTree = "<group>"; };
 		B4C89DE87D59170A59BF29DB /* ProfileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileService.swift; sourceTree = "<group>"; };
 		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -127,10 +137,6 @@
 		E7283863F25CF40E1B3513A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		ED781FACD8808BE8540BBD9C /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		F387CE9EB627A94583C36905 /* CigarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarIcon.swift; sourceTree = "<group>"; };
-		AA10AA10PHOTO0002FILE001 /* PhotoButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoButtons.swift; sourceTree = "<group>"; };
-		AA30IMAGESUPPORTFILE0001 /* ImageSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSupport.swift; sourceTree = "<group>"; };
-		AA40QUICKACTIONSFILE0001 /* CigarQuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarQuickActions.swift; sourceTree = "<group>"; };
-		AA50LAUNCHSPLASHFILE0001 /* LaunchSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchSplashView.swift; sourceTree = "<group>"; };
 		F456A8E60766707FEA12C6AB /* FriendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendService.swift; sourceTree = "<group>"; };
 		F45A0F899263EDC54E49B8EA /* Cigar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cigar.swift; sourceTree = "<group>"; };
 		F55CB2AFF385D09800FE8D52 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
@@ -188,6 +194,8 @@
 		40EEFE934072986E234CE62A /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				77E2429B302BAE3800B1E6B0 /* StoreManager.swift */,
+				77E2429C302BAE3800B1E6B0 /* SupportPromptManager.swift */,
 				038EFE70A641325AE1E1126B /* AuthService.swift */,
 				B0DA58E65C4D170ADE5C31BF /* BarcodeService.swift */,
 				4268E9B5C5FFA4E0654230A9 /* CigarService.swift */,
@@ -248,6 +256,7 @@
 		713CF467FBC823796F4B9FC7 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				77E2429F302BB85700B1E6B0 /* SupportView.swift */,
 				ED781FACD8808BE8540BBD9C /* ProfileView.swift */,
 				DFDAFD471ECD732AD0BC15DA /* UserProfileView.swift */,
 			);
@@ -335,8 +344,8 @@
 				713CF467FBC823796F4B9FC7 /* Profile */,
 				5A25E33360319C9EE1C977F4 /* Scan */,
 				85F5803D59AEA8A5B19AF42F /* Shared */,
-				AC30ADMINVIEW000FILE000000001 /* AdminView.swift */,
-				AC30FILLSHEET000FILE00000001 /* CigarFillSheet.swift */,
+				AC30ADMINVIEW000FILE000000001 /* Admin/AdminView.swift */,
+				AC30FILLSHEET000FILE00000001 /* Admin/CigarFillSheet.swift */,
 				909149207DD9D2747DEE4727 /* ContentView.swift */,
 			);
 			path = Views;
@@ -414,7 +423,7 @@
 				C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				AA20KINGFISHERREMOTE0100 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				AA20MANTISREMOTE01000000 /* XCRemoteSwiftPackageReference "Mantis" */,
-				AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */,
+				AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 74FB52B4C2F775FFE89822E3 /* Products */;
@@ -443,6 +452,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				77E242A0302BB85700B1E6B0 /* SupportView.swift in Sources */,
 				6078259E0765EE39E8346EB9 /* AgeGateView.swift in Sources */,
 				049C64C7CAE75A3F42357820 /* AuthService.swift in Sources */,
 				6D9D07638987891501525A6A /* AuthView.swift in Sources */,
@@ -462,8 +472,8 @@
 				AA50LAUNCHSPLASHBUILD001 /* LaunchSplashView.swift in Sources */,
 				6921A2873D0D9CF4D6F0D08D /* CigarService.swift in Sources */,
 				AA80ATTEMPTBUILD00000001 /* Attempt.swift in Sources */,
-				AC30ADMINVIEW000BUILD00000001 /* AdminView.swift in Sources */,
-				AC30FILLSHEET000BUILD0000001 /* CigarFillSheet.swift in Sources */,
+				AC30ADMINVIEW000BUILD00000001 /* Admin/AdminView.swift in Sources */,
+				AC30FILLSHEET000BUILD0000001 /* Admin/CigarFillSheet.swift in Sources */,
 				AC20SUPADECODER0BUILD00000001 /* SupabaseDecoder.swift in Sources */,
 				AC10ADMINSERVICEBUILD00000001 /* AdminService.swift in Sources */,
 				AA60EXPLORESTOREBUILD001 /* ExploreStore.swift in Sources */,
@@ -479,6 +489,8 @@
 				AA00000000000000000000B1 /* HumidorModels.swift in Sources */,
 				AA00000000000000000000C1 /* CreateHumidorSheet.swift in Sources */,
 				AA00000000000000000000D1 /* HumidorDetailView.swift in Sources */,
+				77E2429D302BAE3800B1E6B0 /* SupportPromptManager.swift in Sources */,
+				77E2429E302BAE3800B1E6B0 /* StoreManager.swift in Sources */,
 				BB8D3B415547CA4BA1FC0A8A /* JournalView.swift in Sources */,
 				86E35448369E1D3E22BBACD7 /* MacroCameraView.swift in Sources */,
 				177A7186F1630F0803865214 /* MailComposeView.swift in Sources */,
@@ -703,14 +715,6 @@
 				minimumVersion = 7.0.0;
 			};
 		};
-		C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/supabase/supabase-swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.0;
-			};
-		};
 		AA20KINGFISHERREMOTE0100 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher";
@@ -727,12 +731,20 @@
 				minimumVersion = 2.0.0;
 			};
 		};
-		AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+		AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 5.0.0;
+			};
+		};
+		C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -742,11 +754,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C45AC139EB4E300F4853B7BF /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
-		};
-		D1EEF6BE6627FFD5DE0C2C4B /* GoogleSignIn */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5EA233AC7921F3D1D7D77858 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignIn;
 		};
 		AA20KINGFISHERPROD010000 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -760,8 +767,13 @@
 		};
 		AA20REVCATPROD0100000000 /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			package = AA20REVCATREMOTE01000000 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
 			productName = RevenueCat;
+		};
+		D1EEF6BE6627FFD5DE0C2C4B /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5EA233AC7921F3D1D7D77858 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

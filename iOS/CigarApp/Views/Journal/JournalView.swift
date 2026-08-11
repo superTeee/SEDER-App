@@ -75,7 +75,10 @@ struct JournalView: View {
                 StatistikkView().environmentObject(authService)
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView().environmentObject(proManager)
+                SupportView(mode: .unlock,
+                            unlockTitle: "Lås opp SEDER Pro",
+                            unlockSubtitle: "Statistikk, eksport og ubegrensede humidorer – én betaling, for alltid.",
+                            showQuota: false)
             }
             .sheet(item: $exportFile) { file in
                 IOSShareSheet(items: [file.url])

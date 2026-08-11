@@ -320,7 +320,7 @@ struct AddToHumidorSheet: View {
                 }
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView().environmentObject(proManager)
+                SupportView(mode: .unlock, usedHumidors: humidors.count, freeHumidorLimit: 2)
             }
             .task {
                 await loadHumidors()
