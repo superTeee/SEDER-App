@@ -408,7 +408,7 @@ struct UserProfileView: View {
                 favoriteCard(icon: "leaf",         label: "Dekkblad",   value: favorites?.favoriteWrapper)
                 favoriteCard(icon: "leaf.fill",    label: "Omblad",     value: favorites?.favoriteBinder)
                 favoriteCard(icon: "square.stack", label: "Innlegg",    value: favorites?.favoriteFiller)
-                favoriteCard(icon: "flame",        label: "Styrke",     value: strengthLabel(favorites?.favoriteStrength))
+                favoriteCard(icon: "gauge.medium",        label: "Styrke",     value: strengthLabel(favorites?.favoriteStrength))
                 favoriteCard(icon: "nose",         label: "Smaksnoter", value: favorites?.favoriteFlavor)
             }
         }
@@ -643,7 +643,7 @@ struct UserProfileView: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color("Accent").opacity(0.12))
                 .frame(width: 68, height: 68)
-            Image(systemName: "smoke.fill")
+            Image(systemName: "photo")
                 .font(.system(size: 26))
                 .foregroundColor(Color("Accent"))
         }
@@ -846,7 +846,7 @@ enum MemberLevel: Int, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .sigarentusiast: return "flame"
+        case .sigarentusiast: return "sparkles"
         case .kjenner:        return "star"
         case .samler:         return "square.stack.3d.up"
         case .kurator:        return "rosette"

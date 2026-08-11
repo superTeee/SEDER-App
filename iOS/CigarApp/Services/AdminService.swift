@@ -277,7 +277,7 @@ enum GapField: String, CaseIterable, Identifiable, Hashable {
         case .dimensions:  return "ruler"
         case .origin:      return "mappin.and.ellipse"
         case .wrapper:     return "leaf"
-        case .strength:    return "flame"
+        case .strength:    return "gauge.medium"
         case .flavor:      return "nose"
         case .description: return "text.alignleft"
         }

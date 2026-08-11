@@ -318,7 +318,7 @@ private struct BarcodeResultSheet: View {
 
     private func cigarInfoCard(cigar: Cigar) -> some View {
         HStack(alignment: .center, spacing: 14) {
-            Image(systemName: "flame.fill")
+            Image(systemName: "tag.fill")
                 .font(.system(size: 28))
                 .foregroundColor(Color("Accent").opacity(0.7))
                 .frame(width: 44)

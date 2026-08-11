@@ -660,7 +660,7 @@ struct ExploreView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color("Accent").opacity(0.12))
                     .frame(width: 52, height: 52)
-                Image(systemName: "flame.fill")
+                Image(systemName: "star.fill")
                     .font(.system(size: 22))
                     .foregroundColor(Color("Accent"))
             }

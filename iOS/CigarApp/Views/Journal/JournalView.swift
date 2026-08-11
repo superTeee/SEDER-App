@@ -295,7 +295,7 @@ struct JournalRow: View {
                     }
                     // Kilde: fra humidoren vs. røkt direkte (uten å eie sigaren)
                     HStack(spacing: 4) {
-                        Image(systemName: log.humidorEntryId != nil ? "archivebox.fill" : "flame.fill")
+                        Image(systemName: log.humidorEntryId != nil ? "archivebox.fill" : "square.and.pencil")
                             .font(.system(size: 9))
                         Text(log.humidorEntryId != nil ? "Fra humidor" : "Røkt direkte")
                             .font(.caption2.weight(.medium))
