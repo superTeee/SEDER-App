@@ -260,7 +260,7 @@
         <button class="samp-tab" data-f="all" onclick="setSampFilter('all', this)">Alle sigarer <span class="tab-count" id="all-count"></span></button>
       </div>
       <div class="bf-bar">
-        <input id="samp-search" placeholder="Søk i hele katalogen…" oninput="onSampSearch(this.value)" style="width:auto;flex:1;min-width:160px" />
+        <input id="samp-search" placeholder="Søk i hele katalogen…" oninput="onSampSearch(this.value)" style="width:auto;flex:3;min-width:340px" />
         <button class="samp-tab active" id="grp-series" onclick="toggleGroupSeries(this)" title="Grupper treff per serie/linje — ett bilde trener hele serien (båndet er likt på tvers av størrelsene)">Grupper per serie</button>
         <button class="samp-tab" id="weak-sort" onclick="toggleWeakSort(this)" title="Sorter sigarene fra svakest til sterkest gjenkjenning">Svakest først</button>
         <span id="samp-total" class="muted" style="font-size:13px"></span>
@@ -830,7 +830,7 @@ async function loadCoverage(){
   set("cov-pct", pct + " %");
   set("cov-done", covered.toLocaleString("nb-NO"));
   set("cov-left", (total - covered).toLocaleString("nb-NO"));
-  const fill = $("cov-fill"); if (fill) fill.style.width = pct + "%";
+  const fill = $("cov-fill"); if (fill){ fill.style.width = pct + "%"; fill.style.background = "var(--accent-dark)"; fill.style.minWidth = covered ? "10px" : "0"; }
   // Chip-tellere i sigarer (ikke bilder): Dekket / Ikke dekket
   set("emb-count", covered ? String(covered) : "");
   set("noemb-count", (total - covered) ? String(total - covered) : "");
@@ -957,9 +957,7 @@ function renderBilder(){
   }
   if (nameQ) list = list.filter(s => (s.cigar_navn || s.brand || "").toLowerCase().includes(nameQ));
 
-  $("samp-total").textContent = (filter === "emb" && COV_TOTAL)
-    ? `${COV_COVERED.toLocaleString("no")} sigarer dekket — sorter «Svakest først» for å styrke de svakeste`
-    : "";
+  $("samp-total").textContent = "";
 
   if (!list.length){
     box.innerHTML = '<div class="card muted">' +
