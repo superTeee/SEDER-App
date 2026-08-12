@@ -27,6 +27,8 @@
     font-weight:600;font-size:19px}
   header h1{font-family:Fraunces,serif;font-weight:600;font-size:19px;margin:0;letter-spacing:.2px}
   header .sub{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .sensor-title{font-family:Fraunces,serif;font-weight:600;font-size:24px;color:var(--ink);
+    margin:2px 4px 16px;letter-spacing:.2px;overflow-wrap:anywhere}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
     box-shadow:var(--shadow);padding:22px;margin-bottom:16px}
   /* Hero RH */
@@ -77,11 +79,13 @@
     <div class="logo">S</div>
     <div>
       <h1>Humidor · live</h1>
-      <div class="sub" id="sensorLabel">kobler til sensor…</div>
+      <div class="sub">Live sensordata</div>
     </div>
   </header>
 
   <div class="err" id="err"></div>
+
+  <h2 class="sensor-title" id="sensorTitle">kobler til sensor…</h2>
 
   <!-- Hero: luftfuktighet -->
   <div class="card hero">
@@ -133,7 +137,7 @@ const FN = SUPA + "/functions/v1/humidor-sensor";
 const q = new URLSearchParams(location.search);
 const SENSOR = q.get("sensor") || q.get("sensor_ID") || "01KZV214NR14SX271BEXWG1J1T";
 
-document.getElementById("sensorLabel").textContent = "Sensor " + SENSOR.slice(0,4) + "…" + SENSOR.slice(-4);
+document.getElementById("sensorTitle").textContent = "Sensor " + SENSOR;
 
 async function call(mode, hours){
   const u = new URL(FN);
@@ -175,9 +179,9 @@ async function refreshLatest(){
     if(!m) throw new Error("ingen måling");
     document.getElementById("err").style.display = "none";
     const rh = m.humidity_percent;
-    document.getElementById("rh").innerHTML = rh.toFixed(2) + '<small>%</small>';
-    document.getElementById("temp").innerHTML = m.temperature_c.toFixed(2) + '<small>°C</small>';
-    document.getElementById("pres").innerHTML = m.pressure_hpa.toFixed(2) + '<small>hPa</small>';
+    document.getElementById("rh").innerHTML = rh.toFixed(3) + '<small>%</small>';
+    document.getElementById("temp").innerHTML = m.temperature_c.toFixed(3) + '<small>°C</small>';
+    document.getElementById("pres").innerHTML = m.pressure_hpa.toFixed(3) + '<small>hPa</small>';
     document.getElementById("marker").style.left = rhPos(rh) + "%";
     const [cls, txt] = statusFor(rh);
     const pill = document.getElementById("pill");
