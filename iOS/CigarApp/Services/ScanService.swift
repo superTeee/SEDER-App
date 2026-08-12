@@ -154,15 +154,21 @@ class ScanService: ObservableObject {
                     try await scanWithAI(image: image)
                 }
             } else if bandTextOutcome == .none {
-                // Ingen LESBAR tekst i det hele tatt (typisk rent grafisk bånd,
-                // f.eks. Cavalier med bare hest-logo). Da har GPT ingenting reelt
-                // å lese, men "må" likevel gjette et merke — og bommer ofte stygt
-                // (dette ga f.eks. La Aurora 1903 Cameroon på et Cavalier-bånd).
-                // Vi stoler derfor IKKE på blind GPT-gjetting her. Den visuelle
-                // båndmatchen (lærte bånd) kjøres av trailing-handleren under, siden
-                // scanResults er tom; finnes ingen match, viser vi «ingen tekst»-
-                // skjermen med søk/manuell innlegging i stedet for et feil "treff".
-                print("⚠️ Ingen lesbar tekst på båndet — hopper over blind GPT, bruker visuell match")
+                // Apple Vision fant ingen lesbar tekst. Det kan bety to ting:
+                // (a) båndet ER rent grafisk (f.eks. Cavalier-hestelogo uten navn),
+                // eller (b) teksten FINNES, men bildet er for mørkt/vinklet for
+                // Vision (f.eks. et dramatisk pressefoto av et Padrón-bånd — der
+                // et menneske lett leser «Padrón», men Vision gir opp).
+                //
+                // GPT-4o Vision er langt mer robust på (b), og edge-funksjonen er
+                // nå instruert til å RETURNERE TOMT når den ikke kan lese noe
+                // identifiserende — den blind-gjetter ikke lenger (det var derfor
+                // vi tidligere hoppet over den her, som ga La Aurora på bilde 1).
+                // Så vi lar GPT prøve å LESE båndet. Klarer den det → riktig treff.
+                // Klarer den det ikke → tom liste → scanResults forblir tom, og
+                // den visuelle båndmatchen under (lærte bånd) tar over som før.
+                print("⚠️ Ingen lesbar OCR-tekst — lar GPT prøve å lese båndet (returnerer tomt om den ikke kan)")
+                try await scanWithAI(image: image)
             } else {
                 // Det VAR tekst på båndet, men bare fraser vi ikke søker på (geografi
                 // e.l.). Da kan GPT fortsatt lese bildet fornuftig — behold AI-fallback.

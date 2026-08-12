@@ -209,12 +209,59 @@ struct ResultsView: View {
 }
 
 // MARK: - Result Row (scan-treff)
+// Skann-treff er som regel varianter av SAMME serie (samme bånd), så merke +
+// serie gjentar seg nedover lista. Da er det vitolaen/nummeret (No. 45 vs No. 85)
+// og wrapperen som skiller dem — derfor leder vi med DET, ikke merket. (Det
+// vanlige søket bruker fortsatt CigarRow, som leder med merket.)
 struct ResultRow: View {
 
     let result: ScanResult
+    private var cigar: Cigar { result.cigar }
+
+    // Ankeret: det som faktisk skiller treffene. Vitola/nummer først; faller
+    // tilbake til form/serie/merke om vitola mangler.
+    private var title: String {
+        cigar.vitola ?? cigar.commonFormat ?? cigar.series ?? cigar.brand
+    }
+    // Delt kontekst under: «Merke · Serie».
+    private var context: String {
+        [cigar.brand, cigar.series].compactMap { $0 }.joined(separator: " · ")
+    }
 
     var body: some View {
-        CigarRow(cigar: result.cigar)
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(Color("TextPrimary"))
+                if !context.isEmpty {
+                    Text(context)
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
+                }
+                if let dim = cigar.dimensionsLabel {
+                    Text(dim)
+                        .font(.caption)
+                        .foregroundColor(Color("TextSecondary"))
+                        .monospacedDigit()
+                }
+            }
+            Spacer(minLength: 8)
+            if let wrapper = cigar.wrapperLeaf,
+               !wrapper.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text(wrapper)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color("TextSecondary").opacity(0.12)))
+                    .foregroundColor(Color("TextSecondary"))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 }
 

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SEDER · Humidor live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3EEE3; --card:#FBF9F4; --ink:#2C2620; --muted:#8A8175;
+    --line:#E7DFCF; --accent:#A9812F; --accent-soft:#EFE6D0;
+    --green:#3E8E5A; --green-soft:#E7F2EA;
+    --amber:#B7791F; --amber-soft:#F6EEDD;
+    --red:#B5462F; --red-soft:#F7E7E1;
+    --shadow:0 1px 2px rgba(44,38,32,.04),0 8px 24px rgba(44,38,32,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:24px 16px 48px}
+  .wrap{max-width:560px;margin:0 auto}
+  header{display:flex;align-items:center;gap:12px;margin:8px 4px 22px}
+  .logo{width:34px;height:34px;border-radius:9px;background:var(--ink);color:var(--bg);
+    display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;
+    font-weight:600;font-size:19px}
+  header h1{font-family:Fraunces,serif;font-weight:600;font-size:19px;margin:0;letter-spacing:.2px}
+  header .sub{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:var(--shadow);padding:22px;margin-bottom:16px}
+  /* Hero RH */
+  .hero{text-align:center;padding:26px 22px 24px}
+  .hero .label{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .hero .val{font-family:Fraunces,serif;font-weight:600;font-size:74px;line-height:1;margin:8px 0 2px}
+  .hero .val small{font-size:30px;color:var(--muted);font-weight:500}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;
+    padding:6px 14px;border-radius:999px;margin-top:6px}
+  .pill .dot{width:8px;height:8px;border-radius:50%}
+  .pill.ok{background:var(--green-soft);color:var(--green)} .pill.ok .dot{background:var(--green)}
+  .pill.warn{background:var(--amber-soft);color:var(--amber)} .pill.warn .dot{background:var(--amber)}
+  .pill.bad{background:var(--red-soft);color:var(--red)} .pill.bad .dot{background:var(--red)}
+  /* Zone bar */
+  .zones{margin:22px 4px 4px;position:relative}
+  .zonebar{height:12px;border-radius:999px;overflow:hidden;display:flex}
+  .zonebar i{display:block;height:100%}
+  .z-dry{background:#E4C9A6}.z-ok{background:#8FBF9E}.z-wet{background:#D9A08C}
+  .marker{position:absolute;top:-5px;width:3px;height:22px;border-radius:2px;background:var(--ink);
+    transform:translateX(-50%);transition:left .6s cubic-bezier(.22,1,.36,1)}
+  .zlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:9px}
+  /* tiles */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px}
+  .tile .t-label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .tile .t-val{font-family:Fraunces,serif;font-weight:600;font-size:34px;margin-top:6px;line-height:1}
+  .tile .t-val small{font-size:16px;color:var(--muted);font-weight:500}
+  /* chart */
+  .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+  .chart-head h2{font-family:Fraunces,serif;font-weight:600;font-size:16px;margin:0}
+  .chart-head span{font-size:12px;color:var(--muted)}
+  svg.chart{width:100%;height:150px;display:block;margin-top:6px}
+  /* footer */
+  .foot{display:flex;align-items:center;justify-content:space-between;
+    font-size:12px;color:var(--muted);margin:6px 6px 0}
+  .foot .live{display:inline-flex;align-items:center;gap:6px}
+  .foot .live b{width:7px;height:7px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 0 0 rgba(62,142,90,.5);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(62,142,90,.45)}70%{box-shadow:0 0 0 7px rgba(62,142,90,0)}100%{box-shadow:0 0 0 0 rgba(62,142,90,0)}}
+  .err{background:var(--red-soft);color:var(--red);border:1px solid #E7C3B6;border-radius:14px;
+    padding:14px 16px;font-size:13.5px;margin-bottom:16px;display:none}
+  .skeleton{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">S</div>
+    <div>
+      <h1>Humidor · live</h1>
+      <div class="sub" id="sensorLabel">kobler til sensor…</div>
+    </div>
+  </header>
+
+  <div class="err" id="err"></div>
+
+  <!-- Hero: luftfuktighet -->
+  <div class="card hero">
+    <div class="label">Luftfuktighet</div>
+    <div class="val" id="rh"><span class="skeleton">–</span><small>%</small></div>
+    <div class="pill" id="pill" style="visibility:hidden"><span class="dot"></span><span id="pillText">–</span></div>
+    <div class="zones">
+      <div class="zonebar">
+        <i class="z-dry" style="width:20%"></i>
+        <i class="z-ok"  style="width:35%"></i>
+        <i class="z-wet" style="width:45%"></i>
+      </div>
+      <div class="marker" id="marker" style="left:50%"></div>
+      <div class="zlabels"><span>50%</span><span>Optimalt 65–72%</span><span>90%</span></div>
+    </div>
+  </div>
+
+  <!-- temp + trykk -->
+  <div class="tiles">
+    <div class="tile">
+      <div class="t-label">Temperatur</div>
+      <div class="t-val" id="temp">–<small>°C</small></div>
+    </div>
+    <div class="tile">
+      <div class="t-label">Lufttrykk</div>
+      <div class="t-val" id="pres">–<small>hPa</small></div>
+    </div>
+  </div>
+
+  <!-- trend -->
+  <div class="card">
+    <div class="chart-head">
+      <h2>Fuktighet siste 24 timer</h2>
+      <span id="chartRange">–</span>
+    </div>
+    <svg class="chart" id="chart" viewBox="0 0 520 150" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="foot">
+    <span class="live"><b></b> Live · oppdateres automatisk</span>
+    <span id="updated">–</span>
+  </div>
+</div>
+
+<script>
+const SUPA = "https://wpcricosogcmzebkplwp.supabase.co";
+const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY3JpY29zb2djbXplYmtwbHdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjE0OTQsImV4cCI6MjA5NzEzNzQ5NH0.wdTDMuY1EzZFkoFdLP-HKx-Jx_cfT1OlPjMpet9gL44";
+const FN = SUPA + "/functions/v1/humidor-sensor";
+const q = new URLSearchParams(location.search);
+const SENSOR = q.get("sensor") || q.get("sensor_ID") || "01KZV214NR14SX271BEXWG1J1T";
+
+document.getElementById("sensorLabel").textContent = "Sensor " + SENSOR.slice(0,4) + "…" + SENSOR.slice(-4);
+
+async function call(mode, hours){
+  const u = new URL(FN);
+  u.searchParams.set("sensor_ID", SENSOR);
+  u.searchParams.set("mode", mode);
+  if (hours) u.searchParams.set("hours", hours);
+  const r = await fetch(u, { headers: { "Authorization": "Bearer " + ANON, "apikey": ANON } });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+// RH → posisjon på 50–90%-skalaen
+function rhPos(rh){ return Math.max(0, Math.min(100, (rh - 50) / 40 * 100)); }
+
+function statusFor(rh){
+  if (rh >= 65 && rh <= 72) return ["ok","Optimalt"];
+  if (rh >= 62 && rh < 75)  return ["ok","Bra"];
+  if (rh >= 58 && rh < 62)  return ["warn","Litt tørt"];
+  if (rh >= 75 && rh < 78)  return ["warn","Litt fuktig"];
+  if (rh < 58)              return ["bad","For tørt"];
+  return ["bad","For fuktig"];
+}
+
+function fmtTime(ms){
+  const d = new Date(ms);
+  return d.toLocaleTimeString("no-NO", {hour:"2-digit", minute:"2-digit"});
+}
+
+function showErr(msg){
+  const e = document.getElementById("err");
+  e.textContent = "Kunne ikke hente data: " + msg;
+  e.style.display = "block";
+}
+
+async function refreshLatest(){
+  try{
+    const d = await call("latest");
+    const m = d.measurement;
+    if(!m) throw new Error("ingen måling");
+    document.getElementById("err").style.display = "none";
+    const rh = m.humidity_percent;
+    document.getElementById("rh").innerHTML = rh.toFixed(2) + '<small>%</small>';
+    document.getElementById("temp").innerHTML = m.temperature_c.toFixed(2) + '<small>°C</small>';
+    document.getElementById("pres").innerHTML = m.pressure_hpa.toFixed(2) + '<small>hPa</small>';
+    document.getElementById("marker").style.left = rhPos(rh) + "%";
+    const [cls, txt] = statusFor(rh);
+    const pill = document.getElementById("pill");
+    pill.className = "pill " + cls; pill.style.visibility = "visible";
+    document.getElementById("pillText").textContent = txt;
+    document.getElementById("updated").textContent = "Sist: " + fmtTime(m.timestamp_ms);
+  }catch(e){ showErr(e.message); }
+}
+
+async function refreshHistory(){
+  try{
+    const d = await call("history", 24);
+    const rows = (d.measurements || []).slice().sort((a,b)=>a.timestamp_ms-b.timestamp_ms);
+    if(rows.length < 2) return;
+    drawChart(rows);
+    document.getElementById("chartRange").textContent =
+      fmtTime(rows[0].timestamp_ms) + " – " + fmtTime(rows[rows.length-1].timestamp_ms) + " · " + rows.length + " målinger";
+  }catch(e){ /* stille — hero viser allerede evt. feil */ }
+}
+
+function drawChart(rows){
+  const W=520,H=150,padT=14,padB=18,padX=6;
+  const vals = rows.map(r=>r.humidity_percent);
+  let lo=Math.min(...vals), hi=Math.max(...vals);
+  const span=Math.max(hi-lo,2); lo-=span*0.25; hi+=span*0.25;
+  const x=i=> padX + i*(W-2*padX)/(rows.length-1);
+  const y=v=> padT + (1-(v-lo)/(hi-lo))*(H-padT-padB);
+  const line = rows.map((r,i)=> (i?"L":"M")+x(i).toFixed(1)+" "+y(r.humidity_percent).toFixed(1)).join(" ");
+  const area = line + " L"+x(rows.length-1).toFixed(1)+" "+(H-padB)+" L"+x(0).toFixed(1)+" "+(H-padB)+" Z";
+  // optimal-bånd (65–72%) hvis innenfor synlig område
+  let band="";
+  if(72>lo && 65<hi){
+    const yb=Math.max(padT,y(72)), yt=Math.min(H-padB,y(65));
+    band=`<rect x="0" y="${yb.toFixed(1)}" width="${W}" height="${(yt-yb).toFixed(1)}" fill="#8FBF9E" opacity="0.16"/>`;
+  }
+  const last=rows[rows.length-1];
+  const svg=`
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A9812F" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#A9812F" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${band}
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${line}" fill="none" stroke="#A9812F" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(rows.length-1).toFixed(1)}" cy="${y(last.humidity_percent).toFixed(1)}" r="4" fill="#A9812F" stroke="#FBF9F4" stroke-width="2"/>`;
+  document.getElementById("chart").innerHTML = svg;
+}
+
+async function tick(){ await Promise.all([refreshLatest(), refreshHistory()]); }
+tick();
+setInterval(tick, 60000); // hvert minutt
+</script>
+</body>
+</html>

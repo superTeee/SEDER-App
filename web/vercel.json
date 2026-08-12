@@ -3,7 +3,8 @@
     { "source": "/j/:slug", "destination": "/api/j/:slug" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/support", "destination": "/support.html" },
-    { "source": "/personvern", "destination": "/personvern.html" }
+    { "source": "/personvern", "destination": "/personvern.html" },
+    { "source": "/humidor", "destination": "/humidor.html" }
   ],
   "headers": [
     {
