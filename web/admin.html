@@ -157,6 +157,7 @@
   .size-vitola{font-size:14px;font-weight:700;color:var(--ink)}
   .size-dim{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
   .size-wrap{font-size:11px;padding:2px 8px;border-radius:20px;background:#F0ECE2;color:var(--accent);white-space:nowrap}
+  .size-row-head .row-google{margin-left:auto}
   .samp{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
   .samp .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;background:#F0ECE2;display:block}
   .samp .thumb.miss{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;padding:8px}
@@ -1084,12 +1085,16 @@ function sizeRowHtml(m){
   const wrap = det.wrapper_leaf ? `<span class="size-wrap">${esc(det.wrapper_leaf)}</span>` : "";
   const nImg = imgs.length;
   const cards = imgs.map(s => sampCard(s)).join("");
+  // Google bilde-søk for akkurat denne vitolaen (hele navnet, inkl. størrelse).
+  const rowNavn = m.cigar_navn || m.vitola || "";
+  const gq = encodeURIComponent(rowNavn + " cigar band");
   return `<div class="size-row">
     <div class="size-row-head">
       <span class="size-vitola">${esc(m.vitola || m.cigar_navn || "(uten navn)")}</span>
       ${dim ? `<span class="size-dim">${dim}</span>` : ""}
       ${wrap}
       <span class="brand-count${imgs.some(isNew) ? " new" : ""}">${nImg} ${nImg === 1 ? "bilde" : "bilder"}</span>
+      <a class="hdr-btn row-google" title="Søk bilder på Google for denne størrelsen" href="https://www.google.com/search?tbm=isch&q=${gq}" target="_blank" rel="noopener">🔍 Google</a>
     </div>
     ${cards ? `<div class="samp-grid">${cards}</div>` : ""}
     ${dropzoneHtml(m.id)}
