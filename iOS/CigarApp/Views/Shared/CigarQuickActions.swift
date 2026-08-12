@@ -24,7 +24,7 @@ struct CigarQuickActions: ViewModifier {
         var parts = [cigar.brand]
         if let s = cigar.series, !s.isEmpty { parts.append(s) }
         if let v = cigar.vitola, !v.isEmpty { parts.append(v) }
-        return parts.joined(separator: " ") + " — sjekk ut denne sigaren i SEDER"
+        return parts.joined(separator: " ")
     }
 
     func body(content: Content) -> some View {

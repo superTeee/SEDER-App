@@ -21,7 +21,6 @@ struct UserProfileView: View {
     @State private var lastLog: TastingLog? = nil
     @State private var isLoading = true
     @State private var showSettings = false
-    @State private var showBadgeSheet = false
     @State private var showBioEditor = false
 
     // Profilbilde
@@ -95,9 +94,6 @@ struct UserProfileView: View {
         }) {
             ProfileSettingsView()
         }
-        .sheet(isPresented: $showBadgeSheet) {
-            if let p = profile { MerkerView(profile: p) }
-        }
         .sheet(isPresented: $showBioEditor) {
             BioEditorSheet(currentBio: profile?.bio ?? "") { newBio in
                 guard let uid = authService.userId else { return }
@@ -153,7 +149,6 @@ struct UserProfileView: View {
     private func heroSection(_ p: FriendProfile) -> some View {
         let displayAvatarURL = localAvatarURL ?? p.avatarUrl
         let displayCoverURL  = localCoverURL  ?? p.coverUrl
-        let badge = MemberLevel.current(p.memberStats)
 
         return VStack(spacing: 0) {
 
@@ -229,20 +224,8 @@ struct UserProfileView: View {
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(hasRealName(p) ? Color("TextPrimary") : Color("TextSecondary"))
 
-                    // Merker (pill-form) med ikon. Nivå-merke + evt. Tidlig tester.
+                    // Tidlig tester-merke (kun app-medlemskap, ikke aktivitet).
                     HStack(spacing: 6) {
-                        Button { showBadgeSheet = true } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: badge.icon)
-                                Text(badge.title)
-                            }
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(Color("Accent"))
-                            .padding(.horizontal, 10).padding(.vertical, 4)
-                            .background(Capsule().fill(badgeFill))
-                        }
-                        .buttonStyle(.plain)
-
                         if p.isFoundingMember == true {
                             HStack(spacing: 5) {
                                 Image(systemName: "sparkles")
