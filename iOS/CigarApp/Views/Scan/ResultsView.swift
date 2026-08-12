@@ -23,6 +23,11 @@ struct ResultsView: View {
     @State private var searchError: String?
     @State private var hasSearched = false
 
+    // Andre varianter (samme merke + serie) — sikkerhetsnett når skann viser
+    // feil wrapper/vitola. Lastes for det øverste treffet, uavhengig av data.
+    @State private var siblings: [Cigar] = []
+    @State private var showSiblings = false
+
     // Fant hverken scan eller søk sigaren, legger brukeren den inn selv.
     @State private var showAddCigar = false
     // Én felles item-drevet destinasjon for både treff, søketreff og ny sigar.
@@ -52,6 +57,31 @@ struct ResultsView: View {
                          : "Vi fant ingen match på båndet — men sigaren kan likevel finnes i basen. Søk under (vi foreslår treff mens du skriver), eller legg den inn selv.")
                         .font(.subheadline)
                         .foregroundColor(Color("TextSecondary"))
+                }
+            }
+
+            // Andre varianter i samme serie — sikkerhetsnett. Et bånd er likt på
+            // tvers av størrelser og ofte på tvers av wrappere (f.eks. Padrón
+            // Family Reserve Natural vs Maduro), så skann kjenner igjen SERIEN,
+            // ikke nøyaktig vitola/wrapper. Her kan brukeren bytte til riktig
+            // variant med ett trykk — uten å skrive et søk.
+            if !otherVariants.isEmpty {
+                Section {
+                    DisclosureGroup(isExpanded: $showSiblings) {
+                        ForEach(otherVariants) { sib in
+                            Button {
+                                recordResolution(for: sib)
+                                selectedCigar = sib
+                            } label: {
+                                SiblingRow(cigar: sib)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } label: {
+                        Label("Ikke riktig? Andre varianter i samme serie",
+                              systemImage: "rectangle.stack")
+                            .font(.subheadline)
+                    }
                 }
             }
 
@@ -127,6 +157,19 @@ struct ResultsView: View {
             // journal) dersom du ikke har et bilde fra før — aldri på katalogen.
             CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext, scanImage: bandImage)
         }
+        // Last søsken-varianter for det øverste treffet (kjøres på nytt hvis
+        // toppen endrer seg, f.eks. etter wrapper-avklaring).
+        .task(id: results.first?.cigar.id) {
+            guard let top = results.first?.cigar else { siblings = []; return }
+            siblings = await cigarService.siblingVitolas(for: top)
+        }
+    }
+
+    /// Varianter i samme serie som IKKE allerede står i skann-treffene over —
+    /// altså de reelle alternativene brukeren kan bytte til.
+    private var otherVariants: [Cigar] {
+        let shown = Set(results.map { $0.cigar.id })
+        return siblings.filter { !shown.contains($0.id) }
     }
 
     // Løser skanningen: laster opp bånd-bildet + registrerer koblingen bånd→sigar.
@@ -172,6 +215,48 @@ struct ResultRow: View {
 
     var body: some View {
         CigarRow(cigar: result.cigar)
+    }
+}
+
+// MARK: - Sibling Row (annen variant i samme serie)
+// Fremhever det som skiller variantene: vitola + wrapper. Merke/serie er likt
+// for alle radene her, så vi gjentar dem ikke — da ser du «No. 44 · Maduro» vs
+// «No. 44 · Natural» med én gang.
+struct SiblingRow: View {
+
+    let cigar: Cigar
+
+    private var title: String {
+        cigar.vitola ?? cigar.series ?? cigar.brand
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                if let dim = cigar.dimensionsLabel {
+                    Text(dim)
+                        .font(.caption)
+                        .foregroundColor(Color("TextSecondary"))
+                }
+            }
+            Spacer(minLength: 8)
+            if let wrapper = cigar.wrapperLeaf,
+               !wrapper.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text(wrapper)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color("TextSecondary").opacity(0.12)))
+                    .foregroundColor(Color("TextSecondary"))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 }
 
