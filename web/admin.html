@@ -225,7 +225,7 @@
         <div class="stat"><div class="v" id="hr-total">–</div><div class="l">Skann</div></div>
         <div class="stat"><div class="v" id="hr-miss">–</div><div class="l">Bom</div></div>
       </div>
-      <div class="note">Mest skannede sigarer vi ikke traff — legg inn de øverste først, verifisert mot produsent.</div>
+      <div class="note">Sigarer brukere la inn selv fordi vi manglet dem — verifiser mot produsent og publiser. Øverst = flest brukere.</div>
       <div id="gaps-scan"></div>
     </section>
 
@@ -273,6 +273,10 @@
       <div class="bf-bar" id="bf-bar" style="display:none">
         <button class="primary" id="bf-run">Kjør backfill (lag fingeravtrykk)</button>
         <span id="bf-msg" class="muted" style="font-size:13px">Lager fingeravtrykk for bildene under.</span>
+      </div>
+      <div class="bf-bar" id="rb-bar">
+        <button class="primary" id="rb-run">Oppdater fingeravtrykk (bånd-fokus)</button>
+        <span id="rb-msg" class="muted" style="font-size:13px">Re-lager alle fingeravtrykk beskåret til båndet. Kjøres én gang – tar noen minutter.</span>
       </div>
       <div class="samp-tabs" id="samp-tabs">
         <button class="samp-tab active" data-f="emb" onclick="setSampFilter('emb', this)">Dekket <span class="tab-count" id="emb-count"></span></button>
@@ -384,7 +388,7 @@ async function loadDekning() {
   }
   const { data: gaps } = await db.rpc("admin_scan_gaps", { p_days: 30, p_limit: 50 });
   const box = $("gaps-scan");
-  if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen bom registrert ennå.</div>'; return; }
+  if (!gaps || !gaps.length) { box.innerHTML = '<div class="card muted">Ingen brukerinnlagte sigarer ennå.</div>'; return; }
   box.innerHTML = gaps.map(g => `
     <div class="card"><div class="row">
       <div style="min-width:0"><div>${esc(trunc(g.sample_ocr || g.norm_text))}</div>
@@ -1437,6 +1441,35 @@ async function runBackfill(){
   }
 }
 $("bf-run").onclick = runBackfill;
+
+// Re-lager ALLE fingeravtrykk bånd-fokusert (beskåret til båndet). Kaller
+// embed-band {reband:true} i puljer til alt er ferdig. Idempotent — trygt å
+// kjøre igjen hvis den stopper underveis.
+async function runReband(){
+  const btn = $("rb-run"); const msg = $("rb-msg");
+  btn.disabled = true;
+  let total = 0, remaining = null;
+  try {
+    for (let round = 0; round < 120; round++){
+      msg.textContent = `Oppdaterer båndbilder… (${total} ferdig så langt)`;
+      const { data, error } = await db.functions.invoke("embed-band", { body: { reband: true, limit: 15 } });
+      if (error) throw error;
+      total += (data.done || 0);
+      remaining = data.remaining ?? 0;
+      msg.textContent = `Oppdaterer båndbilder… ${remaining} igjen (${total} ferdig)`;
+      if (remaining === 0) break;
+      if ((data.done || 0) === 0) break; // ingen fremgang (bare varige feil) → stopp
+    }
+    msg.textContent = (remaining === 0)
+      ? `Ferdig! Alle fingeravtrykk er nå bånd-fokusert (${total} oppdatert). Prøv å skanne på nytt.`
+      : `Stoppet med ${remaining} igjen — klikk knappen igjen for å fortsette.`;
+  } catch(e){
+    msg.textContent = "Feil: " + (e?.message || e) + " — klikk igjen for å fortsette.";
+  } finally {
+    btn.disabled = false;
+  }
+}
+$("rb-run").onclick = runReband;
 
 boot();
 </script>
