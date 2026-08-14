@@ -16,6 +16,10 @@ struct CigarDetailViewDesign: View {
     // på BRUKERENS EGNE plasseringer: humidor-oppføringen og journaloppføringen —
     // ikke på det delte katalogkortet.
     let scanImage: UIImage?
+    // Åpne «Legg i humidor»-arket automatisk når vi kom hit via
+    // primærknappen på skann-treffet (kun når sigaren ikke alt er i humidor).
+    let autoOpenHumidor: Bool
+    @State private var didAutoOpenHumidor = false
 
     @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) private var dismiss
@@ -67,10 +71,11 @@ struct CigarDetailViewDesign: View {
         colorScheme == .dark ? Color("Accent") : Color(hex: "#8F7B51")
     }
 
-    init(cigar: Cigar, humidorEntry: HumidorEntry? = nil, onScanNext: (() -> Void)? = nil, scanImage: UIImage? = nil) {
+    init(cigar: Cigar, humidorEntry: HumidorEntry? = nil, onScanNext: (() -> Void)? = nil, scanImage: UIImage? = nil, autoOpenHumidor: Bool = false) {
         self.cigar = cigar
         self.onScanNext = onScanNext
         self.scanImage = scanImage
+        self.autoOpenHumidor = autoOpenHumidor
         _entry = State(initialValue: humidorEntry)
         _quantity = State(initialValue: humidorEntry?.quantity ?? 1)
     }
@@ -275,6 +280,11 @@ struct CigarDetailViewDesign: View {
                 .environmentObject(authService)
         }
         .onAppear {
+            // Kom vi hit via «Legg i humidor» på skann-treffet, åpne arket med en gang.
+            if autoOpenHumidor && !didAutoOpenHumidor && entry == nil {
+                didAutoOpenHumidor = true
+                showAddToHumidorSheet = true
+            }
             guard let userId = authService.userId else { return }
             Task {
                 // Ønskeliste-status kun relevant fra Utforsk (ikke når sigaren er i humidor)

@@ -24,6 +24,8 @@ struct HumidorDetailView: View {
 
     // RH (relativ luftfuktighet)
     @State private var readings: [HumidorRHReading] = []
+    @State private var sensorReading: SensorReading? = nil   // live, hvis humidoren har sensor
+    @State private var sensorHistory: [HumidorRHReading] = []   // sensorens 24t-historikk (til grafen)
     @State private var showRHSheet = false
     @State private var showRHHistory = false
 
@@ -109,7 +111,7 @@ struct HumidorDetailView: View {
             RHReadingSheet(humidorId: humidor.id, onSaved: { Task { await load() } })
         }
         .navigationDestination(isPresented: $showRHHistory) {
-            RHHistoryView(humidor: humidor, readings: readings)
+            RHHistoryView(humidor: humidor, readings: historyReadings)
         }
         .onChange(of: coverItem) { _, item in
             guard let item else { return }
@@ -131,6 +133,17 @@ struct HumidorDetailView: View {
             .ignoresSafeArea()
         }
         .task { await load() }
+        // Stille auto-oppdatering: mens detaljvisningen er åpen og humidoren har
+        // en sensor, hentes ny verdi hvert 60. sekund (matcher sensorens takt).
+        // .task avbrytes automatisk når visningen lukkes, så loopen stopper selv.
+        .task {
+            guard humidor.sensorId?.isEmpty == false else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000_000)   // 60 s
+                if Task.isCancelled { break }
+                await refreshSensor()
+            }
+        }
         .refreshable { await load() }
     }
 
@@ -216,19 +229,21 @@ struct HumidorDetailView: View {
     @ViewBuilder
     private var rhSection: some View {
         let latest = readings.first
+        let hasSensor = (humidor.sensorId?.isEmpty == false)
         VStack(alignment: .leading, spacing: 10) {
-            Text("LUFTFUKTIGHET (RH)")
+            Text(hasSensor ? "SENSORDATA" : "LUFTFUKTIGHET (RH)")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color("TextSecondary")).tracking(0.6)
                 .padding(.horizontal, 20)
 
             VStack(alignment: .leading, spacing: 14) {
-                let status = humidor.rhStatus(for: latest?.rh)
+                let currentRh = sensorReading?.rh ?? latest?.rh
+                let status = humidor.rhStatus(for: currentRh)
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 8) {
-                            if let latest {
-                                Text("\(rhString(latest.rh)) % RH")
+                            if let currentRh {
+                                Text("\(rhString(currentRh)) % RH")
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(Color("TextPrimary"))
                             } else {
@@ -236,11 +251,13 @@ struct HumidorDetailView: View {
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(Color("TextSecondary"))
                             }
-                            // Farget boble ved siden av verdien: grønn = ok, gul = litt
-                            // utenfor, rød = utenfor, grå = ingen måling.
-                            Circle()
-                                .fill(rhDotColor(status))
-                                .frame(width: 11, height: 11)
+                            // Boble ved siden av verdien: pulserer når en sensor er
+                            // koblet til (live), står stille ved manuell avlesning.
+                            if sensorReading != nil {
+                                PulsingDot(color: rhDotColor(status))
+                            } else {
+                                Circle().fill(rhDotColor(status)).frame(width: 11, height: 11)
+                            }
                         }
                         if let target = humidor.rhTargetLabel {
                             Text("Mål: \(target)").font(.caption).foregroundColor(Color("TextSecondary"))
@@ -250,7 +267,16 @@ struct HumidorDetailView: View {
                     statusBadge(status)
                 }
 
-                if let latest {
+                if let live = sensorReading {
+                    HStack(spacing: 6) {
+                        Text("Live sensor")
+                            .foregroundColor(Color(red: 0.25, green: 0.64, blue: 0.30))
+                            .fontWeight(.semibold)
+                        if let t = live.temperature { Text("· \(rhString(t)) °C") }
+                        if let p = live.pressure { Text("· \(Int(p.rounded())) hPa") }
+                    }
+                    .font(.caption).foregroundColor(Color("TextSecondary"))
+                } else if let latest {
                     HStack(spacing: 6) {
                         Text("Sist målt \(relativeDate(latest.measuredAt))")
                         if latest.isStale {
@@ -260,17 +286,20 @@ struct HumidorDetailView: View {
                     .font(.caption).foregroundColor(Color("TextSecondary"))
                 }
 
-                // To knapper i bunnen: registrer ny måling + historikk (graf).
+                // Knapper i bunnen. Med sensor er RH-en live, så «Registrer»
+                // (manuell måling) er overflødig — da vises kun «Historikk».
                 HStack(spacing: 10) {
-                    Button { showRHSheet = true } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus.circle").font(.system(size: 15))
-                            Text("Registrer").font(.system(size: 15, weight: .semibold))
+                    if !hasSensor {
+                        Button { showRHSheet = true } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus.circle").font(.system(size: 15))
+                                Text("Registrer").font(.system(size: 15, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity).padding(.vertical, 12)
+                            .background(Color("Accent").opacity(0.12))
+                            .foregroundColor(Color("Accent"))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
-                        .frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(Color("Accent").opacity(0.12))
-                        .foregroundColor(Color("Accent"))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                     Button { showRHHistory = true } label: {
                         HStack(spacing: 6) {
@@ -282,7 +311,7 @@ struct HumidorDetailView: View {
                         .foregroundColor(readings.isEmpty ? Color("TextSecondary") : Color("TextPrimary"))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
-                    .disabled(readings.isEmpty)
+                    .disabled(historyReadings.isEmpty)
                 }
             }
             .padding(16)
@@ -402,7 +431,39 @@ struct HumidorDetailView: View {
         let all = (try? await humidorService.fetchHumidor(userId: userId)) ?? []
         entries = all.filter { $0.humidorId == humidor.id }
         readings = (try? await humidorService.fetchRHReadings(humidorId: humidor.id)) ?? []
+        await refreshSensor()
         isLoading = false
+    }
+
+    /// Henter KUN sensorverdien (live + historikk) — ingen spinner, ingen
+    /// reload av sigarer. Brukes både ved første last og av auto-oppdateringen,
+    /// så tallet og grafen kan friskes opp uten at resten av siden blinker.
+    private func refreshSensor() async {
+        guard let sid = humidor.sensorId, !sid.isEmpty else { return }
+        let svc = HumidorSensorService()
+        // ÉN kilde til sannhet: hent historikken og bruk NYESTE punkt som
+        // live-verdi. Da matcher kortet alltid grafen (de kan ikke sprike), og
+        // vi slipper et eget «latest»-kall — siste verdi ER jo siste i historikken.
+        let hist = await svc.history(sensorId: sid, hours: 24)   // eldst → nyest
+        guard !hist.isEmpty else { return }
+        // Overskriv bare når vi faktisk fikk svar, så en enkelt nettverksbom
+        // ikke får verdien til å hoppe til «—».
+        if let newest = hist.last { sensorReading = newest }
+        let n = hist.count
+        let mapped: [HumidorRHReading] = hist.enumerated().map { i, s in
+            // Mangler tidsstempel? Fordel jevnt bakover, så grafen fortsatt tegnes.
+            let t = s.time ?? Calendar.current.date(byAdding: .hour, value: -(n - 1 - i), to: Date()) ?? Date()
+            return HumidorRHReading(id: UUID(), humidorId: humidor.id, rh: s.rh,
+                                    temperature: s.temperature, note: nil, measuredAt: t)
+        }
+        sensorHistory = Array(mapped.reversed())   // nyeste først, som de manuelle
+    }
+
+    /// Data til grafen: sensorens historikk hvis en sensor er koblet til, ellers
+    /// brukerens manuelle avlesninger.
+    private var historyReadings: [HumidorRHReading] {
+        if let sid = humidor.sensorId, !sid.isEmpty, !sensorHistory.isEmpty { return sensorHistory }
+        return readings
     }
 
     private func uploadCover(_ image: UIImage) async {

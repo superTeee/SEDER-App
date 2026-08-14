@@ -68,6 +68,8 @@
   .foot .live b{width:7px;height:7px;border-radius:50%;background:var(--green);
     box-shadow:0 0 0 0 rgba(62,142,90,.5);animation:pulse 2s infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(62,142,90,.45)}70%{box-shadow:0 0 0 7px rgba(62,142,90,0)}100%{box-shadow:0 0 0 0 rgba(62,142,90,0)}}
+  @keyframes flash{0%{color:var(--accent);transform:scale(1.03)}100%{color:var(--ink);transform:scale(1)}}
+  .flash{animation:flash 1.1s ease}
   .err{background:var(--red-soft);color:var(--red);border:1px solid #E7C3B6;border-radius:14px;
     padding:14px 16px;font-size:13.5px;margin-bottom:16px;display:none}
   .skeleton{color:var(--muted)}
@@ -125,7 +127,7 @@
   </div>
 
   <div class="foot">
-    <span class="live"><b></b> Live · oppdateres automatisk</span>
+    <span class="live"><b></b> Live · sensor måler hvert 5. min</span>
     <span id="updated">–</span>
   </div>
 </div>
@@ -138,6 +140,21 @@ const q = new URLSearchParams(location.search);
 const SENSOR = q.get("sensor") || q.get("sensor_ID") || "01KZV214NR14SX271BEXWG1J1T";
 
 document.getElementById("sensorTitle").textContent = "Sensor " + SENSOR;
+
+let lastTs = null, lastRh = null;
+
+function fmtAge(ms){
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 60) return "for " + s + " s siden";
+  const m = Math.floor(s / 60), r = s % 60;
+  return "for " + m + " min " + r + " s siden";
+}
+// Tikker hvert sekund → alltid synlig bevegelse selv mellom 5-min-målingene,
+// og viser hvor fersk siste måling er.
+setInterval(() => {
+  if (lastTs) document.getElementById("updated").textContent =
+    "Måling " + fmtTime(lastTs) + " · " + fmtAge(lastTs);
+}, 1000);
 
 async function call(mode, hours){
   const u = new URL(FN);
@@ -179,7 +196,14 @@ async function refreshLatest(){
     if(!m) throw new Error("ingen måling");
     document.getElementById("err").style.display = "none";
     const rh = m.humidity_percent;
-    document.getElementById("rh").innerHTML = rh.toFixed(3) + '<small>%</small>';
+    const rhEl = document.getElementById("rh");
+    rhEl.innerHTML = rh.toFixed(3) + '<small>%</small>';
+    // Blink verdien når det faktisk kommer en NY måling (ny 5-min-verdi)
+    if (lastRh !== null && rh !== lastRh) {
+      rhEl.classList.remove("flash"); void rhEl.offsetWidth; rhEl.classList.add("flash");
+    }
+    lastRh = rh;
+    lastTs = m.timestamp_ms;
     document.getElementById("temp").innerHTML = m.temperature_c.toFixed(3) + '<small>°C</small>';
     document.getElementById("pres").innerHTML = m.pressure_hpa.toFixed(3) + '<small>hPa</small>';
     document.getElementById("marker").style.left = rhPos(rh) + "%";
@@ -187,7 +211,7 @@ async function refreshLatest(){
     const pill = document.getElementById("pill");
     pill.className = "pill " + cls; pill.style.visibility = "visible";
     document.getElementById("pillText").textContent = txt;
-    document.getElementById("updated").textContent = "Sist: " + fmtTime(m.timestamp_ms);
+    // #updated oppdateres av sekund-tikkeren (viser «for X s siden»)
   }catch(e){ showErr(e.message); }
 }
 
@@ -232,7 +256,7 @@ function drawChart(rows){
 
 async function tick(){ await Promise.all([refreshLatest(), refreshHistory()]); }
 tick();
-setInterval(tick, 60000); // hvert minutt
+setInterval(tick, 30000); // hvert 30. sek — fanger ny 5-min-måling raskt
 </script>
 </body>
 </html>

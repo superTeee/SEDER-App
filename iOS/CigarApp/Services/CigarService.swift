@@ -1185,6 +1185,16 @@ class TastingService: ObservableObject {
         "https://wpcricosogcmzebkplwp.supabase.co/functions/v1/log-card?id=\(logId.uuidString)"
     }
 
+    /// Logger det brukeren SELV skrev inn når de la til en sigar vi manglet
+    /// (etter en skanne-bom). Dette — ikke den rå OCR-teksten — er det som fyller
+    /// dekning-lista i admin. Fyr og glem; skal aldri velte flyten.
+    func logManualMiss(name: String) async {
+        let navn = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !navn.isEmpty else { return }
+        struct P: Encodable { let p_text: String }
+        _ = try? await supabase.rpc("log_manual_miss", params: P(p_text: navn)).execute()
+    }
+
     // Slett en røykelogg
     func deleteLog(id: UUID) async throws {
         try await supabase

@@ -132,7 +132,16 @@ class ScanService: ObservableObject {
                     // vi har flere treff uten eksakt variant, spør GPT om å avgjøre.
                     // Ved lav OCR-konfidens: vis heller DB-treffene som en valgliste —
                     // brukeren kan da velge riktig størrelse uten et ekstra AI-kall.
-                    if autoSelectedCigar == nil && cigars.count > 1 && !isLowConfidence {
+                    //
+                    // MÅLRETTET INNSTRAMMING: et ENKELT DB-treff som båndteksten IKKE
+                    // korroborerer (merket/serien står ikke i teksten) er en «skråsikker
+                    // gjetning» — nettopp Lampert-formen. Da lar vi panelet avgjøre i
+                    // stedet for å stole blindt på det. Korroborerte treff (der båndet
+                    // faktisk navngir sigaren) beholdes på hurtig-sporet akkurat som før.
+                    let topUncorroborated = cigars.count == 1 &&
+                        !ocrTextCorroborates(cigars.first, ocrText: text)
+                    if autoSelectedCigar == nil && !isLowConfidence &&
+                        (cigars.count > 1 || topUncorroborated) {
                         let dbFallbackResults = scanResults
                         do {
                             scanResults = []
@@ -278,7 +287,7 @@ class ScanService: ObservableObject {
         isScanning = true
         defer { isScanning = false }
 
-        guard let imageData = image.jpegData(compressionQuality: 0.7) else { return }
+        guard let imageData = downscaled(image).jpegData(compressionQuality: 0.7) else { return }
         let base64Image = imageData.base64EncodedString()
 
         do {
@@ -354,7 +363,7 @@ class ScanService: ObservableObject {
         isScanning = true
         defer { isScanning = false }
 
-        guard let imageData = image.jpegData(compressionQuality: 0.7) else { return }
+        guard let imageData = downscaled(image).jpegData(compressionQuality: 0.7) else { return }
         let base64Image = imageData.base64EncodedString()
 
         do {
@@ -471,19 +480,43 @@ class ScanService: ObservableObject {
                 options: [.caseInsensitive, .diacriticInsensitive]
             )
         }
-        // Fjern rene tall-tokens (ringmål, lengde) — f.eks. "52", "5.0", "6½"
-        // blokkerer AND-søket fordi tall aldri er indexert i search_vector.
+        // Fjern MÅL-tokens (ringmål, lengde, dimensjon) — f.eks. "52", "5.0",
+        // "6½", "6x52" — som blokkerer AND-søket. MEN behold modell-/serietall
+        // som "1.4", "No. 4" eller "1964": de er ofte det mest identifiserende
+        // på båndet. Å strippe "1.4" gjorde at "LIMITED 1.4" ble til bare
+        // "LIMITED", som via engelsk stemming (limit:*) feilaktig matchet hele
+        // "Limitada"-familien og rangerte Lampert Limitada 2025 øverst.
         let tokens = cleaned
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
+            .filter { !isMeasurementToken($0) }
             .filter { token in
-                // Behold token hvis det IKKE er rent numerisk (inkl. desimal og brøkstreker)
-                let stripped = token.trimmingCharacters(in: CharacterSet(charactersIn: "0123456789.,½¼¾×x\"'"))
-                return !stripped.isEmpty
+                // Dropp rene skilletegn-tokens (f.eks. "-", "·", "×").
+                !token.trimmingCharacters(in: CharacterSet.alphanumerics.inverted).isEmpty
             }
         return tokens
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Er tokenet et fysisk MÅL (ringmål/lengde/dimensjon) som skal fjernes fra
+    /// søket? Skiller mål fra modell-/serietall: "52", "5.0", "6½", "6x52" er
+    /// mål; "1.4", "1964", "No. 4" er navn og beholdes.
+    private func isMeasurementToken(_ token: String) -> Bool {
+        let t = token.trimmingCharacters(in: CharacterSet(charactersIn: "\"'”’"))
+        if t.isEmpty { return false }
+        // Brøk-/dimensjonstegn → mål
+        if t.contains("½") || t.contains("¼") || t.contains("¾") || t.contains("×") { return true }
+        // "6x52" / "52x6"
+        if t.range(of: "^[0-9]+[x×][0-9]+$", options: .regularExpression) != nil { return true }
+        // Rent heltall i ringmål-området 30–80
+        if let n = Int(t) { return n >= 30 && n <= 80 }
+        // Desimal med heltallsdel 3–9 = lengde i tommer (5.0, 6.5). "1.4" faller utenfor.
+        if t.range(of: "^[0-9]+[.,][0-9]+$", options: .regularExpression) != nil {
+            let whole = Int(t.prefix { $0.isNumber }) ?? 0
+            return whole >= 3 && whole <= 9
+        }
+        return false
     }
 
     // MARK: - Apple Vision OCR
@@ -554,10 +587,27 @@ class ScanService: ObservableObject {
         }
     }
 
+    // MARK: - Nedskalering før opplasting
+    // iPhone-bilder er 12 MP. Sendt i full oppløsning kan de sprenge minnet i
+    // edge-funksjonens bilde-avkoding (→ 546 «worker limit»). 1600 px er rikelig
+    // for tekst, Lens og fingeravtrykk, men trygt under grensa. scale = 1 gjør at
+    // resultatet er piksler = punkter (ikke @2x/@3x), så vi faktisk kutter data.
+    private func downscaled(_ image: UIImage, maxDimension: CGFloat = 1600) -> UIImage {
+        let longest = max(image.size.width, image.size.height)
+        guard longest > maxDimension else { return image }
+        let factor = maxDimension / longest
+        let newSize = CGSize(width: image.size.width * factor, height: image.size.height * factor)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: newSize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+    }
+
     // MARK: - AI Fallback via Supabase Edge Function
     // Edge Function holder OpenAI API-nøkkelen server-side (tryggere)
     private func scanWithAI(image: UIImage) async throws {
-        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
+        guard let imageData = downscaled(image).jpegData(compressionQuality: 0.7) else {
             throw ScanError.invalidImage
         }
 
@@ -599,7 +649,7 @@ class ScanService: ObservableObject {
     // "visuelt fingeravtrykk" og finner sigarer med lignende bånd blant alt
     // som andre brukere har løst før. Fanger bånd uten (lesbar) tekst.
     private func visualBandMatch(image: UIImage) async {
-        guard let data = image.jpegData(compressionQuality: 0.7) else { return }
+        guard let data = downscaled(image).jpegData(compressionQuality: 0.7) else { return }
         let base64 = data.base64EncodedString()
         do {
             let res: BandMatchResponse = try await supabase.functions
@@ -689,6 +739,31 @@ class ScanService: ObservableObject {
             return text.contains(wrapper.lowercased())
         }
         return wrapperCandidates.count == 1 ? wrapperCandidates.first : nil
+    }
+
+    // MARK: - Korroborering (band-tekst støtter treffet?)
+    // Sjekker om OCR-teksten faktisk NAVNGIR sigaren — dvs. inneholder merket
+    // eller serien (aksent-uavhengig). Speiler serverens korroborering, og
+    // skiller «lest» (trygt) fra «gjettet» (send til panelet). Token-basert på
+    // serien, så en OCR-skrivefeil i ett ord ikke velter hele korroboreringen.
+    private func ocrTextCorroborates(_ cigar: Cigar?, ocrText: String) -> Bool {
+        guard let cigar else { return false }
+        func norm(_ s: String) -> String {
+            s.folding(options: .diacriticInsensitive, locale: .current).lowercased()
+        }
+        let t = norm(ocrText)
+        let brand = norm(cigar.brand)
+        if brand.count >= 3 && t.contains(brand) { return true }
+        if let series = cigar.series {
+            let s = norm(series)
+            if s.count >= 3 && t.contains(s) { return true }
+            let words = s.split(separator: " ").map(String.init).filter { $0.count >= 2 }
+            if !words.isEmpty {
+                let hits = words.filter { t.contains($0) }.count
+                if hits >= Int(ceil(Double(words.count) * 0.6)) { return true }
+            }
+        }
+        return false
     }
 
     // MARK: - Konfidensberegning (enkel heuristikk)

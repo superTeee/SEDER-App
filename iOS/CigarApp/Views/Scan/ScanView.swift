@@ -552,7 +552,42 @@ struct ImagePicker: UIViewControllerRepresentable {
         let picker = UIImagePickerController()
         picker.sourceType = sourceType
         picker.delegate = context.coordinator
+        if sourceType == .camera {
+            picker.cameraOverlayView = ImagePicker.makeHintOverlay()
+        }
         return picker
+    }
+
+    /// Rolig hint-stripe nederst i kamera-søkeren. userInteractionEnabled = false
+    /// slik at kamera-kontrollene under fortsatt tar imot trykk.
+    private static func makeHintOverlay() -> UIView {
+        let container = UIView(frame: UIScreen.main.bounds)
+        container.isUserInteractionEnabled = false
+        container.backgroundColor = .clear
+
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterialDark))
+        blur.layer.cornerRadius = 12
+        blur.clipsToBounds = true
+        blur.translatesAutoresizingMaskIntoConstraints = false
+
+        let label = UILabel()
+        label.text = "Godt lys · fyll rammen · rett forfra"
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.textColor = .white
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        blur.contentView.addSubview(label)
+        container.addSubview(blur)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor, constant: 14),
+            label.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor, constant: -14),
+            label.topAnchor.constraint(equalTo: blur.contentView.topAnchor, constant: 9),
+            label.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor, constant: -9),
+            blur.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            blur.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -170),
+        ])
+        return container
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
@@ -650,22 +685,9 @@ struct NoMatchView: View {
 
                 // Situasjonsbestemt hjelpekort.
                 Group {
-                    if outcome == .unclear {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Prøv igjen med:")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color("TextPrimary"))
-                            cause("sun.max", "Godt lys — unngå gjenskinn og skygger")
-                            cause("arrow.up.left.and.arrow.down.right", "Kom nærmere, så teksten er skarp")
-                            cause("hand.raised", "Hold sigaren stille og båndet flatt mot deg")
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .background(Color("Card"))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .padding(.horizontal, 24)
-                        .padding(.top, 22)
-                    } else {
+                    if outcome == .clear {
+                        // Bildet var greit nok — problemet er at sigaren mangler i
+                        // basen. Da hjelper foto-tips lite; vis vei-videre-hintet.
                         HStack(spacing: 10) {
                             Image(systemName: "plus.circle")
                                 .font(.system(size: 15))
@@ -674,6 +696,25 @@ struct NoMatchView: View {
                             Text("Skriv merket når du legger den inn — vi foreslår treff mens du skriver og kobler deg til riktig sigar i basen.")
                                 .font(.system(size: 13))
                                 .foregroundColor(Color("TextPrimary").opacity(0.85))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .background(Color("Card"))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.horizontal, 24)
+                        .padding(.top, 22)
+                    } else {
+                        // Lesingen glapp (uklart eller ulesbart bånd) — et bedre
+                        // bilde hjelper som regel. Vis de fem foto-tipsene.
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Tips for best mulig resultat")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+                            cause("sun.max", "Godt, jevnt lys — unngå skygge og motlys")
+                            cause("viewfinder", "Fyll rammen med båndet — kom nærmere")
+                            cause("rectangle.portrait", "Rett forfra — unngå refleks og blits")
+                            cause("hand.raised", "Hold stødig til bildet er skarpt")
+                            cause("leaf", "Ta med litt av sigarkroppen — så vi ser dekkbladets farge")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(16)
@@ -735,5 +776,200 @@ struct NoMatchView: View {
                 .font(.system(size: 13))
                 .foregroundColor(Color("TextPrimary").opacity(0.85))
         }
+    }
+}
+
+// MARK: - Beskjær opplastet bilde
+// Kun ved bibliotek-opplasting: et bibliotek-bilde er ofte tatt på avstand, så
+// båndet blir lite. Her strammer brukeren rammen rundt båndet (og kan rotere
+// bildet 90°), og utsnittet sendes videre til skanningen for bedre treff.
+struct BandCropView: View {
+    let image: UIImage
+    var onCancel: () -> Void
+    var onCrop: (UIImage) -> Void
+
+    @State private var working: UIImage?          // bildet med gjeldende rotasjon
+    @State private var crop = CGRect.zero          // ramme i visnings-koordinater
+    @State private var imageFrame = CGRect.zero    // der bildet faktisk vises (aspect-fit)
+    @State private var containerSize = CGSize.zero
+    @State private var dragStart: CGRect? = nil
+
+    private var shown: UIImage { working ?? image }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Avbryt", action: onCancel)
+                Spacer()
+                Text("Beskjær").font(.system(size: 16, weight: .semibold))
+                Spacer()
+                Button("Bruk", action: commit).fontWeight(.semibold)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+
+            GeometryReader { geo in
+                ZStack {
+                    Image(uiImage: shown)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geo.size.width, height: geo.size.height)
+
+                    // Mørkt utenfor utsnittet.
+                    Rectangle().fill(Color.black.opacity(0.55))
+                        .mask(
+                            ZStack {
+                                Rectangle()
+                                Rectangle()
+                                    .frame(width: crop.width, height: crop.height)
+                                    .position(x: crop.midX, y: crop.midY)
+                                    .blendMode(.destinationOut)
+                            }.compositingGroup()
+                        )
+                        .allowsHitTesting(false)
+
+                    // Ramme (dra for å flytte).
+                    Rectangle()
+                        .stroke(Color.white, lineWidth: 2)
+                        .frame(width: crop.width, height: crop.height)
+                        .position(x: crop.midX, y: crop.midY)
+                        .contentShape(Rectangle())
+                        .gesture(moveGesture)
+
+                    // Hjørne-håndtak (dra for å endre størrelse).
+                    Circle()
+                        .fill(Color.white)
+                        .overlay(Circle().stroke(Color("Accent"), lineWidth: 2))
+                        .frame(width: 28, height: 28)
+                        .position(x: crop.maxX, y: crop.maxY)
+                        .gesture(resizeGesture)
+                }
+                .onAppear {
+                    if working == nil { working = image }
+                    setup(container: geo.size)
+                }
+                .onChange(of: geo.size) { newSize in setup(container: newSize) }
+            }
+            .background(Color.black)
+
+            HStack(spacing: 14) {
+                Button { rotate90() } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "rotate.right")
+                        Text("Roter")
+                    }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Capsule().fill(Color.white.opacity(0.14)))
+                }
+                Spacer()
+                Text("Stram rammen rundt båndet")
+                    .font(.system(size: 12.5))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+        }
+        .background(Color.black.ignoresSafeArea())
+    }
+
+    // MARK: - Oppsett + gester
+
+    private func setup(container: CGSize) {
+        containerSize = container
+        let img = shown.size
+        guard img.width > 0, img.height > 0, container.width > 0, container.height > 0 else { return }
+        let scale = min(container.width / img.width, container.height / img.height)
+        let w = img.width * scale, h = img.height * scale
+        let f = CGRect(x: (container.width - w) / 2, y: (container.height - h) / 2, width: w, height: h)
+        imageFrame = f
+        // Startramme: bred og lav rundt midten — bånd-form.
+        let cw = f.width * 0.82
+        let ch = min(f.height * 0.4, f.height)
+        crop = CGRect(x: f.midX - cw / 2, y: f.midY - ch / 2, width: cw, height: ch)
+    }
+
+    private var moveGesture: some Gesture {
+        DragGesture()
+            .onChanged { g in
+                if dragStart == nil { dragStart = crop }
+                guard let s = dragStart else { return }
+                var r = s
+                r.origin.x = s.minX + g.translation.width
+                r.origin.y = s.minY + g.translation.height
+                crop = clamp(r)
+            }
+            .onEnded { _ in dragStart = nil }
+    }
+
+    private var resizeGesture: some Gesture {
+        DragGesture()
+            .onChanged { g in
+                if dragStart == nil { dragStart = crop }
+                guard let s = dragStart else { return }
+                var r = s
+                r.size.width = max(60, s.width + g.translation.width)
+                r.size.height = max(60, s.height + g.translation.height)
+                crop = clamp(r)
+            }
+            .onEnded { _ in dragStart = nil }
+    }
+
+    private func clamp(_ r: CGRect) -> CGRect {
+        let f = imageFrame
+        var out = r
+        out.size.width = min(out.width, f.width)
+        out.size.height = min(out.height, f.height)
+        out.origin.x = min(max(out.minX, f.minX), f.maxX - out.width)
+        out.origin.y = min(max(out.minY, f.minY), f.maxY - out.height)
+        return out
+    }
+
+    // MARK: - Rotasjon + beskjæring
+
+    private func rotate90() {
+        working = rotatedCW(shown)
+        setup(container: containerSize)
+    }
+
+    private func commit() {
+        let base = shown
+        let f = imageFrame
+        guard f.width > 0, f.height > 0 else { onCrop(base); return }
+        let nx = (crop.minX - f.minX) / f.width
+        let ny = (crop.minY - f.minY) / f.height
+        let nw = crop.width / f.width
+        let nh = crop.height / f.height
+        onCrop(cropNormalized(base, nx: nx, ny: ny, nw: nw, nh: nh))
+    }
+
+    private func normalizedUp(_ img: UIImage) -> UIImage {
+        if img.imageOrientation == .up { return img }
+        let r = UIGraphicsImageRenderer(size: img.size)
+        return r.image { _ in img.draw(in: CGRect(origin: .zero, size: img.size)) }
+    }
+
+    private func rotatedCW(_ img: UIImage) -> UIImage {
+        let up = normalizedUp(img)
+        let newSize = CGSize(width: up.size.height, height: up.size.width)
+        let r = UIGraphicsImageRenderer(size: newSize)
+        return r.image { ctx in
+            let c = ctx.cgContext
+            c.translateBy(x: newSize.width, y: 0)
+            c.rotate(by: .pi / 2)
+            up.draw(at: .zero)
+        }
+    }
+
+    private func cropNormalized(_ img: UIImage, nx: CGFloat, ny: CGFloat, nw: CGFloat, nh: CGFloat) -> UIImage {
+        let up = normalizedUp(img)
+        guard let cg = up.cgImage else { return img }
+        let W = CGFloat(cg.width), H = CGFloat(cg.height)
+        let rect = CGRect(x: nx * W, y: ny * H, width: nw * W, height: nh * H).integral
+        let bounded = rect.intersection(CGRect(x: 0, y: 0, width: W, height: H))
+        guard bounded.width > 1, bounded.height > 1, let out = cg.cropping(to: bounded) else { return img }
+        return UIImage(cgImage: out, scale: up.scale, orientation: .up)
     }
 }

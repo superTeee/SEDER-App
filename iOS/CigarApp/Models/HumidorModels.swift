@@ -60,6 +60,10 @@ struct Humidor: Identifiable, Codable {
     var rhMin: Int?
     var rhMax: Int?
 
+    /// Koblet HumSense-sensor (nil = manuell humidor). Er den satt, henter appen
+    /// live RH/temp fra `humidor-sensor`-edge-funksjonen.
+    var sensorId: String?
+
     /// Fylles separat (ikke fra tabellen) — antall sigarer i denne humidoren.
     var cigarCount: Int = 0
 
@@ -75,6 +79,7 @@ struct Humidor: Identifiable, Codable {
         case targetRh  = "target_rh"
         case rhMin     = "rh_min"
         case rhMax     = "rh_max"
+        case sensorId  = "sensor_id"
     }
 
     var typeEnum: HumidorType? { type.flatMap { HumidorType(rawValue: $0) } }
@@ -191,5 +196,123 @@ struct NewHumidor: Encodable {
         case targetRh = "target_rh"
         case rhMin    = "rh_min"
         case rhMax    = "rh_max"
+    }
+}
+
+// MARK: - SensorReading
+// Én avlesning fra HumSense-sensoren: relativ fuktighet (%), evt. temperatur (°C)
+// og tidspunkt. (Ligger her, ikke i egen fil, så den er garantert med i target.)
+struct SensorReading: Equatable {
+    let rh: Double
+    let temperature: Double?
+    let pressure: Double?     // lufttrykk i hPa, hvis sensoren rapporterer det
+    let time: Date?
+}
+
+// MARK: - HumidorSensorService
+// Henter live-data via edge-funksjonen `humidor-sensor` (proxy som holder
+// HumSense-nøkkelen server-side). Går via URLSession med anon-nøkkelen som JWT,
+// så vi kan sende GET med query uansett Supabase-SDK-versjon. Robust tolkning av
+// feltnavn (rh/humidity, temp/temperature, timestamp/time …).
+final class HumidorSensorService {
+
+    private let base = SupabaseConfig.projectURL.appendingPathComponent("functions/v1/humidor-sensor")
+
+    /// Siste måling. Siste verdi ER jo bare det nyeste punktet i historikken, så
+    /// vi bruker ALLTID nyeste historikk-punkt — aldri det separate «latest»-
+    /// endepunktet, som viser seg å henge igjen på en frossen gammel verdi.
+    /// Prøver kort historikk først (billigst), så en full dag hvis sensoren har
+    /// vært stille en stund. Det gamle latest-endepunktet er kun aller siste
+    /// utvei, og bare hvis det ikke finnes historikk i det hele tatt.
+    func latest(sensorId: String) async -> SensorReading? {
+        if let newest = await history(sensorId: sensorId, hours: 1).last { return newest }
+        if let newest = await history(sensorId: sensorId, hours: 24).last { return newest }
+        guard let obj = await fetchJSON(sensorId: sensorId, mode: "latest", hours: nil) else { return nil }
+        return reading(from: unwrapObject(obj))
+    }
+
+    /// Historikk (standard 24 t), sortert eldst → nyest.
+    func history(sensorId: String, hours: Int = 24) async -> [SensorReading] {
+        guard let obj = await fetchJSON(sensorId: sensorId, mode: "history", hours: hours) else { return [] }
+        return unwrapArray(obj)
+            .compactMap { reading(from: $0) }
+            .sorted { ($0.time ?? .distantPast) < ($1.time ?? .distantPast) }
+    }
+
+    // MARK: Nettverk
+    private func fetchJSON(sensorId: String, mode: String, hours: Int?) async -> Any? {
+        var comps = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        var items = [URLQueryItem(name: "sensor_ID", value: sensorId),
+                     URLQueryItem(name: "mode", value: mode)]
+        if let hours { items.append(URLQueryItem(name: "hours", value: String(hours))) }
+        comps?.queryItems = items
+        guard let url = comps?.url else { return nil }
+
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 12
+        req.setValue("Bearer \(SupabaseConfig.anonKey)", forHTTPHeaderField: "Authorization")
+        req.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard (resp as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true else { return nil }
+            return try? JSONSerialization.jsonObject(with: data)
+        } catch {
+            print("⚠️ humidor-sensor feilet: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    // MARK: Robust tolkning
+    private func unwrapObject(_ obj: Any) -> [String: Any] {
+        if let arr = obj as? [[String: Any]], let last = arr.last { return last }
+        guard let dict = obj as? [String: Any] else { return [:] }
+        for key in ["data", "measurement", "latest", "reading", "result", "current"] {
+            if let inner = dict[key] as? [String: Any] { return inner }
+            if let arr = dict[key] as? [[String: Any]], let last = arr.last { return last }
+        }
+        return dict
+    }
+
+    private func unwrapArray(_ obj: Any) -> [[String: Any]] {
+        if let arr = obj as? [[String: Any]] { return arr }
+        if let dict = obj as? [String: Any] {
+            for key in ["data", "measurements", "history", "readings", "results", "items", "values"] {
+                if let arr = dict[key] as? [[String: Any]] { return arr }
+            }
+        }
+        return []
+    }
+
+    private func number(_ dict: [String: Any], _ keys: Set<String>) -> Double? {
+        for (k, v) in dict where keys.contains(k.lowercased()) {
+            if let d = v as? Double { return d }
+            if let i = v as? Int { return Double(i) }
+            if let s = v as? String, let d = Double(s.replacingOccurrences(of: ",", with: ".")) { return d }
+        }
+        return nil
+    }
+
+    private func reading(from dict: [String: Any]) -> SensorReading? {
+        guard let rh = number(dict, ["rh", "humidity", "humidity_percent", "humiditypercent", "relative_humidity", "relativehumidity", "hum", "rel_humidity", "moisture"]) else { return nil }
+        let temp = number(dict, ["temp", "temperature", "temperature_c", "temp_c", "tempc", "celsius", "t"])
+        let pressure = number(dict, ["pressure_hpa", "pressurehpa", "pressure", "hpa", "baro", "barometric_pressure", "baro_pressure"])
+        return SensorReading(rh: rh, temperature: temp, pressure: pressure, time: parseTime(dict))
+    }
+
+    private func parseTime(_ dict: [String: Any]) -> Date? {
+        let keys: Set<String> = ["timestamp_ms", "timestampms", "timestamp", "time", "ts", "created_at", "createdat", "measured_at", "measuredat", "date", "datetime", "recorded_at", "recordedat"]
+        for (k, v) in dict where keys.contains(k.lowercased()) {
+            if let s = v as? String {
+                let f1 = ISO8601DateFormatter()
+                if let d = f1.date(from: s) { return d }
+                let f2 = ISO8601DateFormatter(); f2.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let d = f2.date(from: s) { return d }
+            }
+            if let n = (v as? Double) ?? (v as? Int).map(Double.init) {
+                return Date(timeIntervalSince1970: n > 1_000_000_000_000 ? n / 1000 : n)
+            }
+        }
+        return nil
     }
 }

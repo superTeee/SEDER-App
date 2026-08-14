@@ -72,7 +72,9 @@ struct UserProfileView: View {
                     if !isOwnProfile && !publicHumidors.isEmpty {
                         publicHumidorSection
                     }
-                    Spacer(minLength: 32)
+                    // Luft under innholdet så nederste kort ikke havner bak den
+                    // flytende fanemenyen (safeAreaInset-baren er ~60 pt høy).
+                    Spacer(minLength: 96)
                 }
             }
         }

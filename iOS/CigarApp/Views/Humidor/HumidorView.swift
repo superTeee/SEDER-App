@@ -16,6 +16,7 @@ struct HumidorView: View {
     @State private var entries: [HumidorEntry] = []
     @State private var humidors: [Humidor] = []
     @State private var latestReadings: [UUID: HumidorRHReading] = [:]
+    @State private var sensorReadings: [UUID: SensorReading] = [:]
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showLoginSheet = false
@@ -115,7 +116,7 @@ struct HumidorView: View {
                                             allHumidors: humidors,
                                             onChanged: { Task { await loadHumidor() } }
                                         )) {
-                                            HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor), totalValue: totalValue(for: humidor), latestRH: latestReadings[humidor.id])
+                                            HumidorCard(humidor: humidor, cigarCount: cigarCount(for: humidor), totalValue: totalValue(for: humidor), latestRH: latestReadings[humidor.id], sensorReading: sensorReadings[humidor.id])
                                                 .padding(12)
                                                 .frame(maxWidth: .infinity, alignment: .leading)
                                                 .background(Color("Card"))
@@ -364,6 +365,18 @@ struct HumidorView: View {
             entries = try await e
             humidors = try await h
             latestReadings = (try? await humidorService.fetchLatestRHReadings()) ?? [:]
+
+            // Live sensor-data for humidorer med tilkoblet sensor (parallelt).
+            let sensorSvc = HumidorSensorService()
+            var sMap: [UUID: SensorReading] = [:]
+            await withTaskGroup(of: (UUID, SensorReading?).self) { group in
+                for hum in humidors where !(hum.sensorId ?? "").isEmpty {
+                    let hid = hum.id, sid = hum.sensorId!
+                    group.addTask { (hid, await sensorSvc.latest(sensorId: sid)) }
+                }
+                for await (hid, reading) in group { if let reading { sMap[hid] = reading } }
+            }
+            sensorReadings = sMap
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -559,11 +572,33 @@ struct HumidorRow: View {
 }
 
 // MARK: - Humidor Card (ett kort i humidor-lista)
+// Liten boble som pulserer — signaliserer en LIVE sensor-tilkobling. Står den
+// stille (vanlig Circle), er avlesningen manuell.
+struct PulsingDot: View {
+    var color: Color = Color(red: 0.25, green: 0.64, blue: 0.30)
+    @State private var animate = false
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(color.opacity(0.55))
+                .frame(width: 12, height: 12)
+                .scaleEffect(animate ? 2.6 : 1)
+                .opacity(animate ? 0 : 0.6)
+            Circle().fill(color).frame(width: 11, height: 11)
+        }
+        .frame(width: 12, height: 12)
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.7).repeatForever(autoreverses: false)) { animate = true }
+        }
+    }
+}
+
 struct HumidorCard: View {
     let humidor: Humidor
     let cigarCount: Int
     var totalValue: Double = 0
     var latestRH: HumidorRHReading? = nil
+    var sensorReading: SensorReading? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     private var valueLabel: String {
@@ -678,15 +713,27 @@ struct HumidorCard: View {
         .background(Capsule().fill(colorScheme == .light ? Color.white : Color("Surface").opacity(0.92)))
     }
 
-    // RH-indikator: farget boble + verdi (grå + 0 % når ingenting er målt).
+    // RH-indikator. Med live sensor: pulserende boble + RH (og temp). Uten:
+    // en rolig, stille boble på siste manuelle avlesning.
+    @ViewBuilder
     private var rhIndicator: some View {
-        HStack(spacing: 7) {
-            Circle()
-                .fill(latestRH != nil ? rhTrafficColor(humidor.rhStatus(for: latestRH?.rh)) : Color(.tertiaryLabel))
-                .frame(width: 12, height: 12)
-            Text(latestRH.map { "\(rhString($0.rh)) % RH" } ?? "0 % RH")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(Color("TextPrimary"))
+        if let s = sensorReading {
+            // Helt likt som i dag — bare boblen pulserer, og RH-verdien er live.
+            HStack(spacing: 7) {
+                PulsingDot(color: rhTrafficColor(humidor.rhStatus(for: s.rh)))
+                Text("\(rhString(s.rh)) % RH")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Color("TextPrimary"))
+            }
+        } else {
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(latestRH != nil ? rhTrafficColor(humidor.rhStatus(for: latestRH?.rh)) : Color(.tertiaryLabel))
+                    .frame(width: 12, height: 12)
+                Text(latestRH.map { "\(rhString($0.rh)) % RH" } ?? "0 % RH")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Color("TextPrimary"))
+            }
         }
     }
 

@@ -257,7 +257,7 @@ private struct SkannDekningView: View {
 
                     if admin.scanGaps.isEmpty {
                         Section {
-                            Text("Ingen bom registrert ennå.")
+                            Text("Ingen brukerinnlagte sigarer ennå.")
                                 .foregroundColor(Color("TextSecondary"))
                         }
                     } else {
@@ -284,9 +284,9 @@ private struct SkannDekningView: View {
                                 .padding(.vertical, 2)
                             }
                         } header: {
-                            Text("Mest skannet som mangler")
+                            Text("Lagt inn av brukere")
                         } footer: {
-                            Text("Sigarer folk prøvde å skanne uten treff. Legg inn de øverste først — verifisert mot produsent.")
+                            Text("Sigarer brukere la inn selv fordi vi manglet dem. Verifiser mot produsent og publiser — øverst = flest brukere.")
                         }
                     }
                 }

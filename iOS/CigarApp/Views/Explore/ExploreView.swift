@@ -1,6 +1,14 @@
 import SwiftUI
 import AVFoundation
 
+// Identifiserbar innpakning av bildet som skal beskjæres, så vi kan bruke
+// fullScreenCover(item:) — den presenterer først når bildet faktisk finnes
+// (unngår den blanke skjermen man får med isPresented + separat optional).
+struct CropImageItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
 // MARK: - ExploreView
 // Browse alle sigarer: søk, merkeliste, avansert filter og skann-FAB
 
@@ -70,6 +78,9 @@ struct ExploreView: View {
     @State private var showLibraryPicker  = false
     @State private var capturedImage: UIImage?
     @State private var navigateToResults  = false
+    // Beskjær-steg for opplastede bilder (bibliotek) — bruker strammer rammen
+    // rundt båndet (og kan rotere) før skanning, for bedre treff.
+    @State private var cropItem: CropImageItem?
 
     // Ingen treff → vennlig skjerm + manuell innlegging
     @State private var showManualAdd      = false
@@ -217,12 +228,40 @@ struct ExploreView: View {
             .sheet(isPresented: $showLibraryPicker) {
                 ImagePicker(image: $capturedImage, sourceType: .photoLibrary) {
                     if let image = capturedImage {
-                        Task { await scanService.scanBandImage(image) }
+                        // Opplastet bilde er ofte tatt på avstand → la brukeren
+                        // beskjære rundt båndet før vi skanner.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            cropItem = CropImageItem(image: image)
+                        }
                     }
                 }
             }
-            .navigationDestination(isPresented: $navigateToResults) {
-                ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText, onScanNext: { startNewScan() })
+            .fullScreenCover(item: $cropItem) { item in
+                BandCropView(
+                    image: item.image,
+                    onCancel: { cropItem = nil },
+                    onCrop: { cropped in
+                        cropItem = nil
+                        capturedImage = cropped
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            Task { await scanService.scanBandImage(cropped) }
+                        }
+                    }
+                )
+            }
+            // Treff-skjermen presenteres som et modalt dekke – IKKE en push i
+            // Utforsk-stakken. En root-nivå navigationDestination kan ikke legge
+            // seg oppå en allerede åpnet sigar-detalj, så skanning inne fra en
+            // sigar navigerte ingensteds. Et fullScreenCover legger seg over alt,
+            // uansett hvor dypt i navigasjonen brukeren står. Egen NavigationStack
+            // så ResultsView sine egne push-er (Se sigar / Flere fra samme serie)
+            // fortsatt virker.
+            .fullScreenCover(isPresented: $navigateToResults) {
+                NavigationStack {
+                    ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText, onScanNext: { startNewScan() })
+                }
+                .environmentObject(authService)
+                .environmentObject(appShell)
             }
             .navigationDestination(isPresented: $navigateToBarcode) {
                 if let cigar = barcodeFoundCigar {
