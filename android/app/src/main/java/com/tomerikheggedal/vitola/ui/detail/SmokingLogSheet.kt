@@ -58,7 +58,7 @@ fun SmokingLogSheet(
                 .padding(horizontal = 24.dp).padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Text("Marker som røkt", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Loggfør sigar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
             // Sigar
             Column {
@@ -179,7 +179,7 @@ fun SmokingLogSheet(
             ) {
                 if (saving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp,
                     color = MaterialTheme.colorScheme.onPrimary)
-                else Text("Marker som røkt", fontWeight = FontWeight.SemiBold)
+                else Text("Loggfør sigar", fontWeight = FontWeight.SemiBold)
             }
         }
     }

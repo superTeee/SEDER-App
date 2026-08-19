@@ -12,12 +12,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
@@ -608,7 +608,7 @@ private fun CigarQuickActionsSheet(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
             QuickActionRow(Icons.Filled.Inventory2, "Legg i humidor", onAddHumidor)
-            QuickActionRow(Icons.Filled.LocalFireDepartment, "Marker som røkt", onLog)
+            QuickActionRow(Icons.AutoMirrored.Outlined.MenuBook, "Loggfør sigar", onLog)
             QuickActionRow(Icons.Outlined.BookmarkBorder, "Legg i ønskeliste", onWishlist)
             QuickActionRow(Icons.Filled.Share, "Del", onShare)
         }
@@ -820,7 +820,7 @@ private fun FeaturedCard(cigar: Cigar, onClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.LocalFireDepartment, null,
+            Icon(Icons.AutoMirrored.Outlined.MenuBook, null,
                 tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         }
         Spacer(Modifier.width(14.dp))

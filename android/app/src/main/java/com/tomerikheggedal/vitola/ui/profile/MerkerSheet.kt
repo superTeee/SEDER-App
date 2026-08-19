@@ -10,13 +10,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.WorkspacePremium
@@ -82,7 +82,7 @@ private fun SectionLabelM(text: String, modifier: Modifier = Modifier) {
 }
 
 private fun levelIcon(level: MemberLevel): ImageVector = when (level) {
-    MemberLevel.SIGARENTUSIAST -> Icons.Outlined.LocalFireDepartment
+    MemberLevel.SIGARENTUSIAST -> Icons.Outlined.Spa
     MemberLevel.KJENNER -> Icons.Outlined.Star
     MemberLevel.SAMLER -> Icons.Outlined.Inventory2
     MemberLevel.KURATOR -> Icons.Outlined.WorkspacePremium

@@ -11,14 +11,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.*
@@ -74,7 +72,7 @@ private fun strengthLabel(s: Double?): String? = s?.let {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFavorites: () -> Unit = {}) {
+fun ProfileScreen(onSettings: () -> Unit = {}, onFavorites: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val status by Supa.client.auth.sessionStatus.collectAsState()
@@ -145,9 +143,6 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
-                    IconButton(onClick = onFriends) {
-                        Icon(Icons.Filled.Group, contentDescription = "Venner")
-                    }
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "Innstillinger")
                     }
@@ -239,7 +234,7 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFriends: () -> Unit = {}, onFav
                     }
 
                     // Stats
-                    Box(Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)) { StatsCard(stats, myFavorites.size, onFriends, onFavorites) }
+                    Box(Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)) { StatsCard(stats, myFavorites.size, onFavorites) }
 
                     // Sist røkt
                     lastLog?.let { log ->
@@ -333,9 +328,11 @@ private fun Avatar(url: String?, uploading: Boolean, onClick: () -> Unit) {
     }
 }
 
-// 4-cellers stats-kort med ikoner og skillelinjer — som iOS.
+// 3-cellers stats-kort med ikoner og skillelinjer — som iOS.
+// «Venner»-cellen er fjernet sammen med resten av det sosiale laget, og
+// flamme-ikonet er byttet til et nøytralt journal-ikon.
 @Composable
-private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () -> Unit, onFavorites: () -> Unit) {
+private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFavorites: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surface).padding(vertical = 16.dp),
@@ -343,13 +340,10 @@ private fun StatsCard(stats: ProfileStats, favoritesCount: Int, onFriends: () ->
     ) {
         StatCell(Icons.Filled.Inventory2, stats.humidorEntries, "I humidor", Modifier.weight(1f))
         StatDivider()
-        StatCell(Icons.Filled.LocalFireDepartment, stats.cigars, "I journal", Modifier.weight(1f))
+        StatCell(Icons.AutoMirrored.Outlined.MenuBook, stats.cigars, "I journal", Modifier.weight(1f))
         StatDivider()
         StatCell(Icons.Outlined.Star, favoritesCount, "Favoritter",
             Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFavorites))
-        StatDivider()
-        StatCell(Icons.Outlined.Group, stats.friends, "Venner",
-            Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).clickable(onClick = onFriends))
     }
 }
 
@@ -440,7 +434,7 @@ private fun FavoritesGrid(fav: ProfileFavorites?) {
         Triple(Icons.Filled.Spa, "Dekkblad", fav?.favoriteWrapper),
         Triple(Icons.Filled.Eco, "Omblad", fav?.favoriteBinder),
         Triple(Icons.Filled.Layers, "Innmat", fav?.favoriteFiller),
-        Triple(Icons.Filled.LocalFireDepartment, "Styrke", strengthLabel(fav?.favoriteStrength)),
+        Triple(Icons.Filled.Straighten, "Styrke", strengthLabel(fav?.favoriteStrength)),
         Triple(Icons.Filled.Air, "Smaksnoter", fav?.favoriteFlavor),
     )
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -473,7 +467,7 @@ private fun FavoriteCell(icon: ImageVector, label: String, value: String?, modif
 
 // Nivå-ikon for merke-pill (speiler iOS MemberLevel.icon). Brukes også i UserProfileScreen.
 internal fun levelIcon(level: com.tomerikheggedal.vitola.data.MemberLevel): ImageVector = when (level) {
-    com.tomerikheggedal.vitola.data.MemberLevel.SIGARENTUSIAST -> Icons.Filled.LocalFireDepartment
+    com.tomerikheggedal.vitola.data.MemberLevel.SIGARENTUSIAST -> Icons.Filled.Spa
     com.tomerikheggedal.vitola.data.MemberLevel.KJENNER        -> Icons.Filled.Star
     com.tomerikheggedal.vitola.data.MemberLevel.SAMLER         -> Icons.Filled.Layers
     com.tomerikheggedal.vitola.data.MemberLevel.KURATOR        -> Icons.Outlined.WorkspacePremium
@@ -495,7 +489,7 @@ private fun LastSmokedCard(log: TastingLog) {
         } else {
             Box(Modifier.size(68.dp).clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.LocalFireDepartment, null, tint = MaterialTheme.colorScheme.primary,
+                Icon(Icons.AutoMirrored.Outlined.MenuBook, null, tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp))
             }
         }

@@ -8,11 +8,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Public
@@ -228,7 +228,7 @@ private fun StatsCard(p: FriendProfile, favoritesCount: Int) {
         .padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Cell(Icons.Filled.Inventory2, p.humidorCount, "I humidor", Modifier.weight(1f))
         Divider()
-        Cell(Icons.Filled.LocalFireDepartment, p.cigarCount, "I journal", Modifier.weight(1f))
+        Cell(Icons.AutoMirrored.Outlined.MenuBook, p.cigarCount, "I journal", Modifier.weight(1f))
         Divider()
         Cell(Icons.Filled.Star, favoritesCount, "Favoritter", Modifier.weight(1f))
         Divider()

@@ -9,10 +9,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Straighten
@@ -201,9 +201,9 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (humidorEntryId != null) {
                         Button(onClick = { requireAuth { showLogSheet = true } }, modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Outlined.MenuBook, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Marker som røkt")
+                            Text("Loggfør sigar")
                         }
                     } else {
                         Button(onClick = { requireAuth { showAddSheet = true } }, modifier = Modifier.fillMaxWidth()) {
@@ -213,9 +213,9 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                             onClick = { requireAuth { showLogSheet = true } },
                             border = secondaryBorder, modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Filled.LocalFireDepartment, null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Outlined.MenuBook, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Marker som røkt")
+                            Text("Loggfør sigar")
                         }
                     }
                     OutlinedButton(
@@ -255,7 +255,7 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
             onAdded = { humidorName ->
                 showAddSheet = false
                 addMsg = "Lagt i $humidorName ✓"
-                reloadKey++   // oppdater status → knappen blir «Marker som røkt»
+                reloadKey++   // oppdater status → knappen blir «Loggfør sigar»
             }
         )
     }

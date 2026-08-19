@@ -10,8 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.outlined.CenterFocusWeak
-import androidx.compose.material.icons.outlined.DynamicFeed
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -38,7 +38,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.tomerikheggedal.vitola.ui.activity.ActivityScreen
 import com.tomerikheggedal.vitola.ui.detail.CigarDetailScreen
 import com.tomerikheggedal.vitola.ui.explore.BrandCigarsScreen
 import com.tomerikheggedal.vitola.ui.explore.ExploreScreen
@@ -46,10 +45,8 @@ import com.tomerikheggedal.vitola.ui.humidor.HumidorDetailScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorRhHistoryScreen
 import com.tomerikheggedal.vitola.ui.humidor.HumidorScreen
 import com.tomerikheggedal.vitola.ui.journal.JournalScreen
-import com.tomerikheggedal.vitola.ui.profile.FriendsScreen
 import com.tomerikheggedal.vitola.ui.profile.ProfileScreen
 import com.tomerikheggedal.vitola.ui.profile.SettingsScreen
-import com.tomerikheggedal.vitola.ui.profile.UserProfileScreen
 
 @Composable
 fun VitolaApp() {
@@ -67,7 +64,7 @@ fun VitolaApp() {
 
     var selectedTab by remember { mutableStateOf("explore") }
     LaunchedEffect(currentBase) {
-        if (currentBase in listOf("activity", "explore", "humidor", "journal")) {
+        if (currentBase in listOf("explore", "journal", "humidor", "profile")) {
             selectedTab = currentBase!!
         }
     }
@@ -140,19 +137,10 @@ fun VitolaApp() {
             startDestination = "explore",
             modifier = Modifier.padding(padding)
         ) {
-            composable("activity") {
-                ActivityScreen(
-                    onProfile = toProfile,
-                    onCigar = { nav.navigate("cigar/${it}") },
-                    onUser = { nav.navigate("user/${it}") }
-                )
-            }
-            composable("user/{id}") { entry ->
-                UserProfileScreen(
-                    userId = entry.arguments?.getString("id").orEmpty(),
-                    onBack = { nav.popBackStack() }
-                )
-            }
+            // Det sosiale laget (aktivitetsstrøm, andres profiler, venner) er fjernet
+            // for app-butikk-samsvar (tobakksinnhold skal ikke fremstå som et
+            // fellesskap som oppmuntrer til konsum). Rutene «activity», «user/{id}»
+            // og «friends» er derfor tatt ut av navigasjonen.
             composable("explore") {
                 ExploreScreen(
                     onProfile = toProfile,
@@ -210,7 +198,6 @@ fun VitolaApp() {
             composable("profile") {
                 ProfileScreen(
                     onSettings = { nav.navigate("settings") },
-                    onFriends = { nav.navigate("friends") },
                     onFavorites = {
                         humidorTabRequest = 1
                         nav.navigate("humidor") {
@@ -229,18 +216,13 @@ fun VitolaApp() {
             composable("paywall") {
                 PaywallScreen(onBack = { nav.popBackStack() })
             }
-            composable("friends") {
-                FriendsScreen(
-                    onBack = { nav.popBackStack() },
-                    onUser = { nav.navigate("user/${it}") }
-                )
-            }
         }
     }
 }
 
-// Egen tab-bar: 4 faner (Utforsk · Aktivitet | Journal · Humidor) med hevet
+// Egen tab-bar: 4 faner (Utforsk · Journal | Humidor · Profil) med hevet
 // senter-skann-knapp, som iOS. Aktiv fane = aksent-flate bak hvitt ikon.
+// Aktivitet-fanen er fjernet sammen med resten av det sosiale laget.
 @Composable
 private fun SederTabBar(selected: String, onTab: (String) -> Unit, onScan: () -> Unit) {
     Box(Modifier.fillMaxWidth()) {
@@ -251,13 +233,13 @@ private fun SederTabBar(selected: String, onTab: (String) -> Unit, onScan: () ->
             ) {
                 TabItem("Utforsk", Icons.Outlined.Explore, selected == "explore",
                     Modifier.weight(1f)) { onTab("explore") }
-                TabItem("Aktivitet", Icons.Outlined.DynamicFeed, selected == "activity",
-                    Modifier.weight(1f)) { onTab("activity") }
-                Spacer(Modifier.width(66.dp))
                 TabItem("Journal", Icons.AutoMirrored.Outlined.MenuBook, selected == "journal",
                     Modifier.weight(1f)) { onTab("journal") }
+                Spacer(Modifier.width(66.dp))
                 TabItem("Humidor", Icons.Filled.Inventory2, selected == "humidor",
                     Modifier.weight(1f)) { onTab("humidor") }
+                TabItem("Profil", Icons.Outlined.Person, selected == "profile",
+                    Modifier.weight(1f)) { onTab("profile") }
             }
         }
         // Hevet senter-skann
