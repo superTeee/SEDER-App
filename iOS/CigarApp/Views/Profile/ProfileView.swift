@@ -421,7 +421,7 @@ struct ProfileSettingsView: View {
                 Text("Helse og formål")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color("TextPrimary"))
-                Text("Tobakk innebærer helserisiko. SEDER selger ingen produkter, formidler ingen kjøp og oppfordrer ikke til bruk. Appen er et referanse- og registreringsverktøy for voksne over 18 år som ønsker å holde oversikt over en egen samling.")
+                Text("Tobakk innebærer helserisiko. SEDER selger ingen produkter, formidler ingen kjøp og oppfordrer ikke til bruk. Appen er et referanse- og registreringsverktøy for voksne over \(LegalAge.minimum) år som ønsker å holde oversikt over en egen samling.")
                     .font(.system(size: 13))
                     .foregroundColor(Color("TextSecondary"))
                     .fixedSize(horizontal: false, vertical: true)

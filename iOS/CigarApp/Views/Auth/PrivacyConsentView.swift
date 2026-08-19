@@ -110,7 +110,7 @@ struct PrivacyConsentView: View {
                     .disabled(!accepted)
                     .animation(.easeInOut(duration: 0.15), value: accepted)
 
-                    Text("Appen er kun for personer over 18 år.")
+                    Text("Appen er kun for personer over \(LegalAge.minimum) år.")
                         .font(.caption2)
                         .foregroundColor(Color("TextSecondary"))
                 }
@@ -161,7 +161,7 @@ struct PrivacyPolicySheet: View {
 
                     policySection(
                         title: "Aldersgrense",
-                        body: "SEDER er kun beregnet for brukere over 18 år."
+                        body: "SEDER er kun beregnet for brukere over \(LegalAge.minimum) år."
                     )
 
                     policySection(
