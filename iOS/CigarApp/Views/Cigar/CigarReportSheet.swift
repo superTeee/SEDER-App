@@ -209,19 +209,15 @@ struct VerificationBadge: View {
 
     private var ikon: String {
         switch cigar.verification {
-        case .manufacturer: return "checkmark.seal.fill"
-        case .community:    return "person.2.fill"
-        case .retailer:     return "checkmark.seal.fill"
         case .unverified:   return "info.circle"
+        default:            return "checkmark.seal.fill"
         }
     }
 
     private var tekst: String {
         switch cigar.verification {
-        case .manufacturer:      return "Verifisert mot produsent"
-        case .community:         return "Bekreftet av brukere"
-        case .retailer:          return "Verifisert"
-        case .unverified:        return "Ikke bekreftet ennå"
+        case .unverified:   return "Ikke verifisert"
+        default:            return "Verifisert"
         }
     }
 

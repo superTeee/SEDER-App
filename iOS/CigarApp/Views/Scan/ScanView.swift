@@ -13,164 +13,184 @@ struct ScanView: View {
     @State private var capturedImage: UIImage?
     @State private var navigateToResults = false
 
+    // Delt opp i mindre del-views: hele body ble ett så stort uttrykk at Swift-
+    // kompilatoren ikke rakk å type-sjekke det. Mindre biter → rask kompilering.
+
+    private var previewBox: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color("Surface"))
+                .frame(width: 300, height: 200)
+                .shadow(color: .black.opacity(0.08), radius: 12)
+
+            if let image = capturedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 300, height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 48))
+                        .foregroundColor(Color("TextPrimary"))
+                    Text("Hold bandet innenfor rammen")
+                        .font(.subheadline)
+                        .foregroundColor(Color("TextSecondary"))
+                }
+            }
+        }
+    }
+
+    private var captureButtons: some View {
+        VStack(spacing: 12) {
+            Button(action: { openCamera() }) {
+                HStack {
+                    Image(systemName: "camera.fill")
+                    Text("Ta bilde")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color("Accent"))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+
+            Button(action: { openPhotoLibrary() }) {
+                HStack {
+                    Image(systemName: "photo.on.rectangle")
+                    Text("Velg fra bibliotek")
+                        .fontWeight(.medium)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color("Surface"))
+                .foregroundColor(Color("Accent"))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 32)
+    }
+
+    private var scanTips: some View {
+        VStack(spacing: 6) {
+            ScanTip(icon: "light.max", text: "God belysning — unngå skygger og reflekser")
+            ScanTip(icon: "arrow.up.left.and.arrow.down.right", text: "Kom nær nok til at teksten er leselig")
+            ScanTip(icon: "hand.raised", text: "Hold sigaren stille og bandet flatt mot deg")
+        }
+        .padding(.horizontal, 24)
+    }
+
+    private var instruction: some View {
+        VStack(spacing: 8) {
+            Text("Scan sigarband")
+                .font(.title2.bold())
+            Text("Ta bilde av etiketten på sigaren\nfor å identifisere den")
+                .font(.subheadline)
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private var idleContent: some View {
+        VStack(spacing: 32) {
+            Spacer()
+            previewBox
+            if capturedImage == nil { scanTips }
+            instruction
+            Spacer()
+            captureButtons
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color("Background").ignoresSafeArea()
-
-                VStack(spacing: 32) {
-                    Spacer()
-
-                    // Ikon/preview
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color("Surface"))
-                            .frame(width: 300, height: 200)
-                            .shadow(color: .black.opacity(0.08), radius: 12)
-
-                        if let image = capturedImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 300, height: 200)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                        } else {
-                            VStack(spacing: 12) {
-                                Image(systemName: "camera.viewfinder")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(Color("TextPrimary"))
-                                Text("Hold bandet innenfor rammen")
-                                    .font(.subheadline)
-                                    .foregroundColor(Color("TextSecondary"))
-                            }
-                        }
-                    }
-
-                    // Scanningstips — vises kun før bilde er tatt
-                    if capturedImage == nil {
-                        VStack(spacing: 6) {
-                            ScanTip(icon: "light.max", text: "God belysning — unngå skygger og reflekser")
-                            ScanTip(icon: "arrow.up.left.and.arrow.down.right", text: "Kom nær nok til at teksten er leselig")
-                            ScanTip(icon: "hand.raised", text: "Hold sigaren stille og bandet flatt mot deg")
-                        }
-                        .padding(.horizontal, 24)
-                    }
-
-                    // Instruksjon
-                    VStack(spacing: 8) {
-                        Text("Scan sigarband")
-                            .font(.title2.bold())
-                        Text("Ta bilde av etiketten på sigaren\nfor å identifisere den")
-                            .font(.subheadline)
-                            .foregroundColor(Color("TextSecondary"))
-                            .multilineTextAlignment(.center)
-                    }
-
-                    Spacer()
-
-                    // Kamera-knapp
-                    VStack(spacing: 12) {
-                        Button(action: { openCamera() }) {
-                            HStack {
-                                Image(systemName: "camera.fill")
-                                Text("Ta bilde")
-                                    .fontWeight(.semibold)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color("Accent"))
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                        }
-
-                        Button(action: { openPhotoLibrary() }) {
-                            HStack {
-                                Image(systemName: "photo.on.rectangle")
-                                Text("Velg fra bibliotek")
-                                    .fontWeight(.medium)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color("Surface"))
-                            .foregroundColor(Color("Accent"))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 32)
+            // «screen» dekker skjermen + kamera/bibliotek/resultat-presentasjonene.
+            // Resten av presentasjonene (form/wrapper/ingen-treff/feil) legges på her.
+            // Delt i to så den lange modifikator-kjeden type-sjekkes i mindre biter.
+            screen
+                .fullScreenCover(isPresented: $scanService.needsShapePhoto) {
+                    ShapeConfirmView(scanService: scanService)
                 }
+                .onChange(of: scanService.needsShapePhoto) { needsPhoto in
+                    // Form-avklaringen er ferdig (gikk fra true → false) — naviger nå.
+                    guard !needsPhoto, !scanService.scanResults.isEmpty else { return }
+                    navigateToResults = true
+                }
+                .fullScreenCover(isPresented: $scanService.needsWrapperPhoto) {
+                    WrapperConfirmView(scanService: scanService)
+                }
+                .onChange(of: scanService.needsWrapperPhoto) { needsPhoto in
+                    // Wrapper-avklaringen er ferdig (gikk fra true → false) — naviger nå.
+                    guard !needsPhoto, !scanService.scanResults.isEmpty else { return }
+                    navigateToResults = true
+                }
+                // Ingen treff → vennlig skjerm som forklarer HVORFOR og viser veien videre.
+                .fullScreenCover(isPresented: $scanService.noMatch) {
+                    NoMatchView(
+                        image: capturedImage,
+                        ocrText: scanService.extractedText,
+                        outcome: scanService.bandTextOutcome,
+                        readBrand: scanService.readBrand,
+                        readSeries: scanService.readSeries,
+                        onRetry: {
+                            scanService.noMatch = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { showCameraPicker = true }
+                        },
+                        onManualAdd: {
+                            scanService.noMatch = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { navigateToResults = true }
+                        }
+                    )
+                }
+                .alert("Feil", isPresented: .constant(scanService.errorMessage != nil)) {
+                    Button("OK") { scanService.errorMessage = nil }
+                } message: {
+                    Text(scanService.errorMessage ?? "")
+                }
+        }
+    }
 
-                // Loading overlay
-                if scanService.isScanning {
-                    ScanningOverlay()
+    // Selve skjermen + de primære presentasjonene (kamera, bibliotek, resultater).
+    private var screen: some View {
+        ZStack {
+            Color("Background").ignoresSafeArea()
+
+            // Hele tomskjerm-innholdet — utdelt så body forblir lite.
+            idleContent
+
+            // Loading overlay
+            if scanService.isScanning {
+                ScanningOverlay()
+            }
+        }
+        .navigationTitle("SEDER")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showCameraPicker) {
+            MacroCameraView(image: $capturedImage) {
+                if let image = capturedImage {
+                    Task { await scanService.scanBandImage(image) }
                 }
             }
-            .navigationTitle("SEDER")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showCameraPicker) {
-                MacroCameraView(image: $capturedImage) {
-                    if let image = capturedImage {
-                        Task { await scanService.scanBandImage(image) }
-                    }
+        }
+        .sheet(isPresented: $showLibraryPicker) {
+            ImagePicker(image: $capturedImage, sourceType: .photoLibrary) {
+                if let image = capturedImage {
+                    Task { await scanService.scanBandImage(image) }
                 }
             }
-            .sheet(isPresented: $showLibraryPicker) {
-                ImagePicker(image: $capturedImage, sourceType: .photoLibrary) {
-                    if let image = capturedImage {
-                        Task { await scanService.scanBandImage(image) }
-                    }
-                }
-            }
-            .navigationDestination(isPresented: $navigateToResults) {
-                ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText, bandImage: capturedImage)
-            }
-            // Alltid til ResultsView — aldri direkte til detaljskjermen.
-            // Venter med navigasjon til eventuelle form-/wrapper-avklaringer er ferdige.
-            .onChange(of: scanService.scanResults) { results in
-                guard !results.isEmpty,
-                      !scanService.needsShapePhoto,
-                      !scanService.needsWrapperPhoto else { return }
-                navigateToResults = true
-            }
-            .fullScreenCover(isPresented: $scanService.needsShapePhoto) {
-                ShapeConfirmView(scanService: scanService)
-            }
-            .onChange(of: scanService.needsShapePhoto) { needsPhoto in
-                // Form-avklaringen er ferdig (gikk fra true → false) — naviger nå.
-                guard !needsPhoto, !scanService.scanResults.isEmpty else { return }
-                navigateToResults = true
-            }
-            .fullScreenCover(isPresented: $scanService.needsWrapperPhoto) {
-                WrapperConfirmView(scanService: scanService)
-            }
-            .onChange(of: scanService.needsWrapperPhoto) { needsPhoto in
-                // Wrapper-avklaringen er ferdig (gikk fra true → false) — naviger nå.
-                guard !needsPhoto, !scanService.scanResults.isEmpty else { return }
-                navigateToResults = true
-            }
-            // Ingen treff → vennlig skjerm som forklarer HVORFOR (ingen tekst /
-            // uleselig tekst / lest men ingen match) og viser veien videre.
-            // Manuell vei lander i ResultsView med søk + «legg til» (autocomplete).
-            .fullScreenCover(isPresented: $scanService.noMatch) {
-                NoMatchView(
-                    image: capturedImage,
-                    ocrText: scanService.extractedText,
-                    outcome: scanService.bandTextOutcome,
-                    onRetry: {
-                        scanService.noMatch = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { showCameraPicker = true }
-                    },
-                    onManualAdd: {
-                        scanService.noMatch = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { navigateToResults = true }
-                    }
-                )
-            }
-            .alert("Feil", isPresented: .constant(scanService.errorMessage != nil)) {
-                Button("OK") { scanService.errorMessage = nil }
-            } message: {
-                Text(scanService.errorMessage ?? "")
-            }
+        }
+        .navigationDestination(isPresented: $navigateToResults) {
+            ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText, bandImage: capturedImage, prefillBrand: scanService.readBrand)
+        }
+        // Alltid til ResultsView — aldri direkte til detaljskjermen.
+        .onChange(of: scanService.scanResults) { results in
+            guard !results.isEmpty,
+                  !scanService.needsShapePhoto,
+                  !scanService.needsWrapperPhoto else { return }
+            navigateToResults = true
         }
     }
 
@@ -502,7 +522,10 @@ struct ScanningOverlay: View {
                         Circle().fill(accent).frame(width: 3, height: 3)
                     }
                     .frame(width: 14, height: 14)
-                    .offset(x: 93 / 2 - 7 - 7)
+                    // Beltet sitter på senterlinjen (ser ut som et belte rundt sigaren),
+                    // men ~5px lenger NED langs sigaren (mot foten) så det blir mer rom
+                    // for hodet. Sigaren er tiltet, så mindre x = ned mot foten.
+                    .offset(x: 93 / 2 - 7 - 12)
                 )
                 .rotationEffect(.degrees(-9))
 
@@ -619,6 +642,10 @@ struct NoMatchView: View {
     // Hvorfor skanningen ikke ga treff — avgjør forklaringen og hvilken
     // handling som er den naturlige neste. Default .clear så eldre kall kompilerer.
     var outcome: ScanService.BandTextOutcome = .clear
+    // Det GPT LESTE (rent merke/serie) — vises i «Vi leste: X»-chipen. Faller
+    // tilbake til rå OCR-tekst hvis vi ikke fikk et rent navn.
+    var readBrand: String? = nil
+    var readSeries: String? = nil
     var onRetry: () -> Void
     var onManualAdd: () -> Void
 
@@ -661,85 +688,172 @@ struct NoMatchView: View {
                 }
                 .padding(20)
 
-                Spacer()
-
-                Image(systemName: reason.icon)
-                    .font(.system(size: 32, weight: .regular))
-                    .foregroundColor(Color("Accent"))
-                    .frame(width: 84, height: 84)
-                    .background(Circle().fill(Color("Accent").opacity(0.12)))
-                    .padding(.bottom, 18)
-
-                Text(reason.title)
-                    .font(.title2.bold())
-                    .foregroundColor(Color("TextPrimary"))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
-                Text(reason.body)
-                    .font(.subheadline)
-                    .foregroundColor(Color("TextSecondary"))
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 8)
-                    .padding(.horizontal, 28)
-
-                // Situasjonsbestemt hjelpekort.
-                Group {
-                    if outcome == .clear {
-                        // Bildet var greit nok — problemet er at sigaren mangler i
-                        // basen. Da hjelper foto-tips lite; vis vei-videre-hintet.
-                        HStack(spacing: 10) {
-                            Image(systemName: "plus.circle")
-                                .font(.system(size: 15))
-                                .foregroundColor(Color("Accent"))
-                                .frame(width: 20)
-                            Text("Skriv merket når du legger den inn — vi foreslår treff mens du skriver og kobler deg til riktig sigar i basen.")
-                                .font(.system(size: 13))
-                                .foregroundColor(Color("TextPrimary").opacity(0.85))
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .background(Color("Card"))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .padding(.horizontal, 24)
-                        .padding(.top, 22)
-                    } else {
-                        // Lesingen glapp (uklart eller ulesbart bånd) — et bedre
-                        // bilde hjelper som regel. Vis de fem foto-tipsene.
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Tips for best mulig resultat")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color("TextPrimary"))
-                            cause("sun.max", "Godt, jevnt lys — unngå skygge og motlys")
-                            cause("viewfinder", "Fyll rammen med båndet — kom nærmere")
-                            cause("rectangle.portrait", "Rett forfra — unngå refleks og blits")
-                            cause("hand.raised", "Hold stødig til bildet er skarpt")
-                            cause("leaf", "Ta med litt av sigarkroppen — så vi ser dekkbladets farge")
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .background(Color("Card"))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .padding(.horizontal, 24)
-                        .padding(.top, 22)
-                    }
+                // Leste vi båndet, men mangler sigaren i basen? Da er dette en
+                // OPPDAGELSE, ikke en feil — vennlig, motiverende variant som
+                // gjør at brukeren vil legge den inn. Ellers: foto-tips.
+                if outcome == .clear {
+                    discoveryContent
+                } else {
+                    readingFailedContent
                 }
-
-                Spacer()
-
-                VStack(spacing: 10) {
-                    if retryIsPrimary {
-                        primaryButton("Prøv på nytt med nytt bilde", action: onRetry)
-                        secondaryButton("Legg den inn manuelt", action: onManualAdd)
-                    } else {
-                        primaryButton("Legg den inn manuelt", action: onManualAdd)
-                        secondaryButton("Prøv på nytt med nytt bilde", action: onRetry)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 28)
             }
         }
+    }
+
+    /// Det chipen viser: det RENE navnet GPT leste (merke + evt. serie) hvis vi
+    /// har det, ellers en renskrevet utgave av rå OCR-tekst.
+    private var chipText: String? {
+        if let b = readBrand, !b.isEmpty {
+            if let s = readSeries, !s.isEmpty { return "\(b) \(s)" }
+            return b
+        }
+        return readLabel
+    }
+
+    /// Kort, lesbar utgave av det appen leste — fallback til «Vi leste båndet:»-chipen.
+    private var readLabel: String? {
+        guard outcome == .clear else { return nil }
+        let words = ocrText.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { $0.count >= 2 }
+            .prefix(4)
+            .map { $0.prefix(1).uppercased() + String($0.dropFirst()) }
+        let label = words.joined(separator: " ")
+        return label.count >= 3 ? label : nil
+    }
+
+    // «Du fant en vi ikke har» — vennlig oppdagelses-variant (outcome == .clear).
+    // Vi leste båndet, men sigaren mangler i basen. Ramme det som en oppdagelse,
+    // ikke en feil, så brukeren vil legge den inn.
+    @ViewBuilder private var discoveryContent: some View {
+        Spacer()
+
+        ZStack {
+            Circle().fill(Color("Accent").opacity(0.12)).frame(width: 96, height: 96)
+            Image(systemName: "sparkle.magnifyingglass")
+                .font(.system(size: 34, weight: .regular))
+                .foregroundColor(Color("Accent"))
+        }
+        .padding(.bottom, 20)
+
+        Text("Du fant en vi ikke\nhar ennå")
+            .font(.title2.bold())
+            .foregroundColor(Color("TextPrimary"))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+
+        if let chipText {
+            HStack(spacing: 7) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(red: 0.24, green: 0.55, blue: 0.35))
+                Text("Vi leste båndet:")
+                    .foregroundColor(Color("TextSecondary"))
+                Text(chipText)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("TextPrimary"))
+            }
+            .font(.system(size: 13.5))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(Color(red: 0.91, green: 0.96, blue: 0.92)))
+            .overlay(Capsule().stroke(Color(red: 0.80, green: 0.90, blue: 0.83), lineWidth: 1))
+            .padding(.top, 14)
+        }
+
+        Text("Denne ligger ikke i katalogen ennå. Legg den inn, så er du den som setter den på kartet — og appen kjenner den igjen for alle neste gang.")
+            .font(.subheadline)
+            .foregroundColor(Color("TextSecondary"))
+            .multilineTextAlignment(.center)
+            .padding(.top, 14)
+            .padding(.horizontal, 28)
+
+        HStack(spacing: 12) {
+            Image(systemName: "leaf.fill")
+                .font(.system(size: 16))
+                .foregroundColor(Color("Accent"))
+                .frame(width: 34, height: 34)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color("Background")))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color("TextSecondary").opacity(0.15), lineWidth: 1))
+            Text("Du blir den første som legger inn denne. Sånn bygger vi katalogen — én oppdagelse om gangen.")
+                .font(.system(size: 12.5))
+                .foregroundColor(Color("TextPrimary").opacity(0.8))
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color("Card")))
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+
+        Spacer()
+
+        VStack(spacing: 10) {
+            primaryButton("Legg den inn — tar 20 sekunder", action: onManualAdd)
+            secondaryButton("Prøv på nytt med nytt bilde", action: onRetry)
+            Text("Blir din med én gang — vi verifiserer mot produsenten etterpå.")
+                .font(.system(size: 11.5))
+                .foregroundColor(Color("TextSecondary"))
+                .multilineTextAlignment(.center)
+                .padding(.top, 2)
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 28)
+    }
+
+    // Klarte ikke å lese båndet (outcome == .none / .unclear) — foto-tips.
+    @ViewBuilder private var readingFailedContent: some View {
+        Spacer()
+
+        Image(systemName: reason.icon)
+            .font(.system(size: 32, weight: .regular))
+            .foregroundColor(Color("Accent"))
+            .frame(width: 84, height: 84)
+            .background(Circle().fill(Color("Accent").opacity(0.12)))
+            .padding(.bottom, 18)
+
+        Text(reason.title)
+            .font(.title2.bold())
+            .foregroundColor(Color("TextPrimary"))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+
+        Text(reason.body)
+            .font(.subheadline)
+            .foregroundColor(Color("TextSecondary"))
+            .multilineTextAlignment(.center)
+            .padding(.top, 8)
+            .padding(.horizontal, 28)
+
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Tips for best mulig resultat")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color("TextPrimary"))
+            cause("sun.max", "Godt, jevnt lys — unngå skygge og motlys")
+            cause("viewfinder", "Fyll rammen med båndet — kom nærmere")
+            cause("rectangle.portrait", "Rett forfra — unngå refleks og blits")
+            cause("hand.raised", "Hold stødig til bildet er skarpt")
+            cause("leaf", "Ta med litt av sigarkroppen — så vi ser dekkbladets farge")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color("Card"))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 24)
+        .padding(.top, 22)
+
+        Spacer()
+
+        VStack(spacing: 10) {
+            if retryIsPrimary {
+                primaryButton("Prøv på nytt med nytt bilde", action: onRetry)
+                secondaryButton("Legg den inn manuelt", action: onManualAdd)
+            } else {
+                primaryButton("Legg den inn manuelt", action: onManualAdd)
+                secondaryButton("Prøv på nytt med nytt bilde", action: onRetry)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 28)
     }
 
     private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {

@@ -15,6 +15,9 @@ struct ResultsView: View {
     // brukes som oppføringens bilde + driver bildegjenkjenningen over tid.
     var bandImage: UIImage? = nil
     var onScanNext: (() -> Void)? = nil
+    // Merket appen leste ved en bom — forhåndsutfyller «Legg til sigaren selv»
+    // når brukeren ikke har søkt på noe annet først.
+    var prefillBrand: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authService: AuthService
@@ -36,6 +39,21 @@ struct ResultsView: View {
     @State private var selectedCigar: Cigar?
     @State private var openHumidorOnDetail = false   // «Legg i humidor» → åpne arket i detaljvisning
     @State private var showBrand = false             // nav til «Flere fra samme merke»
+
+    // «Legg i humidor» åpner nå arket DIREKTE fra treffsiden (ett trykk),
+    // i stedet for å ta brukeren til detaljsiden først.
+    @State private var humidorCigar: Cigar?
+    @State private var pendingHumidorCigar: Cigar?   // venter på innlogging
+    @State private var showLoginForHumidor = false
+    @State private var humidorConfirmCigar: Cigar?   // driver «Lagt i humidor»-bekreftelsen
+    @State private var humidorConfirmEntry: HumidorEntry?   // oppføringen som nettopp ble lagt inn
+    @State private var openHumidorEntry: HumidorEntry?      // sendes til detaljsiden ved «Gå til sigaren»
+    @State private var logCigar: Cigar?                     // driver «Logg sigar»-arket
+    @State private var pendingLogCigar: Cigar?              // venter på innlogging før logg-arket
+    @State private var showLoginForLog = false
+    @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
+    private let humidorService = HumidorService()
+    private let tastingService = TastingService()
 
     // MARK: Avledet
     private var top: ScanResult? { results.first }
@@ -108,17 +126,17 @@ struct ResultsView: View {
         (s ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    /// Er en sigar i samme serie som toppen (samme merke + serie)?
-    private func sameSeriesAsTop(_ cigar: Cigar) -> Bool {
+    /// Er en sigar fra SAMME merke som toppen?
+    private func sameBrandAsTop(_ cigar: Cigar) -> Bool {
         guard let t = top?.cigar else { return false }
-        let sameBrand = norm(cigar.brand) == norm(t.brand)
-        let series = norm(cigar.series)
-        return sameBrand && !series.isEmpty && series == norm(t.series)
+        return norm(cigar.brand) == norm(t.brand)
     }
 
-    /// «Andre muligheter» = treff som IKKE er i samme serie som toppen.
+    /// «Andre mulige treff» = treff fra ANDRE merker enn toppen. Samme merke
+    /// finner brukeren i «Flere fra …»-kortet, så vi gjentar det ikke her —
+    /// ellers blir det mye av det samme.
     private var otherPossibilities: [ScanResult] {
-        others.filter { !sameSeriesAsTop($0.cigar) }
+        others.filter { !sameBrandAsTop($0.cigar) }
     }
 
     /// Alle konkrete rader i samme serie (hver rad = én vitola/dekkblad-kombo).
@@ -201,7 +219,15 @@ struct ResultsView: View {
         }.count
     }
 
-    var body: some View {
+    /// Binding for humidor-bekreftelsen (avledet av `humidorConfirmCigar`).
+    private var humidorConfirmPresented: Binding<Bool> {
+        Binding(get: { humidorConfirmCigar != nil },
+                set: { if !$0 { humidorConfirmCigar = nil } })
+    }
+
+    // Scroll-innholdet er skilt ut fra body så den lange presentasjons-kjeden
+    // (ark, alert, navigasjon) type-sjekkes i mindre biter.
+    private var scrollContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
 
@@ -215,12 +241,26 @@ struct ResultsView: View {
                         onSelectVitola: { selectVitola($0) },
                         onSelectWrapper: { selectWrapper($0) },
                         onAddToHumidor: {
-                            openHumidorOnDetail = true
                             recordResolution(for: display)
-                            selectedCigar = display
+                            if authService.userId == nil {
+                                pendingHumidorCigar = display
+                                showLoginForHumidor = true
+                            } else {
+                                humidorCigar = display
+                            }
+                        },
+                        onLogSmoked: {
+                            recordResolution(for: display)
+                            if authService.userId == nil {
+                                pendingLogCigar = display
+                                showLoginForLog = true
+                            } else {
+                                logCigar = display
+                            }
                         },
                         onSeeCigar: {
                             openHumidorOnDetail = false
+                            openHumidorEntry = nil
                             recordResolution(for: display)
                             selectedCigar = display
                         }
@@ -239,11 +279,12 @@ struct ResultsView: View {
 
                 // Andre muligheter — kun ANDRE sigarer, alltid «Mindre sikkert».
                 if !otherPossibilities.isEmpty {
-                    sectionHead("Andre muligheter", trailing: "hvis det ikke stemmer")
+                    sectionHead("Andre mulige treff", trailing: "hvis det ikke stemmer")
                     VStack(spacing: 10) {
                         ForEach(otherPossibilities) { r in
                             AltRow(cigar: r.cigar, showPill: true) {
                                 openHumidorOnDetail = false
+                                openHumidorEntry = nil
                                 recordResolution(for: r.cigar)
                                 selectedCigar = r.cigar
                             }
@@ -252,13 +293,16 @@ struct ResultsView: View {
                 }
 
                 searchSection
-                addSelfSection
-                rescanButton
+                actionButtons
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)
             .padding(.bottom, 70)
         }
+    }
+
+    var body: some View {
+        scrollContent
         .background(Color.sederPaper.ignoresSafeArea())
         .navigationTitle("Treff")
         .navigationBarTitleDisplayMode(.inline)
@@ -275,12 +319,90 @@ struct ResultsView: View {
             }
         }
         .sheet(isPresented: $showAddCigar) {
-            AddCigarSheet(prefillBrand: searchQuery) { cigar in
+            AddCigarSheet(prefillBrand: searchQuery.trimmingCharacters(in: .whitespaces).isEmpty ? (prefillBrand ?? "") : searchQuery) { cigar in
                 openHumidorOnDetail = false
+                openHumidorEntry = nil
                 recordResolution(for: cigar)
                 logManualMissIfNew(cigar)
                 selectedCigar = cigar
             }
+            .environmentObject(authService)
+        }
+        // «Legg i humidor» — arket åpnes direkte her på treffsiden.
+        .sheet(item: $humidorCigar) { cigar in
+            AddToHumidorSheet(cigar: cigar, userId: authService.userId) { chosenCigar, purchasedAt, addedAt, qty, humidorId, store, price, photoData in
+                guard let uid = authService.userId else { return }
+                Task {
+                    do {
+                        let entry = try await humidorService.addToHumidor(
+                            cigarId: chosenCigar.id, userId: uid, humidorId: humidorId, quantity: qty,
+                            purchasedAt: purchasedAt, addedToHumidorAt: addedAt, store: store, purchasePrice: price)
+                        humidorHasNew = true
+                        // Brukerens valgte bilde vinner; ellers skann-bildet fra båndet.
+                        let effectivePhoto = photoData ?? bandImage?.jpegData(compressionQuality: 0.9)
+                        if let data = effectivePhoto, (entry.photoURL ?? "").isEmpty {
+                            _ = try? await humidorService.uploadPhoto(entryId: entry.id, userId: uid, imageData: data)
+                        }
+                        // Arket lukker seg selv etter lagring — vis så bekreftelsen
+                        // med valg om å bli her eller gå til sigaren i humidoren.
+                        humidorConfirmEntry = entry
+                        humidorConfirmCigar = chosenCigar
+                    } catch { print("Feil ved lagring i humidor: \(error)") }
+                }
+            }
+            .environmentObject(authService)
+        }
+        // Bekreftelse etter at en sigar er lagt i humidoren.
+        .alert("Lagt i humidoren", isPresented: humidorConfirmPresented, presenting: humidorConfirmCigar) { cigar in
+            Button("Gå til sigaren") {
+                let c = cigar
+                // Åpne sigaren SOM oppføring i humidoren — da får brukeren bl.a.
+                // legge til bilde, endre antall osv. rett på detaljsiden.
+                let entry = humidorConfirmEntry
+                humidorConfirmCigar = nil
+                humidorConfirmEntry = nil
+                openHumidorOnDetail = false
+                openHumidorEntry = entry
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { selectedCigar = c }
+            }
+            Button("Bli her", role: .cancel) { humidorConfirmCigar = nil; humidorConfirmEntry = nil }
+        } message: { cigar in
+            Text("\(cigar.brand)\(cigar.series.map { " " + $0 } ?? "") er lagt i humidoren din.")
+        }
+        // Ikke innlogget når man trykker «Legg i humidor» → logg inn, åpne så arket.
+        .sheet(isPresented: $showLoginForHumidor) {
+            AuthView(onSuccess: {
+                if let c = pendingHumidorCigar { pendingHumidorCigar = nil; humidorCigar = c }
+            })
+            .environmentObject(authService)
+        }
+        // «Logg sigar» — loggfør en røyking direkte fra treffsiden.
+        .sheet(item: $logCigar) { cigar in
+            SmokingLogSheet(cigar: cigar, userId: authService.userId) { smokedAt, rating, smokeAgain, draw, burn, flavor, notes, photoData, cutType, store in
+                guard let uid = authService.userId else { return }
+                Task {
+                    do {
+                        let logId = try await humidorService.logTastingForCigar(
+                            cigarId: cigar.id, userId: uid, smokedAt: smokedAt, rating: rating,
+                            smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
+                            flavorRating: flavor, notes: notes, cutType: cutType, store: store)
+                        if let data = photoData {
+                            let url = try await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
+                            try await tastingService.updateLog(
+                                id: logId, smokedAt: smokedAt, rating: rating, smokeAgain: smokeAgain,
+                                drawRating: draw, burnRating: burn, flavorRating: flavor,
+                                personalNotes: notes, photoUrl: url)
+                        }
+                    } catch { print("Feil ved logging av sigar: \(error)") }
+                }
+            }
+            .environmentObject(authService)
+        }
+        // Ikke innlogget når man trykker «Logg sigar» → logg inn, åpne så arket.
+        .sheet(isPresented: $showLoginForLog) {
+            AuthView(onSuccess: {
+                if let c = pendingLogCigar { pendingLogCigar = nil; logCigar = c }
+            })
             .environmentObject(authService)
         }
         .navigationDestination(isPresented: $showBrand) {
@@ -289,7 +411,7 @@ struct ResultsView: View {
             }
         }
         .navigationDestination(item: $selectedCigar) { cigar in
-            CigarDetailViewDesign(cigar: cigar, onScanNext: onScanNext,
+            CigarDetailViewDesign(cigar: cigar, humidorEntry: openHumidorEntry, onScanNext: onScanNext,
                                   scanImage: bandImage, autoOpenHumidor: openHumidorOnDetail)
         }
         .task(id: results.first?.cigar.id) {
@@ -369,40 +491,45 @@ struct ResultsView: View {
         }
     }
 
-    private var addSelfSection: some View {
-        Button {
-            showAddCigar = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "plus.circle").font(.system(size: 18))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Legg til sigaren selv").font(.system(size: 15, weight: .semibold))
-                    Text("Blir din med én gang — vi sjekker den mot kilden etterpå")
-                        .font(.system(size: 12.5)).foregroundColor(.sederMuted)
+    /// Bunn-handlinger som ordentlige knapper: «Skann på nytt» er primær (fylt),
+    /// «Legg til sigaren selv» er sekundær (kontur). Full bredde, stablet.
+    private var actionButtons: some View {
+        VStack(spacing: 10) {
+            // Sekundær — legg til sigaren selv
+            Button { showAddCigar = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle").font(.system(size: 17, weight: .semibold))
+                    Text("Legg til sigaren selv").font(.system(size: 16, weight: .semibold))
                 }
-                Spacer()
+                .foregroundColor(.sederAccent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederAccent.opacity(0.35), lineWidth: 1.5))
             }
-            .foregroundColor(.sederAccent)
-            .padding(16)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederLine, lineWidth: 1))
+            .buttonStyle(.plain)
+
+            Text("Blir din med én gang — vi sjekker den mot kilden etterpå")
+                .font(.system(size: 12)).foregroundColor(.sederMuted)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 4)
+
+            // Primær — skann på nytt
+            Button(action: { if let onScanNext { onScanNext() } else { dismiss() } }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "camera.fill").font(.system(size: 16, weight: .semibold))
+                    Text("Skann på nytt").font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.sederAccent))
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .padding(.top, 18)
     }
 
-    private var rescanButton: some View {
-        Button(action: { if let onScanNext { onScanNext() } else { dismiss() } }) {
-            HStack(spacing: 8) {
-                Image(systemName: "camera.fill")
-                Text("Skann på nytt").fontWeight(.semibold)
-            }
-            .foregroundColor(.sederAccent)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-        }
-        .padding(.top, 12)
-    }
 
     // MARK: - Handlinger
 
@@ -482,6 +609,7 @@ private struct HeroCard: View {
     let onSelectVitola: (String) -> Void
     let onSelectWrapper: (String) -> Void
     let onAddToHumidor: () -> Void
+    let onLogSmoked: () -> Void
     let onSeeCigar: () -> Void
 
     /// Serienavn som stor tittel. Faller tilbake til vitola/format om serie mangler.
@@ -548,7 +676,9 @@ private struct HeroCard: View {
             }
             .padding(.top, 16)
 
-            HStack(spacing: 10) {
+            // Tre handlinger: «Legg i humidor» som primær (full bredde), så
+            // «Logg sigar» + «Se sigar» som sekundære side om side.
+            VStack(spacing: 10) {
                 Button(action: onAddToHumidor) {
                     Text("Legg i humidor")
                         .font(.system(size: 15, weight: .semibold))
@@ -559,16 +689,29 @@ private struct HeroCard: View {
                 }
                 .buttonStyle(.plain)
 
-                Button(action: onSeeCigar) {
-                    Text("Se sigar")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.sederInk)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederLine, lineWidth: 1))
+                HStack(spacing: 10) {
+                    Button(action: onLogSmoked) {
+                        Text("Logg sigar")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.sederInk)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 13)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederLine, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: onSeeCigar) {
+                        Text("Se sigar")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.sederInk)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 13)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederLine, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.top, 18)
         }
@@ -584,7 +727,7 @@ private struct HeroCard: View {
         HStack(spacing: 6) {
             Image(systemName: "exclamationmark.circle")
                 .font(.system(size: 11, weight: .semibold))
-            Text("Båndet viser ikke størrelsen — velg riktig.")
+            Text("Estimert størrelse, endre ved behov")
                 .font(.system(size: 10.5, weight: .semibold))
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -650,9 +793,10 @@ private struct HeroCard: View {
                 Text(lead)
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(leadCol)
-                (Text(name).fontWeight(.semibold)
-                 + Text(dims.map { " · \($0)" } ?? "").fontWeight(.regular))
-                    .font(.system(size: 15))
+                // Navnet 2 px større enn målene: vitolanavnet er det viktigste,
+                // mens målene (· 52 × 6") holdes på 15 som før.
+                (Text(name).font(.system(size: 17, weight: .semibold))
+                 + Text(dims.map { " · \($0)" } ?? "").font(.system(size: 15, weight: .regular)))
                     .monospacedDigit()
                     .foregroundColor(.sederInk)
                     .lineLimit(1)

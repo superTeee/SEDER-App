@@ -2025,18 +2025,99 @@ private struct FilterChangeModifier: ViewModifier {
 
 // MARK: - BrandCigarsView
 
+// Enkel flyt-layout som pakker elementer til neste linje når raden er full.
+// Brukes til serie-filter-chipsene så alle blir synlige uten horisontal scroll.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+    var lineSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0
+                y += rowHeight + lineSpacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: proposal.width ?? x, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let maxWidth = bounds.width
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0
+                y += rowHeight + lineSpacing
+                rowHeight = 0
+            }
+            sub.place(at: CGPoint(x: bounds.minX + x, y: bounds.minY + y),
+                      anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 struct BrandCigarsView: View {
     let brand: String
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var cigarService = CigarService()
     @State private var cigars: [Cigar] = []
     @State private var isLoading = true
+    @State private var selectedSeries: String? = nil   // nil = «Alle»
 
     var groupedBySeries: [(series: String, cigars: [Cigar])] {
         let grouped = Dictionary(grouping: cigars) { $0.series ?? "Andre" }
         return grouped
             .sorted { $0.key < $1.key }
             .map { (series: $0.key, cigars: $0.value) }
+    }
+
+    /// Serienavnene, til filter-chipsene.
+    private var seriesNames: [String] { groupedBySeries.map { $0.series } }
+
+    /// Gruppene som faktisk vises — alle, eller kun valgt serie.
+    private var visibleGroups: [(series: String, cigars: [Cigar])] {
+        guard let sel = selectedSeries else { return groupedBySeries }
+        return groupedBySeries.filter { $0.series == sel }
+    }
+
+    // Filter-chips i toppen — vises kun når merket har flere enn én serie.
+    // Wrapper til flere linjer (FlowLayout) så ALLE seriene er synlige med en
+    // gang, i stedet for en horisontal scroll der noen chips gjemmer seg.
+    @ViewBuilder private var seriesChips: some View {
+        if seriesNames.count > 1 {
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                chip(title: "Alle", isOn: selectedSeries == nil) { selectedSeries = nil }
+                ForEach(seriesNames, id: \.self) { name in
+                    chip(title: name, isOn: selectedSeries == name) { selectedSeries = name }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color("Background"))
+        }
+    }
+
+    private func chip(title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(isOn ? .white : Color("TextPrimary"))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(isOn ? Color("Accent") : Color("Card")))
+                .overlay(Capsule().stroke(Color("TextSecondary").opacity(isOn ? 0 : 0.18), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     var body: some View {
@@ -2054,19 +2135,25 @@ struct BrandCigarsView: View {
                         .foregroundColor(Color(.secondaryLabel))
                 }
             } else {
-                ScrollView {
+                VStack(spacing: 0) {
+                    seriesChips
+                    ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(groupedBySeries, id: \.series) { group in
-                            // Serie-header: samme farge som tittel, ingen innrykk,
-                            // venstrejustert med kortene.
-                            Text(group.series)
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(Color("TextPrimary"))
-                                .tracking(-0.3)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 16)
-                                .padding(.top, 22)
-                                .padding(.bottom, 8)
+                        ForEach(visibleGroups, id: \.series) { group in
+                            // Serie-header: skjules når man allerede har filtrert til
+                            // én serie (chipen viser navnet), ellers deler den opp.
+                            if selectedSeries == nil {
+                                Text(group.series)
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(Color("TextPrimary"))
+                                    .tracking(-0.3)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 22)
+                                    .padding(.bottom, 8)
+                            } else {
+                                Color.clear.frame(height: 16)
+                            }
 
                             VStack(spacing: 0) {
                                 ForEach(group.cigars) { cigar in
@@ -2095,8 +2182,9 @@ struct BrandCigarsView: View {
                         }
                     }
                     .padding(.bottom, 40)
+                    }
+                    .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
                 }
-                .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
             }
         }
         .navigationTitle(brand)

@@ -33,6 +33,11 @@ class ScanService: ObservableObject {
     // «ingen treff»-skjermen: var det ingen tekst, uleselig tekst, eller lest
     // tekst uten treff i basen? Tre svært ulike situasjoner for brukeren.
     @Published var bandTextOutcome: BandTextOutcome = .none
+    // Hva GPT faktisk LESTE på båndet ved en bom (merke/serie) — driver
+    // «Vi leste: X»-chipen på «ingen treff»-skjermen og forhåndsutfyller
+    // manuell innlegging. Fylles kun når teksten ble lest greit uten treff.
+    @Published var readBrand: String? = nil
+    @Published var readSeries: String? = nil
 
     enum BandTextOutcome: Equatable {
         case none      // ingen lesbar tekst funnet (typisk rent grafisk bånd)
@@ -60,8 +65,30 @@ class ScanService: ObservableObject {
         ocrVocabulary = try? await cigarService.fetchOcrVocabulary()
     }
 
+    // Skalerer bildet ned til maks `maxDim` px på lengste kant (beholder ratio).
+    // Returnerer originalen om den allerede er liten nok. Kutter minne/CPU både
+    // på klienten og i edge-funksjonen kraftig.
+    static func downscaled(_ image: UIImage, maxDim: CGFloat) -> UIImage {
+        let w = image.size.width, h = image.size.height
+        let longest = max(w, h)
+        guard longest > maxDim, longest > 0 else { return image }
+        let scale = maxDim / longest
+        let newSize = CGSize(width: (w * scale).rounded(), height: (h * scale).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1        // 1:1 piksler — ikke ×2/×3 for skjerm
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+        return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+    }
+
     // MARK: - Hovedfunksjon: scan et bilde
-    func scanBandImage(_ image: UIImage) async {
+    func scanBandImage(_ inputImage: UIImage) async {
+        // Krymp bildet FØR tung behandling. En full 12MP-telefonfoto blir ~48 MB
+        // rå-piksler når edge-funksjonen dekoder den — nok til å sprenge minne-/
+        // CPU-grensen og få funksjonen drept (HTTP 546). 1536 px lang kant er
+        // rikelig for både OCR og gjenkjenning, men mange ganger lettere å sende
+        // og prosessere.
+        let image = Self.downscaled(inputImage, maxDim: 1536)
         isScanning = true
         scanResults = []
         autoSelectedCigar = nil
@@ -72,6 +99,8 @@ class ScanService: ObservableObject {
         errorMessage = nil
         noMatch = false
         bandTextOutcome = .none
+        readBrand = nil
+        readSeries = nil
 
         // Hent OCR-vokabular (merke-/serienavn fra databasen) før vi kjører
         // Vision, slik at customWords er klar til extractText under.
@@ -132,16 +161,7 @@ class ScanService: ObservableObject {
                     // vi har flere treff uten eksakt variant, spør GPT om å avgjøre.
                     // Ved lav OCR-konfidens: vis heller DB-treffene som en valgliste —
                     // brukeren kan da velge riktig størrelse uten et ekstra AI-kall.
-                    //
-                    // MÅLRETTET INNSTRAMMING: et ENKELT DB-treff som båndteksten IKKE
-                    // korroborerer (merket/serien står ikke i teksten) er en «skråsikker
-                    // gjetning» — nettopp Lampert-formen. Da lar vi panelet avgjøre i
-                    // stedet for å stole blindt på det. Korroborerte treff (der båndet
-                    // faktisk navngir sigaren) beholdes på hurtig-sporet akkurat som før.
-                    let topUncorroborated = cigars.count == 1 &&
-                        !ocrTextCorroborates(cigars.first, ocrText: text)
-                    if autoSelectedCigar == nil && !isLowConfidence &&
-                        (cigars.count > 1 || topUncorroborated) {
+                    if autoSelectedCigar == nil && cigars.count > 1 && !isLowConfidence {
                         let dbFallbackResults = scanResults
                         do {
                             scanResults = []
@@ -201,6 +221,12 @@ class ScanService: ObservableObject {
         // treff»-skjermen i stedet for en tørr feil-alert.
         if errorMessage == nil && scanResults.isEmpty {
             noMatch = true
+            // Leste vi båndet greit, men fant ingen match? Hent HVA som ble lest,
+            // så «ingen treff»-skjermen kan vise «Vi leste: X» og forhåndsutfylle
+            // manuell innlegging.
+            if bandTextOutcome == .clear {
+                await fetchReadGuess(image: image)
+            }
         }
 
         // Både DB-søket og AI-fallback bygger scanResults i den rekkefølgen
@@ -210,17 +236,12 @@ class ScanService: ObservableObject {
         // vises øverst i listen, uansett hvor det landet i søket.
         scanResults.sort { $0.confidence > $1.confidence }
 
-        // Flere treff på samme bånd? Sjekk om de faktisk kan skilles på form
-        // — da ber vi om ett ekstra bilde i stedet for å gjette eller vise
-        // en lang liste rett vekk.
-        checkForShapeAmbiguity()
-
-        // Ikke begge avklaringer samtidig — formen er den mest synlige
-        // forskjellen, så den prioriteres. Trigger ikke hvis den allerede
-        // har formen sin avklaring i gang.
-        if !needsShapePhoto {
-            checkForWrapperAmbiguity()
-        }
+        // Tidligere ba vi her om ETT ekstra bilde av hele sigaren for å avklare
+        // form/wrapper når samme bånd matchet flere varianter. Det ble et
+        // unødvendig ekstra steg — treffsiden lar deg nå velge størrelse og
+        // dekkblad direkte i kortet. Så vi hopper over foto-avklaringen og går
+        // rett til resultatene. (checkForShapeAmbiguity/checkForWrapperAmbiguity
+        // er beholdt nedenfor i tilfelle vi vil skru det på igjen senere.)
 
         // Logg skann-hendelsen for dekning-analyse (treffrate + hvilke sigarer
         // folk skanner som vi ikke har). Fyr og glem — blokkerer aldri UI.
@@ -287,7 +308,7 @@ class ScanService: ObservableObject {
         isScanning = true
         defer { isScanning = false }
 
-        guard let imageData = downscaled(image).jpegData(compressionQuality: 0.7) else { return }
+        guard let imageData = image.jpegData(compressionQuality: 0.7) else { return }
         let base64Image = imageData.base64EncodedString()
 
         do {
@@ -363,7 +384,7 @@ class ScanService: ObservableObject {
         isScanning = true
         defer { isScanning = false }
 
-        guard let imageData = downscaled(image).jpegData(compressionQuality: 0.7) else { return }
+        guard let imageData = image.jpegData(compressionQuality: 0.7) else { return }
         let base64Image = imageData.base64EncodedString()
 
         do {
@@ -587,27 +608,10 @@ class ScanService: ObservableObject {
         }
     }
 
-    // MARK: - Nedskalering før opplasting
-    // iPhone-bilder er 12 MP. Sendt i full oppløsning kan de sprenge minnet i
-    // edge-funksjonens bilde-avkoding (→ 546 «worker limit»). 1600 px er rikelig
-    // for tekst, Lens og fingeravtrykk, men trygt under grensa. scale = 1 gjør at
-    // resultatet er piksler = punkter (ikke @2x/@3x), så vi faktisk kutter data.
-    private func downscaled(_ image: UIImage, maxDimension: CGFloat = 1600) -> UIImage {
-        let longest = max(image.size.width, image.size.height)
-        guard longest > maxDimension else { return image }
-        let factor = maxDimension / longest
-        let newSize = CGSize(width: image.size.width * factor, height: image.size.height * factor)
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = 1
-        return UIGraphicsImageRenderer(size: newSize, format: format).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-        }
-    }
-
     // MARK: - AI Fallback via Supabase Edge Function
     // Edge Function holder OpenAI API-nøkkelen server-side (tryggere)
     private func scanWithAI(image: UIImage) async throws {
-        guard let imageData = downscaled(image).jpegData(compressionQuality: 0.7) else {
+        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
             throw ScanError.invalidImage
         }
 
@@ -644,12 +648,39 @@ class ScanService: ObservableObject {
         }
     }
 
+    // Svar fra scan-cigar i «identify»-modus: kun DET GPT LESTE på båndet.
+    // Tomt objekt {} dersom ingenting kunne leses → begge felt blir nil.
+    private struct ReadGuess: Decodable {
+        let brand: String?
+        let series: String?
+    }
+
+    // Henter merket/serien GPT leste på båndet — brukes KUN ved en bom, til
+    // «Vi leste: X»-chipen og forhåndsutfylling av manuell innlegging.
+    private func fetchReadGuess(image: UIImage) async {
+        guard let data = image.jpegData(compressionQuality: 0.7) else { return }
+        let base64 = data.base64EncodedString()
+        do {
+            let guess: ReadGuess = try await supabase.functions
+                .invoke(
+                    "scan-cigar",
+                    options: .init(body: ["image": base64, "ocr_text": extractedText, "mode": "identify"])
+                )
+            let b = guess.brand?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let s = guess.series?.trimmingCharacters(in: .whitespacesAndNewlines)
+            readBrand = (b?.isEmpty == false) ? b : nil
+            readSeries = (s?.isEmpty == false) ? s : nil
+        } catch {
+            print("⚠️ Lesing av bånd-navn feilet: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Visuell båndgjenkjenning (siste utvei)
     // Sender bånd-bildet til edge-funksjonen embed-band, som lager et 512-d
     // "visuelt fingeravtrykk" og finner sigarer med lignende bånd blant alt
     // som andre brukere har løst før. Fanger bånd uten (lesbar) tekst.
     private func visualBandMatch(image: UIImage) async {
-        guard let data = downscaled(image).jpegData(compressionQuality: 0.7) else { return }
+        guard let data = image.jpegData(compressionQuality: 0.7) else { return }
         let base64 = data.base64EncodedString()
         do {
             let res: BandMatchResponse = try await supabase.functions
@@ -739,31 +770,6 @@ class ScanService: ObservableObject {
             return text.contains(wrapper.lowercased())
         }
         return wrapperCandidates.count == 1 ? wrapperCandidates.first : nil
-    }
-
-    // MARK: - Korroborering (band-tekst støtter treffet?)
-    // Sjekker om OCR-teksten faktisk NAVNGIR sigaren — dvs. inneholder merket
-    // eller serien (aksent-uavhengig). Speiler serverens korroborering, og
-    // skiller «lest» (trygt) fra «gjettet» (send til panelet). Token-basert på
-    // serien, så en OCR-skrivefeil i ett ord ikke velter hele korroboreringen.
-    private func ocrTextCorroborates(_ cigar: Cigar?, ocrText: String) -> Bool {
-        guard let cigar else { return false }
-        func norm(_ s: String) -> String {
-            s.folding(options: .diacriticInsensitive, locale: .current).lowercased()
-        }
-        let t = norm(ocrText)
-        let brand = norm(cigar.brand)
-        if brand.count >= 3 && t.contains(brand) { return true }
-        if let series = cigar.series {
-            let s = norm(series)
-            if s.count >= 3 && t.contains(s) { return true }
-            let words = s.split(separator: " ").map(String.init).filter { $0.count >= 2 }
-            if !words.isEmpty {
-                let hits = words.filter { t.contains($0) }.count
-                if hits >= Int(ceil(Double(words.count) * 0.6)) { return true }
-            }
-        }
-        return false
     }
 
     // MARK: - Konfidensberegning (enkel heuristikk)

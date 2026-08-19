@@ -1,10 +1,9 @@
 // supabase/functions/parse-receipt/index.ts
-// Edge Function: les en sigarbutikk-kvittering med GPT-vision, hent ut
-// varelinjer {navn, antall, enhetspris}. For hver linje henter vi topp-5
-// kandidater fra basen via match_cigar (trigram), og lar SÅ GPT velge riktig
-// kandidat ut fra sigar-kunnskap (forkortelser, manglende ord, språk) — i
-// stedet for en ren tekst-likhets-terskel. Faller trygt tilbake til terskel
-// hvis GPT-valg-kallet feiler.
+// v6: målbasert berikelse. For hver kvittering-linje henter vi som før topp-5
+// tekst-kandidater (match_cigar), MEN legger nå også til den raden i serien som
+// passer MÅLENE til en generisk vitola best (via resolve_by_size). Da når
+// «Alma del Campo Robusto» fram til «Tribu» selv om ingen rad heter «Robusto».
+// GPT velger fortsatt riktig kandidat blant de berikede.
 //
 // OpenAI-nøkkelen ligger kun her server-side — aldri i appen.
 
@@ -28,6 +27,26 @@ interface Candidate {
 
 // Terskel brukes KUN som fallback hvis GPT-valg-steget feiler.
 const MATCH_THRESHOLD = 0.45;
+
+// Trekk ut mål fra en linje: "5 x 52", "5 1/4 x 52", "6.5x54" -> {ring, length}.
+// Sigar-konvensjon: LENGDE (tommer) × RING (2 siffer). null hvis ikke funnet.
+function parseMixed(s: string): number {
+  s = s.trim().replace(",", ".");
+  const mixed = s.match(/^(\d+)\s+(\d)\/(\d)$/);            // "5 1/4"
+  if (mixed) return parseInt(mixed[1]) + parseInt(mixed[2]) / parseInt(mixed[3]);
+  const frac = s.match(/^(\d)\/(\d)$/);                      // "1/2"
+  if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
+  return parseFloat(s);
+}
+function extractDims(name: string): { ring: number; length: number } | null {
+  const m = name.match(/(\d+(?:\s+\d\/\d)?(?:[.,]\d+)?)\s*[x×]\s*(\d{2})\b/i);
+  if (!m) return null;
+  const length = parseMixed(m[1]);
+  const ring = parseInt(m[2], 10);
+  if (!Number.isFinite(length) || !Number.isFinite(ring) || ring < 30 || ring > 80) return null;
+  if (length < 2 || length > 10) return null;
+  return { ring, length };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -53,7 +72,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 2) Hent topp-5 kandidater per linje (trigram)
+    // 2) Hent topp-5 tekst-kandidater per linje (trigram) + målbasert berikelse
     const candidatesPerLine: Candidate[][] = [];
     for (const line of parsed.lines) {
       const q = (line.name ?? "").trim();
@@ -62,10 +81,38 @@ Deno.serve(async (req) => {
       const rows = (!error && Array.isArray(data) ? data : []) as Array<
         { id: string; brand: string; series: string | null; vitola: string | null; score: number }
       >;
-      candidatesPerLine.push(rows.map((r) => ({
+      const cands: Candidate[] = rows.map((r) => ({
         id: r.id, brand: r.brand, series: r.series, vitola: r.vitola, score: r.score,
         label: [r.brand, r.series, r.vitola].filter(Boolean).join(" "),
-      })));
+      }));
+
+      // Målbasert berikelse: bruk toppkandidatens merke/serie som kontekst, og
+      // finn raden som passer MÅLENE til den generiske vitolaen best. Eksplisitte
+      // mål på kvitteringen ("5 x 52") vinner over ordboka. Legges til (dedup),
+      // så GPT kan velge den når "Robusto" egentlig er "Tribu".
+      const top = rows[0];
+      if (top && top.brand) {
+        const dims = extractDims(q);
+        const { data: rz } = await supabase.rpc("resolve_by_size", {
+          p_brand: top.brand,
+          p_series: top.series,
+          p_vitola: q,
+          p_ring: dims?.ring ?? null,
+          p_length: dims?.length ?? null,
+        });
+        const sized = (Array.isArray(rz) ? rz : []) as Array<
+          { id: string; brand: string; series: string | null; vitola: string | null }
+        >;
+        for (const r of sized.slice(0, 2)) {
+          if (!cands.some((c) => c.id === r.id)) {
+            cands.push({
+              id: r.id, brand: r.brand, series: r.series, vitola: r.vitola, score: 0.5,
+              label: [r.brand, r.series, r.vitola].filter(Boolean).join(" "),
+            });
+          }
+        }
+      }
+      candidatesPerLine.push(cands);
     }
 
     // 3) La GPT velge riktig kandidat per linje (eller null)
@@ -101,7 +148,7 @@ Deno.serve(async (req) => {
         matched.push({
           cigar_id: pick.id, brand: pick.brand, series: pick.series, vitola: pick.vitola,
           receipt_name: q, quantity: qty, unit_price: line.unit_price,
-          score: 1, // GPT-bekreftet treff → høy konfidens
+          score: 1, // GPT-bekreftet treff -> høy konfidens
         });
       } else {
         unmatched.push({ name: q, quantity: qty, unit_price: line.unit_price });
@@ -131,20 +178,20 @@ async function readReceiptWithGPT(base64Image: string, apiKey: string): Promise<
 Hent ut KUN varelinjene som er sigarer. Ignorer tilbehør (tennere, kuttere, askebegre, etuier), rabatter, moms, totalsum, bonuspoeng og betalingsinfo.
 
 For hver sigar-varelinje:
-- "name": produktnavnet så komplett som mulig (merke + serie + eventuell vitola/størrelse), akkurat slik det står på kvitteringen. Rett åpenbare OCR-feil hvis du er sikker.
-- "quantity": antall sigarer på linja (heltall, minst 1). Kvitteringer skriver ofte "2 x", "2 stk", eller antall i egen kolonne.
-- "unit_price": prisen for ÉN sigar som et tall (ingen valutategn). Hvis kvitteringen bare viser linjens totalsum, regn ut totalsum / antall. Sett null hvis prisen ikke er lesbar.
+- \"name\": produktnavnet så komplett som mulig (merke + serie + eventuell vitola/størrelse), akkurat slik det står på kvitteringen. Rett åpenbare OCR-feil hvis du er sikker.
+- \"quantity\": antall sigarer på linja (heltall, minst 1). Kvitteringer skriver ofte \"2 x\", \"2 stk\", eller antall i egen kolonne.
+- \"unit_price\": prisen for ÉN sigar som et tall (ingen valutategn). Hvis kvitteringen bare viser linjens totalsum, regn ut totalsum / antall. Sett null hvis prisen ikke er lesbar.
 
-Prøv også å hente butikkens navn i "store" (øverst på kvitteringen), eller null.
+Prøv også å hente butikkens navn i \"store\" (øverst på kvitteringen), eller null.
 
 Returner KUN gyldig JSON i dette formatet, ingen annen tekst:
 {
-  "store": "string eller null",
-  "lines": [
-    { "name": "string", "quantity": 1, "unit_price": 0.0 }
+  \"store\": \"string eller null\",
+  \"lines\": [
+    { \"name\": \"string\", \"quantity\": 1, \"unit_price\": 0.0 }
   ]
 }
-Hvis du ikke finner noen sigar-linjer, returner { "store": null, "lines": [] }.`;
+Hvis du ikke finner noen sigar-linjer, returner { \"store\": null, \"lines\": [] }.`;
 
   const data = await callOpenAI(apiKey, [
     { type: "text", text: prompt },
@@ -187,7 +234,7 @@ async function pickMatchesWithGPT(
   const prompt =
     `Du er sigar-ekspert og kobler kvittering-linjer til riktig sigar i katalogen vår.
 For hver linje får du kvittering-teksten og opptil 5 kandidater fra databasen.
-Velg kandidaten som er SAMME sigar som kvittering-linja — ta høyde for forkortelser, manglende ord, rekkefølge og språk, og bruk din egen kunnskap om sigarer. Hvis ingen kandidat helt klart er samme sigar, returner null for den linja.
+Velg kandidaten som er SAMME sigar som kvittering-linja — ta høyde for forkortelser, manglende ord, rekkefølge og språk, og bruk din egen kunnskap om sigarer. Forhandlere bruker ofte GENERISKE størrelsesnavn (Robusto, Toro, Gordo) selv om produsenten bruker egne navn (Tribu, Sendero, Madroño) — samme mål = samme sigar. Hvis ingen kandidat helt klart er samme sigar, returner null for den linja.
 
 Returner KUN JSON, ingen annen tekst:
 { "picks": [ { "i": 0, "choice": 2 }, { "i": 1, "choice": null } ] }
@@ -205,7 +252,7 @@ ${block}`;
     const choice = (p as { choice: unknown }).choice;
     if (!Number.isInteger(i) || i < 0 || i >= items.length) continue;
     if (choice == null) { result[i] = null; continue; }
-    const ci = Number(choice) - 1; // 1-basert → 0-basert
+    const ci = Number(choice) - 1; // 1-basert -> 0-basert
     if (Number.isInteger(ci) && ci >= 0 && ci < items[i].candidates.length) {
       result[i] = ci;
     }
