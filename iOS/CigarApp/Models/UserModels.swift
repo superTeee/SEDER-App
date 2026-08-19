@@ -315,18 +315,6 @@ struct TastingLog: Codable, Identifiable {
         case cigar              = "cigars"
     }
 
-    // Hjelpefunksjon: label for 0-100 score
-    var scoreLabel: String? {
-        guard let r = rating else { return nil }
-        switch r {
-        case 95...100: return "Eksepsjonell"
-        case 90...94:  return "Fremragende"
-        case 85...89:  return "Meget bra"
-        case 80...84:  return "Bra"
-        case 70...79:  return "Grei"
-        default:       return "Ikke for meg"
-        }
-    }
 }
 
 struct NewTastingLog: Encodable {

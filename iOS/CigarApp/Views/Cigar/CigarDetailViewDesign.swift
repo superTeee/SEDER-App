@@ -519,7 +519,7 @@ struct CigarDetailViewDesign: View {
                         Button { onScanNext() } label: {
                             HStack {
                                 Image(systemName: "camera.viewfinder")
-                                Text("Scan neste sigar").fontWeight(.semibold)
+                                Text("Identifiser neste").fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 16)
                             .background(surfacePrimary).foregroundColor(action)

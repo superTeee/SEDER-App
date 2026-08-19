@@ -250,6 +250,7 @@ struct JournalRow: View {
 
     let log: TastingLog
     private let tastingService = TastingService()
+    @Environment(\.colorScheme) private var colorScheme
 
     private var dateLabel: String {
         let f = DateFormatter()
@@ -258,26 +259,46 @@ struct JournalRow: View {
         return f.string(from: log.smokedAt)
     }
 
+    // Dato-badge — flyter oppå bildet øverst til høyre, helt likt antall-chippen
+    // på humidor-kortene (hvit kapsel i lys modus).
+    private var dateChip: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "calendar")
+                .font(.system(size: 11, weight: .semibold))
+            Text(dateLabel)
+                .font(.system(size: 12, weight: .semibold))
+        }
+        .foregroundColor(Color("TextPrimary"))
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(colorScheme == .light ? Color.white : Color("Surface").opacity(0.92)))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            // ── Bilde (hvis finnes) ───────────────────────────
+            // ── Bilde (hvis finnes) — kvadratisk, med dato-badge øverst til høyre ──
             if let photoUrl = log.photoUrl, let url = URL(string: photoUrl) {
-                KFImage(url)
-                    // Nedskaler under dekoding — store bilder (opptil ~2 MB) lastet
-                    // tregt/upålitelig i full oppløsning inn i en liten rad.
-                    .setProcessor(DownsamplingImageProcessor(size: CGSize(width: 1200, height: 712)))
-                    .cacheOriginalImage()
-                    .resizable()
-                    .placeholder {
-                        Rectangle().fill(Color(.secondarySystemBackground)).frame(height: 178)
-                    }
-                    .fade(duration: 0.15)
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 178)
+                Color.clear
+                    .aspectRatio(1, contentMode: .fit)   // full-bredde kvadrat
+                    .overlay(
+                        KFImage(url)
+                            // Nedskaler under dekoding — store bilder lastet tregt/
+                            // upålitelig i full oppløsning inn i en liten rad.
+                            .setProcessor(DownsamplingImageProcessor(size: CGSize(width: 1000, height: 1000)))
+                            .cacheOriginalImage()
+                            .resizable()
+                            .placeholder {
+                                Rectangle().fill(Color(.secondarySystemBackground))
+                            }
+                            .fade(duration: 0.15)
+                            .scaledToFill()
+                    )
                     .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(alignment: .topTrailing) {
+                        dateChip.padding([.top, .trailing], 10)
+                    }
                     .padding(.bottom, 8)
             }
 
@@ -296,27 +317,17 @@ struct JournalRow: View {
                             .font(.caption)
                             .foregroundColor(Color("TextSecondary"))
                     }
-                    // Kilde: fra humidoren vs. røkt direkte (uten å eie sigaren)
-                    HStack(spacing: 4) {
-                        Image(systemName: log.humidorEntryId != nil ? "archivebox.fill" : "square.and.pencil")
-                            .font(.system(size: 9))
-                        Text(log.humidorEntryId != nil ? "Fra humidor" : "Røkt direkte")
-                            .font(.caption2.weight(.medium))
-                    }
-                    .foregroundColor(Color("TextSecondary"))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color("Surface"))
-                    .clipShape(Capsule())
-                    .padding(.top, 2)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(dateLabel)
-                        .font(.caption)
-                        .foregroundColor(Color("TextSecondary"))
-                    if let rating = log.rating, let label = log.scoreLabel {
-                        ScoreBadge(text: "\(rating) · \(label)", size: 12)
+                    // Uten bilde er det ingen badge å vise datoen i — vis den her.
+                    if log.photoUrl == nil {
+                        Text(dateLabel)
+                            .font(.caption)
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                    if let rating = log.rating {
+                        ScoreBadge(text: "\(rating)", size: 12)
                     }
                 }
             }
@@ -396,17 +407,6 @@ struct EditLogSheet: View {
     }
 
     // MARK: Hjelpere
-
-    private var scoreLabel: String {
-        switch score {
-        case 95...100: return "Eksepsjonell"
-        case 90...94:  return "Fremragende"
-        case 85...89:  return "Meget bra"
-        case 80...84:  return "Bra"
-        case 70...79:  return "Grei"
-        default:       return "Ikke for meg"
-        }
-    }
 
     private var scoreColor: Color {
         switch score {
@@ -526,7 +526,7 @@ struct EditLogSheet: View {
                                     .foregroundColor(scoreColor)
                                     .contentTransition(.numericText())
                                     .animation(.spring(duration: 0.2), value: score)
-                                Text(scoreLabel)
+                                Text("Min vurdering")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }

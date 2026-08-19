@@ -398,17 +398,6 @@ struct SmokingLogSheet: View {
 
     // MARK: Hjelpere
 
-    private var scoreLabel: String {
-        switch score {
-        case 95...100: return "Exceptional"
-        case 90...94:  return "Excellent"
-        case 85...89:  return "Very good"
-        case 80...84:  return "Good"
-        case 70...79:  return "Average"
-        default:       return "Not for me"
-        }
-    }
-
     private var scoreColor: Color {
         switch score {
         case 90...100: return Color(red: 0.85, green: 0.65, blue: 0.2)   // gull
@@ -509,10 +498,9 @@ struct SmokingLogSheet: View {
                                     .contentTransition(.numericText())
                                     .animation(.spring(duration: 0.2), value: score)
 
-                                Text(scoreLabel)
+                                Text("Min vurdering")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                    .animation(.easeInOut, value: scoreLabel)
                             } else {
                                 Text("–")
                                     .font(.system(size: 80, weight: .thin, design: .rounded))
@@ -1323,6 +1311,22 @@ struct ReceiptConfirmView: View {
                     purchasePrice: price
                 )
             }
+
+            // Bekreft & lær: kvittering-navnet er nå bekreftet (og evt. rettet)
+            // mot en konkret sigar. Mat samme lære-loop som skann-oppslag — nok
+            // stemmer (eller at brukeren er oppretter) gjør navnet til et alias
+            // som match_cigar finner. Da kobles «Alma Fuerte Robusto» til riktig
+            // rad automatisk neste gang. Fyr og glem; skal aldri velte lagringen.
+            let learnPairs: [(String, UUID)] = lines
+                .filter { $0.included }
+                .map { ($0.receiptName, $0.cigarId) }
+            Task {
+                let svc = TastingService()
+                for (name, id) in learnPairs {
+                    await svc.recordScanResolution(ocrText: name, cigarId: id, imagePath: nil)
+                }
+            }
+
             onFinished()
             dismiss()
         } catch {
