@@ -232,7 +232,7 @@ private fun JournalCard(log: TastingLog, onClick: () -> Unit) {
             }
             log.rating?.let { rating ->
                 Spacer(Modifier.width(10.dp))
-                ScoreBadge("$rating" + (log.scoreLabel?.let { " · $it" } ?: ""), fontSize = 12.sp)
+                ScoreBadge("$rating", fontSize = 12.sp)
             }
         }
     }

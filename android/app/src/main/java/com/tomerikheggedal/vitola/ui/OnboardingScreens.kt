@@ -22,10 +22,39 @@ import androidx.compose.ui.unit.dp
 import com.tomerikheggedal.vitola.data.ProfileRepository
 import kotlinx.coroutines.launch
 
+// ── LegalAge (speiler iOS) ─────────────────────────────────────────────────
+// Aldersgrensen for tobakk er ikke lik overalt. Norge og det meste av Europa
+// har 18 år, mens USA har 21 år føderalt siden desember 2019 — og den regelen
+// gjelder eksplisitt også sigarer. Vi leser enhetens region og krever den
+// grensen som faktisk gjelder der brukeren befinner seg.
+//
+// Legger du til nye markeder: sjekk landets faktiske regel FØR du legger det
+// inn i listen under. Står landet ikke i listen, faller det tilbake på 18.
+object LegalAge {
+
+    /** Jurisdiksjoner med 21-årsgrense: USA + amerikanske territorier. */
+    private val age21Regions = setOf(
+        "US",   // USA – føderal Tobacco 21 (des. 2019), omfatter sigarer
+        "PR",   // Puerto Rico
+        "GU",   // Guam
+        "VI",   // De amerikanske jomfruøyene
+        "AS",   // Amerikansk Samoa
+        "MP"    // Nord-Marianene
+    )
+
+    /** Minstealder for brukerens region. 21 i USA, ellers 18. */
+    val minimum: Int
+        get() {
+            val region = java.util.Locale.getDefault().country.uppercase()
+            return if (region in age21Regions) 21 else 18
+        }
+}
+
 // ── Aldersbekreftelse (som iOS AgeGateView) ────────────────────────────────
 @Composable
 fun AgeGateScreen(onVerified: () -> Unit) {
     var blocked by remember { mutableStateOf(false) }
+    val minAge = LegalAge.minimum
 
     if (blocked) {
         AgeBlockedScreen(onBack = { blocked = false })
@@ -45,27 +74,28 @@ fun AgeGateScreen(onVerified: () -> Unit) {
         Spacer(Modifier.height(48.dp))
         Text("Bekreft alder", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text("Du må være 18 år eller eldre for å bruke SEDER",
+        Text("Du må være $minAge år eller eldre for å bruke SEDER",
             style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(20.dp))
         // Egenerklæring med ja/nei i stedet for fødselsår
-        Button(onClick = onVerified, modifier = Modifier.width(240.dp)) { Text("Jeg er over 18 år") }
+        Button(onClick = onVerified, modifier = Modifier.width(240.dp)) { Text("Jeg er over $minAge år") }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = { blocked = true }) {
-            Text("Jeg er under 18 år", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Jeg er under $minAge år", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Spacer(Modifier.height(48.dp))
-        Text("Appen er kun for personer over 18 år.\nKjøp og promotering av tobakk er ikke en del av appen.",
+        Text("Appen er kun for personer over $minAge år.\nKjøp og promotering av tobakk er ikke en del av appen.",
             style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-// Blokkeringsskjerm for under 18
+// Blokkeringsskjerm for under aldersgrensen
 @Composable
 fun AgeBlockedScreen(onBack: () -> Unit) {
+    val minAge = LegalAge.minimum
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState()).padding(horizontal = 32.dp, vertical = 24.dp),
@@ -80,8 +110,8 @@ fun AgeBlockedScreen(onBack: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         Text(
             "SEDER er en digital humidor og smaksjournal laget for voksne sigarentusiaster. " +
-                "Innholdet er kun ment for personer over 18 år, så vi kan dessverre ikke gi deg tilgang ennå.\n\n" +
-                "Du er hjertelig velkommen tilbake når du fyller 18.",
+                "Innholdet er kun ment for personer over $minAge år, så vi kan dessverre ikke gi deg tilgang ennå.\n\n" +
+                "Du er hjertelig velkommen tilbake når du fyller $minAge.",
             style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 22.sp
         )
@@ -143,7 +173,7 @@ fun PrivacyConsentScreen(onAccepted: () -> Unit) {
             Text("Godta og fortsett")
         }
         Spacer(Modifier.height(8.dp))
-        Text("Appen er kun for personer over 18 år.",
+        Text("Appen er kun for personer over ${LegalAge.minimum} år.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
     }
@@ -159,7 +189,7 @@ private fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
         "Hvordan vi bruker dataene" to "Dataene brukes utelukkende for å drive SEDER-appen: lagre og vise sigarjournalen din, identifisere kontoen din og la deg logge inn. Vi selger ikke dataene dine til tredjepart, og de brukes ikke til reklame.",
         "Hvem ser dataene dine" to "Dataene lagres i Supabase (USA). Vi deler ikke data med andre aktører. Innlogging via Apple eller Google håndteres av henholdsvis Apple og Google etter deres egne personvernregler.",
         "Dine rettigheter" to "Du kan se, korrigere eller slette dataene dine når som helst. Slett kontoen direkte i appen under Innstillinger → Slett konto.",
-        "Aldersgrense" to "SEDER er kun beregnet for brukere over 18 år.",
+        "Aldersgrense" to "SEDER er kun beregnet for brukere over ${LegalAge.minimum} år.",
         "Kontakt" to "Spørsmål om personvern? Send e-post til theggedal@gmail.com",
     )
     AlertDialog(

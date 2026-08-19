@@ -21,15 +21,6 @@ import com.tomerikheggedal.vitola.data.JournalRepository
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-private fun scoreLabel(score: Int): String = when (score) {
-    in 95..100 -> "Eksepsjonell"
-    in 90..94 -> "Fremragende"
-    in 85..89 -> "Meget bra"
-    in 80..84 -> "Bra"
-    in 70..79 -> "Grei"
-    else -> "Ikke for meg"
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmokingLogSheet(
@@ -89,7 +80,7 @@ fun SmokingLogSheet(
                         Text("${score.roundToInt()}", style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(10.dp))
-                        Text(scoreLabel(score.roundToInt()), style = MaterialTheme.typography.bodyMedium,
+                        Text("Min vurdering", style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Slider(value = score, onValueChange = { score = it }, valueRange = 50f..100f)

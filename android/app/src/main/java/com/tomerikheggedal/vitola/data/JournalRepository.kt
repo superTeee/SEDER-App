@@ -24,20 +24,7 @@ data class TastingLog(
     @SerialName("flavor_rating") val flavorRating: Int? = null,
     @SerialName("cut_type") val cutType: String? = null,
     @SerialName("cigars") val cigar: Cigar? = null,
-) {
-    // 0–100 personlig score → norsk etikett (samme skala som iOS).
-    val scoreLabel: String?
-        get() = rating?.let {
-            when (it) {
-                in 95..100 -> "Eksepsjonell"
-                in 90..94 -> "Fremragende"
-                in 85..89 -> "Meget bra"
-                in 80..84 -> "Bra"
-                in 70..79 -> "Grei"
-                else -> "Ikke for meg"
-            }
-        }
-}
+)
 
 // Journal = brukerens egne tasting_logs. RLS gir kun egne rader.
 object JournalRepository {
