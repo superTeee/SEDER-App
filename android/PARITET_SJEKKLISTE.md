@@ -1,7 +1,86 @@
 # Vitola Android — paritet-sjekkliste
 
 Status for Android-appen sammenlignet med iOS. Oppdateres etter hvert som vi jobber.
-Sist oppdatert: 2026-07-26
+Sist oppdatert: **2026-08-19** (full gjennomgang av iOS-kodebasen)
+
+---
+
+# 🔍 GAP-ANALYSE 19. aug 2026
+
+Full sammenligning av iOS-kodebasen mot Android. Sortert etter hvor mye det haster.
+
+## 🔴 1. Play Store-samsvar — Android har IKKE fått 1.4.3-oppryddingen
+
+iOS ble avvist av Apple under retningslinje 1.4.3 (oppmuntrer til tobakkskonsum) og
+ble ryddet 10.–12. aug. **Ingenting av dette er gjort på Android.** Google Play har
+tilsvarende regler for tobakksinnhold, så dette er sannsynligvis en avvisning som
+venter på å skje.
+
+| Grep gjort på iOS | Android-status |
+|---|---|
+| Aktivitet-fane + venner FJERNET fra navigasjonen | ❌ `ui/activity/ActivityScreen.kt` (453 l) + `FriendsScreen.kt` fortsatt aktive |
+| Alle flamme-/røyk-ikoner fjernet | ❌ `LocalFireDepartment` i ExploreScreen, CigarDetailScreen, UserProfileScreen, MerkerSheet |
+| «Marker som røkt» → «Loggfør sigar» | ❌ «Marker som røkt» i ExploreScreen, CigarDetailScreen (×2), SmokingLogSheet (×2) |
+| Gamifisert konsum-milepæl + community-signal fjernet | ❌ ikke sjekket/ryddet |
+| Copy omrammet mot journal/oppslagsverk | ❌ ikke gjort |
+| Rating-adjektiver («Fremragende») fjernet | ✅ gjort 19. aug |
+| Regionsstyrt aldersgrense (21 USA / 18 ellers) | ✅ gjort 19. aug |
+
+## 🔴 2. Betaling — plattformene har divergert helt
+
+iOS gikk fra RevenueCat-abonnement til **StoreKit 2 med engangs livstids-Pro + tips**.
+Android står igjen på den gamle modellen.
+
+| | iOS (nå) | Android (nå) |
+|---|---|---|
+| Motor | StoreKit 2 direkte (`StoreManager.swift`) | RevenueCat (`ProManager.kt`, `VitolaApplication.kt`) |
+| Pro | Engangs livstid `no.sederappen.pro.lifetime` ~599 kr | Abonnement `seder_pro_monthly` / `_yearly` |
+| Tips | 3 consumables (19/49/99 kr) + `SupportView` to modus | ❌ finnes ikke |
+| Blokkering | — | Venter fortsatt på Play-konto + `goog_`-nøkkel |
+
+**Konsekvens:** Android selger et produkt iOS ikke lenger har. Må bygges om til
+Play Billing med livstidskjøp + tips før lansering, ellers blir prismodellen
+inkonsistent på tvers.
+
+## 🟠 3. Funksjoner som mangler helt i Android
+
+| iOS-fil(er) | Linjer | Android |
+|---|---|---|
+| `Scan/BarcodeScannerView.swift` + `UnknownBarcodeView.swift` + `Services/BarcodeService.swift` | 704 + 250 + 170 | ❌ ingen strekkode-skanning |
+| `Admin/AdminView.swift` + `CigarFillSheet.swift` + `Services/AdminService.swift` | 436 + 213 + 396 | ❌ ingen admin (merk: `web/admin.html` dekker dette — trolig bevisst) |
+| `Scan/MacroCameraView.swift` | 245 | ❌ ingen makro-kamera |
+| `Shared/FeedbackSheet.swift` + `MailComposeView.swift` | 170 + 82 | ❌ ingen tilbakemeldings-ark |
+
+## 🟠 4. Skann-motoren henger etter
+
+`Services/ScanService.swift` (883 l) vs `data/ScanRepository.kt` (330 l).
+iOS fikk 19. aug (commit 9da8020) to ting Android mangler:
+
+- **Nedskalering av bilde før analyse** — uten dette kan edge-funksjonen bli drept (HTTP 546) på store telefonbilder
+- **«Vi leste: X»-chip ved bom** + forhåndsutfylling av manuell innlegging
+
+I tillegg: `Scan/ResultsView.swift` (994 l) har ingen tilsvarende dybde på Android.
+
+## 🟡 5. Skjermer som er vesentlig tynnere
+
+Ikke nødvendigvis feil, men verdt en visuell sammenligning:
+
+| Skjerm | iOS | Android |
+|---|---|---|
+| Utforsk | 2406 | 941 |
+| Legg til sigar manuelt | 444 | 120 |
+| Cigar-detalj | 851 | 449 |
+| Profil (egen) | 545 | 571 ✅ |
+| Humidor-detalj | 753 | 685 ✅ |
+
+## Anbefalt rekkefølge
+1. **1.4.3-opprydding på Android** (blokkerer Play-innsending)
+2. **Betalingsmodell** (Play Billing: livstid + tips)
+3. Skann-nedskalering (stabilitet)
+4. Strekkode + tilbakemelding + makro-kamera
+5. Utforsk/AddCigar-dybde
+
+---
 
 ### Skann-dekning (paritet — klynge A, 26. juli)
 - ✅ `log_scan_event`-logging på hvert bånd-skann (treff + bom) → scan_events (dekning-datahjul) — ScanRepository
