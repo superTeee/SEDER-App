@@ -67,6 +67,7 @@ struct StoreSuggestionChips: View {
                     }
                 }
             }
+            .padding(4)
         }
     }
 }
@@ -180,23 +181,25 @@ struct AddToHumidorSheet: View {
 
                 // Valgfritt bilde — hjelper appen å kjenne igjen sigaren neste gang.
                 Section {
-                    if let photoImage {
-                        photoImage
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 160)
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
                     PhotosPicker(selection: $photoItem, matching: .images) {
-                        HStack(spacing: 6) {
-                            Image(systemName: photoImage == nil ? "camera.fill" : "arrow.triangle.2.circlepath")
-                            Text(photoImage == nil ? "Legg til bilde" : "Bytt bilde")
-                                .font(.subheadline)
+                        ZStack {
+                            if let photoImage {
+                                photoImage.resizable().scaledToFill()
+                            } else {
+                                Rectangle().fill(Color(.secondarySystemBackground))
+                                    .overlay { UploadPhotoPlaceholder() }
+                            }
                         }
-                        .foregroundColor(Color("Accent"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 200)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(alignment: .topTrailing) {
+                            if photoImage != nil { EditPhotoPill() }
+                        }
                     }
+                    .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets())
                     .onChange(of: photoItem) { _, newItem in
                         Task {
                             guard let newItem,
@@ -441,45 +444,57 @@ struct SmokingLogSheet: View {
 
                     // ── Foto (valgfritt) ──────────────────────────────
                     VStack(spacing: 10) {
-                        if let photoImage {
-                            photoImage
-                                .resizable()
-                                .scaledToFill()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 180)
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Color.clear
+                                .aspectRatio(1, contentMode: .fit)
+                                .overlay {
+                                    if let photoImage {
+                                        photoImage.resizable().scaledToFill()
+                                    } else {
+                                        Rectangle().fill(Color(.secondarySystemBackground))
+                                            .overlay { UploadPhotoPlaceholder() }
+                                    }
+                                }
                                 .clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .overlay(alignment: .topTrailing) {
+                                    if photoImage != nil { EditPhotoPill() }
+                                }
                                 .padding(.horizontal, 20)
                         }
-                        PhotosPicker(selection: $photoItem, matching: .images) {
-                            HStack(spacing: 6) {
-                                Image(systemName: photoImage == nil ? "camera.fill" : "arrow.triangle.2.circlepath")
-                                Text(photoImage == nil ? "Legg til bilde" : "Bytt bilde")
-                                    .font(.subheadline)
-                            }
-                            .foregroundColor(Color("Accent"))
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 4)
-                            .frame(maxWidth: .infinity, alignment: photoImage == nil ? .leading : .center)
-                        }
-                        .onChange(of: photoItem) { _, newItem in
-                            Task {
-                                guard let newItem,
-                                      let data = try? await newItem.loadTransferable(type: Data.self),
-                                      let uiImg = UIImage(data: data) else { return }
-                                cropRequest = CropRequest(image: uiImg, ratio: 1.6)
-                                photoItem = nil
+                        .buttonStyle(.plain)
+
+                        if photoImage != nil {
+                            Button {
+                                photoData = nil
+                                photoImage = nil
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "trash")
+                                    Text("Fjern bilde").font(.subheadline)
+                                }
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 20)
                             }
                         }
-                        .fullScreenCover(item: $cropRequest) { req in
-                            ImageCropper(image: req.image, ratio: req.ratio) { cropped in
-                                cropRequest = nil
-                                photoData = cropped.jpegData(compressionQuality: 0.9)
-                                photoImage = Image(uiImage: cropped)
-                            } onCancel: {
-                                cropRequest = nil
-                            }
-                            .ignoresSafeArea()
+                    }
+                    .onChange(of: photoItem) { _, newItem in
+                        Task {
+                            guard let newItem,
+                                  let data = try? await newItem.loadTransferable(type: Data.self),
+                                  let uiImg = UIImage(data: data) else { return }
+                            cropRequest = CropRequest(image: uiImg, ratio: 1.0)
+                            photoItem = nil
+                        }
+                    }
+                    .fullScreenCover(item: $cropRequest) { req in
+                        ImageCropper(image: req.image, ratio: req.ratio) { cropped in
+                            cropRequest = nil
+                            photoData = cropped.jpegData(compressionQuality: 0.9)
+                            photoImage = Image(uiImage: cropped)
+                        } onCancel: {
+                            cropRequest = nil
                         }
                     }
                     .padding(.vertical, 12)
@@ -652,8 +667,7 @@ struct SmokingLogSheet: View {
                         TextField("Smaksnotat, anledning, pairing...", text: $notes, axis: .vertical)
                             .lineLimit(3...6)
                             .padding(12)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color("Accent"), lineWidth: 1.2))
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
@@ -668,8 +682,7 @@ struct SmokingLogSheet: View {
                         TextField("Butikk (valgfritt)", text: $store)
                             .textInputAutocapitalization(.words)
                             .padding(12)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color("Accent"), lineWidth: 1.2))
 
                         StoreSuggestionChips(store: $store, suggestions: storeSuggestions)
                     }
@@ -703,15 +716,15 @@ struct SmokingLogSheet: View {
                         }
 
                         Button {
-                            onSave(smokedAt, nil, smokeAgain, nil, nil, nil, notes.isEmpty ? nil : notes, photoData, selectedCutType, store.isEmpty ? nil : store)
                             dismiss()
                         } label: {
-                            Text("Logg uten score")
+                            Text("Avbryt")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding(.horizontal, 20)
+                    .padding(.top, 24)
                     .padding(.bottom, 32)
                 }
             }

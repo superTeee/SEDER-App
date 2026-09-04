@@ -446,10 +446,10 @@ struct WishlistRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(cigar.brand)
-                .font(.headline)
+                .font(.system(size: 16, weight: .semibold))
             if let subtitle = subtitleText {
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(.system(size: 14))
                     .foregroundColor(Color("TextSecondary"))
                     .lineLimit(1)
             }
@@ -515,10 +515,10 @@ struct HumidorRow: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.cigar?.brand ?? "Ukjent")
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .semibold))
                 if let subtitle = subtitleText {
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.system(size: 14))
                         .foregroundColor(Color("TextSecondary"))
                         .lineLimit(1)
                 }

@@ -136,7 +136,6 @@ struct UserProfileView: View {
             } onCancel: {
                 cropRequest = nil
             }
-            .ignoresSafeArea()
         }
         .task { await load() }
         .alert("Opplasting feilet", isPresented: .constant(uploadErrorMessage != nil)) {
@@ -231,12 +230,13 @@ struct UserProfileView: View {
                         if p.isFoundingMember == true {
                             HStack(spacing: 5) {
                                 Image(systemName: "sparkles")
+                                    .foregroundColor(Color("Accent"))
                                 Text("Tidlig tester")
+                                    .foregroundColor(Color("TextPrimary"))
                             }
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(Color("Accent"))
                             .padding(.horizontal, 10).padding(.vertical, 4)
-                            .background(Capsule().fill(badgeFill))
+                            .overlay(Capsule().stroke(Color("Accent"), lineWidth: 1.2))
                         }
                     }
                     .padding(.top, 12)
@@ -429,13 +429,7 @@ struct UserProfileView: View {
             }
             Spacer(minLength: 4)
             if let score = favorites?.favoriteCigarScore {
-                Text("\(score)")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 3)
-                    .background(Color("Accent"))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                ScoreBadge(text: "\(score)")
             }
         }
         .padding(14)
@@ -550,7 +544,7 @@ struct UserProfileView: View {
                     // Info — brand, series/vitola, tidspunkt (alt stablet vertikalt)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(cigar.brand)
-                            .font(.subheadline.bold())
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Color("TextPrimary"))
                             .lineLimit(1)
                         if let series = cigar.series {
@@ -638,7 +632,7 @@ struct UserProfileView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.system(size: 13, weight: .semibold))   // +1px (var .caption/12)
+            .font(.system(size: 12, weight: .semibold))   // +1px (var .caption/12)
             .foregroundColor(Color("TextSecondary"))
             .tracking(0.5)
             .padding(.horizontal, 16)

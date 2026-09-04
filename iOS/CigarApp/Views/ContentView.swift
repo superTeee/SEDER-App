@@ -8,6 +8,11 @@ import SwiftUI
 //  • ownAvatarUrl/ownName — hentes én gang, brukes i avatar-knappen
 enum ScanAction { case band, photo, receipt }
 
+extension Notification.Name {
+    /// Sendes når en journal-logg er fullført → appen bytter til Journal-fanen.
+    static let didLogTasting = Notification.Name("didLogTasting")
+}
+
 @MainActor
 final class AppShell: ObservableObject {
     /// Presenterer skann-arket globalt (over gjeldende fane — ingen navigasjon).
@@ -102,6 +107,10 @@ struct ContentView: View {
         .onChange(of: appShell.pendingScan) { action in
             if action != nil { selectedTab = exploreTag }
         }
+        // Fullført journal-logg → naviger til Journal-fanen (den laster på nytt ved onAppear).
+        .onReceive(NotificationCenter.default.publisher(for: .didLogTasting)) { _ in
+            selectedTab = journalTag
+        }
     }
 
     // MARK: - Egen tab-bar
@@ -157,14 +166,14 @@ struct ContentView: View {
                 // Aktivt ikon får en avrundet flate i skann-knappens farge, hvitt ikon
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(selected ? Color(red: 224/255, green: 210/255, blue: 186/255) : Color.clear)
+                        .fill(selected ? Color("Accent") : Color.clear)
                         .frame(width: 46, height: 34)
                     Image(image)
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 26, height: 26)
-                        .foregroundColor(selected ? Color("Accent") : inactive)
+                        .foregroundColor(selected ? .white : inactive)
                         .overlay(alignment: .topTrailing) {
                             if showBadge {
                                 Circle()
@@ -194,12 +203,11 @@ struct ContentView: View {
                 Circle()
                     .fill(Color("Accent"))
                     .frame(width: 60, height: 60)
-                    .shadow(color: Color("Accent").opacity(0.35), radius: 8, x: 0, y: 3)
 
                 // Skann-ikon: søker-ramme + horisontal skann-strek
                 ZStack {
                     Image(systemName: "viewfinder")
-                        .font(.system(size: 27, weight: .light))
+                        .font(.system(size: 27, weight: .regular))
                     Capsule()
                         .frame(width: 19, height: 2)
                 }

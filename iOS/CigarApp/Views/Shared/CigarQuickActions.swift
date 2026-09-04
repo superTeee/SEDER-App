@@ -82,12 +82,9 @@ struct CigarQuickActions: ViewModifier {
                                     flavorRating: flavor, personalNotes: notes, photoUrl: url)
                             }
                         }
-                        // Tilby deling etter logging — som på detaljsiden.
-                        if let logId {
+                        if logId != nil {
                             await MainActor.run {
-                                pendingShareCaption = cigar.fullName
-                                    + (rating.map { " · \($0)/100" } ?? "") + " på SEDER"
-                                sharePrompt = SharePrompt(entryId: logId)
+                                NotificationCenter.default.post(name: .didLogTasting, object: nil)
                             }
                         }
                     }

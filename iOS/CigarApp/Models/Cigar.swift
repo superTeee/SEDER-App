@@ -302,3 +302,16 @@ enum FlavorIcon {
         label[icon] ?? icon.capitalized
     }
 }
+
+extension Cigar {
+    /// Merke + serie som ett rent navn, uten gjentatte ord ved siden av hverandre
+    /// («Arturo Fuente» + «Fuente Fuente OpusX» → «Arturo Fuente OpusX»).
+    var displayName: String {
+        var words = brand.split(separator: " ").map(String.init)
+        if let s = series, !s.isEmpty { words += s.split(separator: " ").map(String.init) }
+        guard !words.isEmpty else { return "Ukjent sigar" }
+        var out: [String] = []
+        for w in words where out.last?.lowercased() != w.lowercased() { out.append(w) }
+        return out.joined(separator: " ")
+    }
+}

@@ -144,7 +144,6 @@ struct CreateHumidorSheet: View {
                 } onCancel: {
                     cropRequest = nil
                 }
-                .ignoresSafeArea()
             }
             .onAppear(perform: prefill)
         }

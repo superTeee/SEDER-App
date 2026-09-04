@@ -386,12 +386,20 @@ struct ResultsView: View {
                             cigarId: cigar.id, userId: uid, smokedAt: smokedAt, rating: rating,
                             smokeAgain: smokeAgain, drawRating: draw, burnRating: burn,
                             flavorRating: flavor, notes: notes, cutType: cutType, store: store)
-                        if let data = photoData {
-                            let url = try await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
-                            try await tastingService.updateLog(
-                                id: logId, smokedAt: smokedAt, rating: rating, smokeAgain: smokeAgain,
-                                drawRating: draw, burnRating: burn, flavorRating: flavor,
-                                personalNotes: notes, photoUrl: url)
+                        // Tok du ikke eget bilde i arket, brukes skann-bildet som loggbilde.
+                        // Best-effort: en feil på bildet skal ALDRI blokkere navigasjon.
+                        let effectivePhoto = photoData ?? bandImage?.jpegData(compressionQuality: 0.9)
+                        if let data = effectivePhoto {
+                            do {
+                                let url = try await tastingService.uploadLogPhoto(logId: logId, userId: uid, imageData: data)
+                                try await tastingService.updateLog(
+                                    id: logId, smokedAt: smokedAt, rating: rating, smokeAgain: smokeAgain,
+                                    drawRating: draw, burnRating: burn, flavorRating: flavor,
+                                    personalNotes: notes, photoUrl: url)
+                            } catch { print("Loggbilde feilet (fortsetter): \(error)") }
+                        }
+                        await MainActor.run {
+                            NotificationCenter.default.post(name: .didLogTasting, object: nil)
                         }
                     } catch { print("Feil ved logging av sigar: \(error)") }
                 }
@@ -425,7 +433,7 @@ struct ResultsView: View {
     private func sectionHead(_ title: String, trailing: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.system(size: 16, weight: .semibold, design: .serif))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.sederInk)
             Spacer()
             if !trailing.isEmpty {
@@ -444,7 +452,7 @@ struct ResultsView: View {
             Text(ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                  ? "Vi fant ingen tekst å søke på"
                  : "Vi fant ingen sikker match på båndet")
-                .font(.system(size: 17, weight: .semibold, design: .serif))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.sederInk)
             Text("Sigaren kan likevel finnes i basen. Søk på merket under, eller legg den inn selv.")
                 .font(.subheadline)
@@ -452,7 +460,7 @@ struct ResultsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color.white))
+        .background(RoundedRectangle(cornerRadius: 18).fill(Color("Card")))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.sederLine, lineWidth: 1))
         .padding(.top, 8)
     }
@@ -469,7 +477,7 @@ struct ResultsView: View {
                 if isSearching { ProgressView() }
             }
             .padding(14)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color("Card")))
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederLine, lineWidth: 1))
 
             if let searchError {
@@ -501,11 +509,10 @@ struct ResultsView: View {
                     Image(systemName: "plus.circle").font(.system(size: 17, weight: .semibold))
                     Text("Legg til sigaren selv").font(.system(size: 16, weight: .semibold))
                 }
-                .foregroundColor(.sederAccent)
+                .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederAccent.opacity(0.35), lineWidth: 1.5))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
             }
             .buttonStyle(.plain)
 
@@ -661,7 +668,7 @@ private struct HeroCard: View {
 
             // Serie — stor tittel.
             Text(title)
-                .font(.system(size: 24, weight: .semibold, design: .serif))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(.sederInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 3)
@@ -693,22 +700,20 @@ private struct HeroCard: View {
                     Button(action: onLogSmoked) {
                         Text("Logg sigar")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.sederInk)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 13)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederLine, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
                     }
                     .buttonStyle(.plain)
 
                     Button(action: onSeeCigar) {
                         Text("Se sigar")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.sederInk)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 13)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.sederLine, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
                     }
                     .buttonStyle(.plain)
                 }
@@ -717,9 +722,9 @@ private struct HeroCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(RoundedRectangle(cornerRadius: 22).fill(Color.white))
+        .background(RoundedRectangle(cornerRadius: 22).fill(Color("Card")))
         .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.sederAccent, lineWidth: 2))
-        .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 8)
+        .shadow(color: Color.primary.opacity(0.06), radius: 14, x: 0, y: 8)
     }
 
     // Gul hjelpelinje under størrelse-feltet når størrelsen bare er en gjetning.
@@ -783,15 +788,17 @@ private struct HeroCard: View {
     // i egen boks. Hvitt = bekreftet, gult = størrelse ubekreftet.
     private func selectorChip(lead: String, name: String, dims: String?,
                               flag: Bool, interactive: Bool) -> some View {
-        let fieldBg: Color = flag ? .sederAmberSoft : .white
-        let border:  Color = flag ? .sederAmber : Color.sederAccent.opacity(0.22)
+        let fieldBg: Color = flag ? .sederAmberSoft : .clear
+        let border:  Color = flag ? .sederAmber : Color("Accent")
         let leadCol: Color = flag ? .sederAmber : .sederMuted
-        let chevBg:  Color = flag ? .white : .sederAccentSoft
-        let chevCol: Color = flag ? .sederAmber : .sederAccent
+        let chevBg:  Color = flag ? .white : .clear
+        let chevCol: Color = flag ? .sederAmber : .white
+        // Ubekreftet størrelse → tydelig handlingsoppfordring i stedet for nøytral etikett.
+        let leadText = flag ? "Velg størrelse" : lead
         return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(lead)
-                    .font(.system(size: 9, weight: .semibold))
+                Text(leadText)
+                    .font(.system(size: flag ? 10 : 9, weight: flag ? .bold : .semibold))
                     .foregroundColor(leadCol)
                 // Navnet 2 px større enn målene: vitolanavnet er det viktigste,
                 // mens målene (· 52 × 6") holdes på 15 som før.
@@ -814,7 +821,7 @@ private struct HeroCard: View {
         .padding(.vertical, 11)
         .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: 12).fill(fieldBg))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(border, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(border, lineWidth: flag ? 2 : 1.2))
     }
 }
 
@@ -893,12 +900,12 @@ private struct AltRow: View {
                         .font(.system(size: 11.5, weight: .semibold))
                         .foregroundColor(.sederMuted)
                         .padding(.horizontal, 9).padding(.vertical, 4)
-                        .background(Capsule().fill(Color.black.opacity(0.05)))
+                        .background(Capsule().fill(Color.primary.opacity(0.06)))
                 }
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color("Card")))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.sederLine, lineWidth: 1))
         }
         .buttonStyle(.plain)
@@ -937,9 +944,9 @@ private struct SameBrandCard: View {
             }
             .padding(15)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color("Card")))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.sederLine, lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.05), radius: 14, x: 0, y: 4)
+            .shadow(color: Color.primary.opacity(0.06), radius: 14, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -983,12 +990,12 @@ struct CigarRow: View {
 private extension Color {
     static let sederInk        = Color("TextPrimary")
     static let sederMuted      = Color("TextSecondary")
-    static let sederPaper      = Color(red: 0.914, green: 0.890, blue: 0.851) // #E9E3D9
-    static let sederLine       = Color(red: 0.918, green: 0.890, blue: 0.847) // #EAE3D8
-    static let sederAccent     = Color(red: 0.294, green: 0.247, blue: 0.204) // #4B3F34
-    static let sederAccentSoft = Color(red: 0.941, green: 0.914, blue: 0.871) // #F0E9DE
+    static let sederPaper      = Color("Background")                          // adaptiv side-bakgrunn
+    static let sederLine       = Color("TextSecondary").opacity(0.18)          // adaptiv strek
+    static let sederAccent     = Color("Accent")                              // adaptiv primær-farge
+    static let sederAccentSoft = Color("Surface")                             // adaptiv myk flate
     static let sederGreen      = Color(red: 0.243, green: 0.557, blue: 0.353) // #3E8E5A
-    static let sederGreenSoft  = Color(red: 0.906, green: 0.945, blue: 0.918) // #E7F1EA
+    static let sederGreenSoft  = Color(red: 0.243, green: 0.557, blue: 0.353).opacity(0.18) // gjennomsiktig grønn
     static let sederAmber      = Color(red: 0.722, green: 0.525, blue: 0.231) // #B8863B
     static let sederAmberSoft  = Color(red: 0.965, green: 0.933, blue: 0.867) // #F6EEDD
 }

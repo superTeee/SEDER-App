@@ -179,7 +179,7 @@ class ProfileService: ObservableObject {
 
     func uploadCover(userId: UUID, imageData: Data) async throws -> String {
         let path = "\(userId.uuidString.lowercased())/cover.jpg"
-        let data = downscaledJPEG(imageData, maxDim: 1400)
+        let data = downscaledJPEG(imageData, maxDim: 1200, quality: 0.7)
         try await supabase.storage
             .from("avatars")
             .upload(path, data: data, options: FileOptions(

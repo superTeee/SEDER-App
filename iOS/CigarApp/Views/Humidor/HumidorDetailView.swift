@@ -15,6 +15,7 @@ struct HumidorDetailView: View {
 
     @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     private let humidorService = HumidorService()
 
     @State private var entries: [HumidorEntry] = []
@@ -130,7 +131,6 @@ struct HumidorDetailView: View {
             } onCancel: {
                 cropRequest = nil
             }
-            .ignoresSafeArea()
         }
         .task { await load() }
         // Stille auto-oppdatering: mens detaljvisningen er åpen og humidoren har
@@ -323,12 +323,13 @@ struct HumidorDetailView: View {
 
     @ViewBuilder
     private func statusBadge(_ status: RHStatus) -> some View {
-        // Chip i samme status-farge som boblen, 20 % dekning, sort tekst.
+        // Chip i samme status-farge som boblen. I dark mode: lys statusfarge
+        // (gul/grønn/rød) på mørk tint. I light mode: sort tekst for kontrast.
         Text(status.label)
             .font(.caption.weight(.semibold))
-            .foregroundColor(.black)
+            .foregroundColor(colorScheme == .dark ? rhDotColor(status) : .black)
             .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(rhDotColor(status).opacity(0.20))
+            .background(rhDotColor(status).opacity(colorScheme == .dark ? 0.22 : 0.20))
             .clipShape(Capsule())
     }
 
@@ -386,6 +387,7 @@ struct HumidorDetailView: View {
                             NavigationLink(destination: CigarDetailViewDesign(cigar: cigar, humidorEntry: entry)) {
                                 HumidorRow(entry: entry)
                                     .padding(.horizontal, 16)
+                                    .padding(.trailing, 8)
                                     .padding(.vertical, 10)
                             }
                             .buttonStyle(.plain)
@@ -403,6 +405,8 @@ struct HumidorDetailView: View {
                                     Label("Fjern fra humidor", systemImage: "trash")
                                 }
                             }
+                            // «Fjernes fra liste»-animasjon: raden glir ut mot høyre + fader.
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
                             if entry.id != visibleEntries.last?.id {
                                 Divider().padding(.leading, 16)
                             }
@@ -429,7 +433,9 @@ struct HumidorDetailView: View {
         guard let userId = authService.userId else { isLoading = false; return }
         isLoading = true
         let all = (try? await humidorService.fetchHumidor(userId: userId)) ?? []
-        entries = all.filter { $0.humidorId == humidor.id }
+        withAnimation(.easeInOut(duration: 0.3)) {
+            entries = all.filter { $0.humidorId == humidor.id }
+        }
         readings = (try? await humidorService.fetchRHReadings(humidorId: humidor.id)) ?? []
         await refreshSensor()
         isLoading = false

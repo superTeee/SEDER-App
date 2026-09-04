@@ -26,50 +26,17 @@ extension UIImage {
     }
 }
 
-// MARK: - ImageCropper (Mantis)
+// MARK: - ImageCropper (vår egen BandCropView – ikke Mantis)
 // SwiftUI-innpakning rundt Mantis sin crop-skjerm. Presenteres i en
 // fullScreenCover. `ratio` = bredde/høyde (1 = kvadrat), nil = fritt utsnitt.
-struct ImageCropper: UIViewControllerRepresentable {
+struct ImageCropper: View {
     let image: UIImage
-    var ratio: Double? = nil
+    var ratio: Double? = nil          // beholdt for kompatibilitet – crop er fri-form nå
     var onCrop: (UIImage) -> Void
     var onCancel: () -> Void = {}
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    func makeUIViewController(context: Context) -> Mantis.CropViewController {
-        var config = Mantis.Config()
-        if let ratio {
-            config.presetFixedRatioType = .alwaysUsingOnePresetFixedRatio(ratio: ratio)
-        }
-        let cropVC = Mantis.cropViewController(image: image, config: config)
-        cropVC.delegate = context.coordinator
-        return cropVC
-    }
-
-    func updateUIViewController(_ uiViewController: Mantis.CropViewController, context: Context) {}
-
-    class Coordinator: NSObject, CropViewControllerDelegate {
-        let parent: ImageCropper
-        init(_ parent: ImageCropper) { self.parent = parent }
-
-        func cropViewControllerDidCrop(_ cropViewController: Mantis.CropViewController,
-                                       cropped: UIImage,
-                                       transformation: Transformation,
-                                       cropInfo: CropInfo) {
-            parent.onCrop(cropped)
-        }
-
-        func cropViewControllerDidCancel(_ cropViewController: Mantis.CropViewController,
-                                         original: UIImage) {
-            parent.onCancel()
-        }
-
-        func cropViewControllerDidFailToCrop(_ cropViewController: Mantis.CropViewController,
-                                             original: UIImage) {}
-        func cropViewControllerDidBeginResize(_ cropViewController: Mantis.CropViewController) {}
-        func cropViewControllerDidEndResize(_ cropViewController: Mantis.CropViewController,
-                                            original: UIImage, cropInfo: CropInfo) {}
+    var body: some View {
+        BandCropView(image: image, onCancel: onCancel, onCrop: onCrop)
     }
 }
 
@@ -95,10 +62,9 @@ struct ScoreBadge: View {
     var body: some View {
         Text(text)
             .font(.system(size: size, weight: .semibold))
-            .foregroundColor(ScoreBadge.ink)
+            .foregroundColor(Color("TextPrimary"))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(ScoreBadge.latte)
-            .clipShape(RoundedRectangle(cornerRadius: 2))
+            .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color("Accent"), lineWidth: 1.2))
     }
 }

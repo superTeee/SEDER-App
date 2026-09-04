@@ -482,7 +482,7 @@ struct ScanningOverlay: View {
             VStack(spacing: 40) {
                 scanField
                 Text(steps[stepIndex])
-                    .font(.system(size: 17, design: .serif))
+                    .font(.system(size: 17))
                     .foregroundColor(Color("TextPrimary"))
                     .opacity(textVisible ? 1 : 0)
                     .frame(minHeight: 22)
@@ -573,9 +573,12 @@ struct ImagePicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        picker.sourceType = sourceType
+        // Kamera finnes ikke i simulatoren (og kan mangle på enkelte enheter).
+        // Fall tilbake til bildebiblioteket så appen ikke krasjer.
+        let useCamera = sourceType == .camera && UIImagePickerController.isSourceTypeAvailable(.camera)
+        picker.sourceType = useCamera ? .camera : .photoLibrary
         picker.delegate = context.coordinator
-        if sourceType == .camera {
+        if useCamera {
             picker.cameraOverlayView = ImagePicker.makeHintOverlay()
         }
         return picker
@@ -826,7 +829,7 @@ struct NoMatchView: View {
 
         VStack(alignment: .leading, spacing: 10) {
             Text("Tips for best mulig resultat")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color("TextPrimary"))
             cause("sun.max", "Godt, jevnt lys — unngå skygge og motlys")
             cause("viewfinder", "Fyll rammen med båndet — kom nærmere")
@@ -912,12 +915,12 @@ struct BandCropView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Button("Avbryt", action: onCancel)
-                Spacer()
+            ZStack {
                 Text("Beskjær").font(.system(size: 16, weight: .semibold))
-                Spacer()
-                Button("Bruk", action: commit).fontWeight(.semibold)
+                HStack {
+                    Button("Avbryt", action: onCancel)
+                    Spacer()
+                }
             }
             .foregroundColor(.white)
             .padding(.horizontal, 18)
@@ -955,7 +958,9 @@ struct BandCropView: View {
                     Circle()
                         .fill(Color.white)
                         .overlay(Circle().stroke(Color("Accent"), lineWidth: 2))
-                        .frame(width: 28, height: 28)
+                        .frame(width: 32, height: 32)
+                        .frame(width: 66, height: 66)
+                        .contentShape(Rectangle())
                         .position(x: crop.maxX, y: crop.maxY)
                         .gesture(resizeGesture)
                 }
@@ -967,24 +972,36 @@ struct BandCropView: View {
             }
             .background(Color.black)
 
-            HStack(spacing: 14) {
-                Button { rotate90() } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: "rotate.right")
-                        Text("Roter")
+            VStack(spacing: 14) {
+                HStack(spacing: 14) {
+                    Button { rotate90() } label: {
+                        HStack(spacing: 7) {
+                            Image(systemName: "rotate.right")
+                            Text("Roter")
+                        }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .background(Capsule().fill(Color.white.opacity(0.14)))
                     }
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Capsule().fill(Color.white.opacity(0.14)))
+                    Spacer()
+                    Text("Dra i rammen for å beskjære")
+                        .font(.system(size: 12.5))
+                        .foregroundColor(.white.opacity(0.7))
                 }
-                Spacer()
-                Text("Stram rammen rundt båndet")
-                    .font(.system(size: 12.5))
-                    .foregroundColor(.white.opacity(0.7))
+                Button(action: commit) {
+                    Text("Bruk")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Color("Accent"))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 18)
         }
         .background(Color.black.ignoresSafeArea())
     }
@@ -999,10 +1016,9 @@ struct BandCropView: View {
         let w = img.width * scale, h = img.height * scale
         let f = CGRect(x: (container.width - w) / 2, y: (container.height - h) / 2, width: w, height: h)
         imageFrame = f
-        // Startramme: bred og lav rundt midten — bånd-form.
-        let cw = f.width * 0.82
-        let ch = min(f.height * 0.4, f.height)
-        crop = CGRect(x: f.midX - cw / 2, y: f.midY - ch / 2, width: cw, height: ch)
+        // Startramme: kvadratisk, sentrert, ~40% av skjermen (klemt inn i bildet).
+        let side = min(min(container.width, container.height) * 0.4, f.width, f.height)
+        crop = CGRect(x: f.midX - side / 2, y: f.midY - side / 2, width: side, height: side)
     }
 
     private var moveGesture: some Gesture {

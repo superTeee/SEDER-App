@@ -24,7 +24,7 @@ final class ProManager: ObservableObject {
 
 // Antall «grunnleggere» som får en egen velkomst ved lansering.
 enum FoundingConfig {
-    static let cap = 100
+    static let cap = 50
 }
 
 
@@ -45,7 +45,7 @@ struct CigarAppApp: App {
 
     @AppStorage("hasVerifiedAge")      private var hasVerifiedAge      = false
     @AppStorage("hasAcceptedPrivacy")  private var hasAcceptedPrivacy  = false
-    @AppStorage("appearance")          private var appearance          = "system"
+    @AppStorage("appearance")          private var appearance          = "dark"
     @State private var isUnlocked = false
     @State private var showProfileOnboarding = false
     @State private var profileCheckInProgress = false
@@ -185,6 +185,25 @@ struct FoundingWelcomeView: View {
                     Text("Du er blant de \(FoundingConfig.cap) første medlemmene i SEDER")
                         .font(.subheadline).foregroundColor(Color("TextSecondary"))
                         .multilineTextAlignment(.center).padding(.horizontal, 40)
+
+                    // Forklarer tydelig hva grunnlegger-statusen gir: gratis livstids-Pro.
+                    VStack(spacing: 6) {
+                        HStack(spacing: 7) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 15)).foregroundColor(Color("Accent"))
+                            Text("SEDER Pro er låst opp – gratis, for alltid")
+                                .font(.system(size: 15, weight: .semibold)).foregroundColor(Color("TextPrimary"))
+                        }
+                        Text("Ubegrenset humidorer, full journal og alt annet – som takk for at du var tidlig ute.")
+                            .font(.footnote).foregroundColor(Color("TextSecondary"))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .background(Color("Surface"))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color("Accent").opacity(0.25), lineWidth: 1))
+                    .padding(.horizontal, 28).padding(.top, 6)
                 } else {
                     Text("Velkommen til SEDER")
                         .font(.system(size: 24, weight: .bold)).foregroundColor(Color("TextPrimary"))

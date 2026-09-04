@@ -163,9 +163,7 @@ struct CigarDetailViewDesign: View {
                             }
                             await MainActor.run {
                                 confirmLogged()
-                                pendingShareImageData = effectivePhoto
-                                pendingShareCaption = "\(cigar.fullName)" + (rating.map { " · \($0)/100" } ?? "") + " på SEDER"
-                                sharePrompt = SharePrompt(entryId: logId)
+                                NotificationCenter.default.post(name: .didLogTasting, object: nil)
                             }
                         } catch { print("Røyke-logg feil: \(error)") }
                         quantity = max(0, quantity - 1)
@@ -220,7 +218,10 @@ struct CigarDetailViewDesign: View {
                                     flavorRating: flavor, personalNotes: notes, photoUrl: url)
                             }
                         }
-                        await MainActor.run { confirmLogged(); sharePrompt = SharePrompt(entryId: logId) }
+                        await MainActor.run {
+                            confirmLogged()
+                            NotificationCenter.default.post(name: .didLogTasting, object: nil)
+                        }
                     } catch { print("Treff-logg feil: \(error)") }
                 }
             }
@@ -273,7 +274,6 @@ struct CigarDetailViewDesign: View {
             } onCancel: {
                 cropRequest = nil
             }
-            .ignoresSafeArea()
         }
         .sheet(isPresented: $showReportSheet) {
             CigarReportSheet(cigar: cigar)
@@ -467,16 +467,29 @@ struct CigarDetailViewDesign: View {
 
             // Action-knapp
             if entry != nil {
-                Button { showSmokingSheet = true } label: {
-                    HStack {
-                        Image(systemName: "square.and.pencil")
-                        Text("Loggfør sigar").fontWeight(.semibold)
+                VStack(spacing: 12) {
+                    Button { showSmokingSheet = true } label: {
+                        HStack {
+                            Image(systemName: "square.and.pencil")
+                            Text("Loggfør sigar").fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(action)
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(action)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    // Sekundær: fjern denne sigaren fra humidoren.
+                    Button { showRemoveAlert = true } label: {
+                        HStack {
+                            Image(systemName: "tray.and.arrow.up")
+                            Text("Fjern fra humidor").fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .foregroundColor(.white)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
+                    }
                 }
             } else {
                 VStack(spacing: 12) {
@@ -501,8 +514,8 @@ struct CigarDetailViewDesign: View {
                             Text("Loggfør sigar").fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(surfacePrimary).foregroundColor(action)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .foregroundColor(.white)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
                     }
                     Button { toggleWishlist() } label: {
                         HStack {
@@ -511,8 +524,8 @@ struct CigarDetailViewDesign: View {
                             Text(isInWishlist ? "I ønskelisten" : "Legg i ønskeliste").fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(surfacePrimary).foregroundColor(action)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .foregroundColor(.white)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
                     }
                     .disabled(isWishlistLoading)
                     if let onScanNext {
@@ -522,8 +535,8 @@ struct CigarDetailViewDesign: View {
                                 Text("Identifiser neste").fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 16)
-                            .background(surfacePrimary).foregroundColor(action)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .foregroundColor(.white)
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
                         }
                     }
                 }
@@ -597,7 +610,7 @@ struct CigarDetailViewDesign: View {
             // Header-rad
             HStack {
                 Text("SMAKSNOTER")
-                    .font(.system(size: 13, weight: .semibold))   // +1px, samme label-stil app-wide
+                    .font(.system(size: 12, weight: .semibold))   // +1px, samme label-stil app-wide
                     .foregroundColor(textSubtle)
                     .tracking(0.6)
                 Spacer()
@@ -783,8 +796,19 @@ struct CigarDetailViewDesign: View {
         guard let entry else { return }
         isSaving = true
         Task {
-            try? await humidorService.removeFromHumidor(entryId: entry.id)
-            isSaving = false
+            do {
+                try await humidorService.removeFromHumidor(entryId: entry.id)
+            } catch {
+                print("Fjern-fra-humidor-feil: \(error)")
+                await MainActor.run { isSaving = false }
+                return
+            }
+            // Naviger tilbake til sigarlista — den laster på nytt via .task når
+            // den dukker opp igjen, så den fjernede sigaren forsvinner fra lista.
+            await MainActor.run {
+                isSaving = false
+                dismiss()
+            }
         }
     }
 }

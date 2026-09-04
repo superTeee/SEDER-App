@@ -1,14 +1,6 @@
 import SwiftUI
 import AVFoundation
 
-// Identifiserbar innpakning av bildet som skal beskjæres, så vi kan bruke
-// fullScreenCover(item:) — den presenterer først når bildet faktisk finnes
-// (unngår den blanke skjermen man får med isPresented + separat optional).
-struct CropImageItem: Identifiable {
-    let id = UUID()
-    let image: UIImage
-}
-
 // MARK: - ExploreView
 // Browse alle sigarer: søk, merkeliste, avansert filter og skann-FAB
 
@@ -77,10 +69,8 @@ struct ExploreView: View {
     @State private var showCameraPicker   = false
     @State private var showLibraryPicker  = false
     @State private var capturedImage: UIImage?
+    @State private var scanCropRequest: CropRequest? = nil
     @State private var navigateToResults  = false
-    // Beskjær-steg for opplastede bilder (bibliotek) — bruker strammer rammen
-    // rundt båndet (og kan rotere) før skanning, for bedre treff.
-    @State private var cropItem: CropImageItem?
 
     // Ingen treff → vennlig skjerm + manuell innlegging
     @State private var showManualAdd      = false
@@ -152,8 +142,13 @@ struct ExploreView: View {
 
     // MARK: - Body
 
-    var body: some View {
-        NavigationStack {
+    // Utforsk-siden har svært mange ark/flyt-modifikatorer. Stablet på én og
+    // samme view blir SwiftUI-typen så dypt nøstet at iPhone-en (mye mindre
+    // stack enn simulatoren) krasjer med EXC_BAD_ACCESS — stack overflow i
+    // swift::SubstGenericParameter — når typen bygges. Vi deler derfor kjeden
+    // i tre type-viskede (AnyView) grupper. Oppførselen er nøyaktig den samme.
+    private var exploreScreenA: AnyView {
+        AnyView(
             ZStack(alignment: .bottomTrailing) {
                 Color("Background").ignoresSafeArea()
 
@@ -228,40 +223,30 @@ struct ExploreView: View {
             .sheet(isPresented: $showLibraryPicker) {
                 ImagePicker(image: $capturedImage, sourceType: .photoLibrary) {
                     if let image = capturedImage {
-                        // Opplastet bilde er ofte tatt på avstand → la brukeren
-                        // beskjære rundt båndet før vi skanner.
+                        // Bilder fra biblioteket er ofte tatt på avstand → la
+                        // brukeren stramme rammen rundt båndet før skanning.
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                            cropItem = CropImageItem(image: image)
+                            scanCropRequest = CropRequest(image: image, ratio: nil)
                         }
                     }
                 }
             }
-            .fullScreenCover(item: $cropItem) { item in
-                BandCropView(
-                    image: item.image,
-                    onCancel: { cropItem = nil },
-                    onCrop: { cropped in
-                        cropItem = nil
-                        capturedImage = cropped
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            Task { await scanService.scanBandImage(cropped) }
-                        }
-                    }
-                )
-            }
-            // Treff-skjermen presenteres som et modalt dekke – IKKE en push i
-            // Utforsk-stakken. En root-nivå navigationDestination kan ikke legge
-            // seg oppå en allerede åpnet sigar-detalj, så skanning inne fra en
-            // sigar navigerte ingensteds. Et fullScreenCover legger seg over alt,
-            // uansett hvor dypt i navigasjonen brukeren står. Egen NavigationStack
-            // så ResultsView sine egne push-er (Se sigar / Flere fra samme serie)
-            // fortsatt virker.
-            .fullScreenCover(isPresented: $navigateToResults) {
-                NavigationStack {
-                    ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText, onScanNext: { startNewScan() })
+            .fullScreenCover(item: $scanCropRequest) { req in
+                ImageCropper(image: req.image) { cropped in
+                    scanCropRequest = nil
+                    capturedImage = cropped
+                    Task { await scanService.scanBandImage(cropped) }
+                } onCancel: {
+                    scanCropRequest = nil
                 }
-                .environmentObject(authService)
-                .environmentObject(appShell)
+            }
+            .navigationDestination(isPresented: $navigateToResults) {
+                ResultsView(results: scanService.scanResults, ocrText: scanService.extractedText,
+                            bandImage: capturedImage, onScanNext: { startNewScan() })
+            }
+            // Fullført logg fra treffsiden → pop resultatet (ContentView bytter til Journal-fanen).
+            .onReceive(NotificationCenter.default.publisher(for: .didLogTasting)) { _ in
+                navigateToResults = false
             }
             .navigationDestination(isPresented: $navigateToBarcode) {
                 if let cigar = barcodeFoundCigar {
@@ -284,6 +269,12 @@ struct ExploreView: View {
                 .environmentObject(authService)
             }
             .sheet(isPresented: $showLoginSheet) { AuthView() }
+        )
+    }
+
+    private var exploreScreenB: AnyView {
+        AnyView(
+            exploreScreenA
             .fullScreenCover(isPresented: $showBarcodeScan) {
                 BarcodeScanView { cigar in
                     // Liten delay slik at fullScreenCover rekker å lukke seg før navigering
@@ -373,6 +364,12 @@ struct ExploreView: View {
                     }
                 )
             }
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            exploreScreenB
             .sheet(isPresented: $showManualAdd) {
                 // Samme skjerm som ellers i appen (AddCigarSheet).
                 AddCigarSheet(prefillNote: scanPrefillNote) { cigar in
@@ -640,7 +637,7 @@ struct ExploreView: View {
                 VStack(spacing: 0) {
                     ForEach(0..<3, id: \.self) { index in
                         SkeletonRow()
-                        if index < 2 { Divider().padding(.leading, 56) }
+                        if index < 2 { Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.leading, 56) }
                     }
                 }
             } else {
@@ -652,7 +649,7 @@ struct ExploreView: View {
                         .buttonStyle(.plain)
                         .cigarQuickActions(cigar)
                         if index < topCigars.count - 1 {
-                            Divider().padding(.leading, 56)
+                            Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.leading, 56)
                         }
                     }
                 }
@@ -699,7 +696,7 @@ struct ExploreView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color("Accent").opacity(0.12))
                     .frame(width: 52, height: 52)
-                Image(systemName: "star.fill")
+                Image(systemName: "flame.fill")
                     .font(.system(size: 22))
                     .foregroundColor(Color("Accent"))
             }
@@ -707,7 +704,7 @@ struct ExploreView: View {
             // Info
             VStack(alignment: .leading, spacing: 3) {
                 Text(cigar.brand)
-                    .font(.subheadline.bold())
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Color(.label))
                 if let series = cigar.series {
                     Text(series)
@@ -779,7 +776,7 @@ struct ExploreView: View {
                     }
 
                     if term != recentSearches.last {
-                        Divider().padding(.leading, 48)
+                        Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.leading, 48)
                     }
                 }
             }
@@ -810,7 +807,8 @@ struct ExploreView: View {
             ForEach(brandSections, id: \.letter) { section in
                 // Bokstav-header
                 Text(section.letter)
-                    .font(.footnote.bold())
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(0.6)
                     .foregroundColor(Color(.secondaryLabel))
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
@@ -822,6 +820,7 @@ struct ExploreView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(brand.brand)
+                                        .font(.system(size: 16, weight: .semibold))
                                         .foregroundColor(Color(.label))
                                     Text(brand.subtitle)
                                         .font(.caption)
@@ -839,7 +838,7 @@ struct ExploreView: View {
                         .buttonStyle(.plain)
 
                         if brand.id != section.brands.last?.id {
-                            Divider().padding(.leading, 16)
+                            Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.leading, 16)
                         }
                     }
                 }
@@ -921,7 +920,7 @@ struct ExploreView: View {
                         }
                         .cigarQuickActions(cigar)
                         if cigar.id != section.cigars.last?.id {
-                            Divider().padding(.leading, 16)
+                            Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.leading, 16)
                         }
                     }
                 }
@@ -937,7 +936,8 @@ struct ExploreView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.footnote.bold())
+            .font(.system(size: 12, weight: .semibold))
+            .tracking(0.6)
             .foregroundColor(Color(.secondaryLabel))
             .padding(.horizontal, 16)
             .padding(.top, 20)
@@ -950,7 +950,8 @@ struct ExploreView: View {
     private func brandResultHeader(_ brand: String, count: Int) -> some View {
         HStack {
             Text(brand.uppercased())
-                .font(.footnote.bold())
+                .font(.system(size: 12, weight: .semibold))
+                .tracking(0.6)
                 .foregroundColor(Color(.secondaryLabel))
             Spacer()
             Text("\(count)")
@@ -1329,16 +1330,7 @@ struct AdvancedFilterSheet: View {
             // ── Bottom CTA ──
             VStack(spacing: 0) {
                 Divider()
-                HStack(spacing: 14) {
-                    Button {
-                        onReset()
-                        dismiss()
-                    } label: {
-                        Text("Tilbakestill")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(.secondaryLabel))
-                    }
-
+                VStack(spacing: 10) {
                     Button { onApply() } label: {
                         Text(ctaText)
                             .font(.system(size: 15, weight: .semibold))
@@ -1348,6 +1340,18 @@ struct AdvancedFilterSheet: View {
                             .foregroundColor(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                             .animation(.easeInOut(duration: 0.15), value: ctaText)
+                    }
+
+                    Button {
+                        onReset()
+                        dismiss()
+                    } label: {
+                        Text("Tilbakestill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color("Accent").opacity(0.5), lineWidth: 1.2))
                     }
                 }
                 .padding(.horizontal, 16)
@@ -1371,7 +1375,7 @@ struct AdvancedFilterSheet: View {
     private var crossSectionFilterSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("TVERRSNITT")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -1390,7 +1394,7 @@ struct AdvancedFilterSheet: View {
 
     private func sectionDivider() -> some View {
         // +10px luft mellom hver filterkategori (5 over + 5 under)
-        Divider().padding(.horizontal, 16).padding(.vertical, 5)
+        Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.horizontal, 16).padding(.vertical, 5)
     }
 
     // ── Multi-select chip section med expand ──
@@ -1405,7 +1409,7 @@ struct AdvancedFilterSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(Color(.secondaryLabel))
                 // «i»-knapp: åpner en grafisk oversikt over formatene.
                 if let infoAction {
@@ -1421,7 +1425,7 @@ struct AdvancedFilterSheet: View {
             .padding(.top, 16)
 
             MultiChipFlowLayout(
-                options: showAll.wrappedValue ? options : Array(options.prefix(initialCount)),
+                options: options,
                 selection: selection,
                 selectedBg: chipSelectedBg,
                 strokeColor: chipStroke,
@@ -1429,20 +1433,7 @@ struct AdvancedFilterSheet: View {
             )
             .padding(.horizontal, 16)
 
-            if options.count > initialCount {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { showAll.wrappedValue.toggle() }
-                } label: {
-                    Text(showAll.wrappedValue ? "Vis færre ↑" : "Se alle ↓")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color("Accent"))
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)   // 4px mer luft ned til chipsene
-                .padding(.bottom, 14)
-            } else {
-                Spacer().frame(height: 14)
-            }
+            Spacer().frame(height: 14)
         }
     }
 
@@ -1450,18 +1441,18 @@ struct AdvancedFilterSheet: View {
     private var profileSlidersSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("PROFIL")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 4)
 
             ProfileRangeSlider(label: "Styrke",          low: $strengthMin,        high: $strengthMax)
-            Divider().padding(.horizontal, 16)
+            Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.horizontal, 16)
             ProfileRangeSlider(label: "Kropp",           low: $bodyMin,            high: $bodyMax)
-            Divider().padding(.horizontal, 16)
+            Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.horizontal, 16)
             ProfileRangeSlider(label: "Sødme",           low: $sweetnessMin,       high: $sweetnessMax)
-            Divider().padding(.horizontal, 16)
+            Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.horizontal, 16)
             ProfileRangeSlider(label: "Smaksintensitet", low: $flavorIntensityMin, high: $flavorIntensityMax)
         }
         .padding(.bottom, 6)
@@ -1471,7 +1462,7 @@ struct AdvancedFilterSheet: View {
     private var smokingTimeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("VARIGHET")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -1918,7 +1909,7 @@ struct ProfileRangeSlider: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(label.uppercased())
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(Color(.secondaryLabel))
                 Spacer()
                 if isActive {
@@ -2025,99 +2016,18 @@ private struct FilterChangeModifier: ViewModifier {
 
 // MARK: - BrandCigarsView
 
-// Enkel flyt-layout som pakker elementer til neste linje når raden er full.
-// Brukes til serie-filter-chipsene så alle blir synlige uten horisontal scroll.
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-    var lineSpacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + lineSpacing
-                rowHeight = 0
-            }
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        return CGSize(width: proposal.width ?? x, height: y + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let maxWidth = bounds.width
-        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + lineSpacing
-                rowHeight = 0
-            }
-            sub.place(at: CGPoint(x: bounds.minX + x, y: bounds.minY + y),
-                      anchor: .topLeading, proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
-
 struct BrandCigarsView: View {
     let brand: String
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var cigarService = CigarService()
     @State private var cigars: [Cigar] = []
     @State private var isLoading = true
-    @State private var selectedSeries: String? = nil   // nil = «Alle»
 
     var groupedBySeries: [(series: String, cigars: [Cigar])] {
         let grouped = Dictionary(grouping: cigars) { $0.series ?? "Andre" }
         return grouped
             .sorted { $0.key < $1.key }
             .map { (series: $0.key, cigars: $0.value) }
-    }
-
-    /// Serienavnene, til filter-chipsene.
-    private var seriesNames: [String] { groupedBySeries.map { $0.series } }
-
-    /// Gruppene som faktisk vises — alle, eller kun valgt serie.
-    private var visibleGroups: [(series: String, cigars: [Cigar])] {
-        guard let sel = selectedSeries else { return groupedBySeries }
-        return groupedBySeries.filter { $0.series == sel }
-    }
-
-    // Filter-chips i toppen — vises kun når merket har flere enn én serie.
-    // Wrapper til flere linjer (FlowLayout) så ALLE seriene er synlige med en
-    // gang, i stedet for en horisontal scroll der noen chips gjemmer seg.
-    @ViewBuilder private var seriesChips: some View {
-        if seriesNames.count > 1 {
-            FlowLayout(spacing: 8, lineSpacing: 8) {
-                chip(title: "Alle", isOn: selectedSeries == nil) { selectedSeries = nil }
-                ForEach(seriesNames, id: \.self) { name in
-                    chip(title: name, isOn: selectedSeries == name) { selectedSeries = name }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color("Background"))
-        }
-    }
-
-    private func chip(title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(isOn ? .white : Color("TextPrimary"))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(isOn ? Color("Accent") : Color("Card")))
-                .overlay(Capsule().stroke(Color("TextSecondary").opacity(isOn ? 0 : 0.18), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
     }
 
     var body: some View {
@@ -2135,25 +2045,19 @@ struct BrandCigarsView: View {
                         .foregroundColor(Color(.secondaryLabel))
                 }
             } else {
-                VStack(spacing: 0) {
-                    seriesChips
-                    ScrollView {
+                ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(visibleGroups, id: \.series) { group in
-                            // Serie-header: skjules når man allerede har filtrert til
-                            // én serie (chipen viser navnet), ellers deler den opp.
-                            if selectedSeries == nil {
-                                Text(group.series)
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(Color("TextPrimary"))
-                                    .tracking(-0.3)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 22)
-                                    .padding(.bottom, 8)
-                            } else {
-                                Color.clear.frame(height: 16)
-                            }
+                        ForEach(groupedBySeries, id: \.series) { group in
+                            // Serie-header: samme farge som tittel, ingen innrykk,
+                            // venstrejustert med kortene.
+                            Text(group.series)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+                                .tracking(-0.3)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 22)
+                                .padding(.bottom, 8)
 
                             VStack(spacing: 0) {
                                 ForEach(group.cigars) { cigar in
@@ -2172,7 +2076,7 @@ struct BrandCigarsView: View {
                                     .cigarQuickActions(cigar)
 
                                     if cigar.id != group.cigars.last?.id {
-                                        Divider().padding(.leading, 16)
+                                        Divider().overlay(Color("TextSecondary").opacity(0.14)).padding(.leading, 16)
                                     }
                                 }
                             }
@@ -2182,9 +2086,8 @@ struct BrandCigarsView: View {
                         }
                     }
                     .padding(.bottom, 40)
-                    }
-                    .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
                 }
+                .contentMargins(.bottom, 60, for: .scrollContent) // klarering for egen tab-bar
             }
         }
         .navigationTitle(brand)
@@ -2241,6 +2144,11 @@ struct TopCigarRow: View {
     let rank: Int
     let cigar: Cigar
 
+    private var topSubtitle: String? {
+        let parts = [cigar.series, cigar.vitola ?? cigar.commonFormat].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     private var rankLabel: String {
         switch rank {
         case 1: return "🥇"
@@ -2267,17 +2175,13 @@ struct TopCigarRow: View {
             // Sigarinfo
             VStack(alignment: .leading, spacing: 2) {
                 Text(cigar.brand)
-                    .font(.subheadline.bold())
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Color(.label))
-                if let series = cigar.series {
-                    Text(series)
-                        .font(.subheadline)
+                if let sub = topSubtitle {
+                    Text(sub)
+                        .font(.system(size: 14))
                         .foregroundColor(Color(.secondaryLabel))
-                }
-                if let vitola = cigar.vitola {
-                    Text(vitola)
-                        .font(.caption)
-                        .foregroundColor(Color(.secondaryLabel))
+                        .lineLimit(1)
                 }
             }
 
