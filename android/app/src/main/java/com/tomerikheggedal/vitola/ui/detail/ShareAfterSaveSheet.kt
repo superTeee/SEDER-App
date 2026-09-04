@@ -1,6 +1,7 @@
 package com.tomerikheggedal.vitola.ui.detail
 
 import android.content.Intent
+import com.tomerikheggedal.vitola.ui.components.SecondaryButton
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,7 +68,7 @@ fun ShareAfterSaveSheet(entryId: String, onDismiss: () -> Unit) {
                     color = MaterialTheme.colorScheme.onPrimary)
                 else Text("Del", fontWeight = FontWeight.SemiBold)
             }
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+            SecondaryButton(onClick = onDismiss) {
                 Text("Behold privat")
             }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {

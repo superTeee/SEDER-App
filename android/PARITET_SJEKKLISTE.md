@@ -217,3 +217,101 @@ Tegnforklaring: ✅ ferdig · 🟡 delvis · ⬜ mangler
 ## iOS-restanse
 - ⬜ Feed: forfatter → profil-lenke
 - ⬜ Profil: «Legg til venn»-knapp (bruk request_friendship-RPC)
+
+
+---
+
+# 🆕 GAP-ANALYSE 3. sept 2026 — iOS-økta 1.–3. sept (stor design/UX-overhaling)
+
+Siden 19. aug har iOS fått en omfattende opprydding. **Ingenting av UI-endringene under er på Android ennå.**
+
+## ✅ Delt backend (Android får gratis — ingen jobb)
+- `scan-cigar` edge function v49/v50 — Google Lens autoritativ når den navngir en spesifikk sigar (strukturell skann-fiks, ikke aliaser)
+- `claim_founding_number` RPC — gir automatisk gratis livstids-Pro til de 50 første (men Android trenger UI-en)
+- `create_own_cigar` is_public-fiks + katalog-opprydding (Casdagli/Raíces m.m.)
+
+## 🔴 A. Designsystem / mørk modus (stort — hele appens uttrykk)
+- [ ] Mørk modus som **standard** + full mørk-modus-gjennomgang (treff-siden var hardkodet lys)
+- [ ] Sekundærknapper → **outline (Accent 1.2px) + hvit tekst/ikon** overalt
+- [ ] Tekstfelt + dropdowns → **outline + hvit tekst** (ikke lys fyll)
+- [ ] Score-badges → outline (var fylt latte)
+- [ ] Chips/badges (Tidlig tester, score) → latte-kant + hvit tekst
+- [ ] Skillestreker → subtil bakgrunnstone (TextSecondary 14%), ikke lys systemstrek
+- [ ] **Serif-font fjernet** — system-font overalt (var på sigarnavn + skann-animasjon)
+- [ ] FAB-ikon-vekt matcher tab-ikoner; **aktiv fane = FAB-farge (Accent)**; topp-toolbar-ikoner hvite
+- [ ] Butikk-forslag-chips: 4px margin rundt raden
+
+## 🔴 B. Founding / Pro
+- [ ] Founding-kohort **50** (var 100) + auto gratis livstids-Pro til de 50 første
+- [ ] **«Gratulerer»-skjerm** ved lansering med «Pro er låst opp – gratis, for alltid»-kort
+- [ ] (Betalingsmodell: Play Billing livstid + tips — fra 19. aug, fortsatt åpen)
+
+## 🔴 C. Journal (stor omlegging)
+- [ ] Naviger automatisk til Journal etter **hver** logg (uansett hvor du logget fra)
+- [ ] Kompakte journal-kort: lite kvadratisk thumbnail til venstre, nøkkelinfo høyre
+- [ ] **Sammenslått detalj+endre-ark**: stort kvadratisk bilde + navn øverst, fullt redigerbart under (ikke lenger to ark)
+- [ ] «+»-knapp i journal med velger: Skann sigarbånd / Søk etter sigar / Fra humidoren min
+- [ ] «Fra humidoren min» **gruppert per humidor-navn**
+- [ ] Fjernet «Del»-ark etter logging; kvadratiske bilde-proporsjoner
+
+## 🟠 D. Crop / bilde
+- [ ] Egen crop-ramme: **stort gripbart håndtak**, 40% sentrert kvadrat som standard, primær «Bruk»-knapp under bildet, trygg topp-linje
+- [ ] Kamera-utilgjengelig-fallback → bibliotek (unngår krasj uten kamera)
+- [ ] **Felles bilde-endre-mønster: «Endre»-pille + «Fjern bilde»** overalt et bilde kan endres
+- [ ] Bilde-komprimering ved opplasting (cover 1200px/0.7)
+
+## 🟠 E. Navn / katalog
+- [ ] `displayName`-logikk: slå sammen gjentatte ord — «Arturo Fuente Fuente Fuente OpusX» → «Arturo Fuente OpusX»
+
+## 🟡 F. Utforsk / filter / treff
+- [ ] Avansert filter: **vertikale** bunn-knapper, **alle chips åpne** (ingen «Se alle»)
+- [ ] Treff-siden (ResultsView) full mørk modus + outline-komponenter + tydelig størrelse-velger
+- [ ] Verifisering-badge forenklet til binær (Verifisert / Ikke verifisert)
+
+## Merk
+- iOS-krasjfiksen (ExploreView delt i AnyView-grupper) er **Swift/SwiftUI-spesifikk** (stack overflow) — gjelder IKKE Android/Compose.
+
+## Fortsatt åpent fra 19. aug (uendret)
+1.4.3-opprydding (Aktivitet/venner, flamme-ikoner, «Marker som røkt»→«Loggfør sigar») · Play Billing · strekkode-skann · makro-kamera · tilbakemeldings-ark · skann-nedskalering · tynnere skjermer (Utforsk 941 vs 2406, AddCigar 120 vs 444, Cigar-detalj 449 vs 851).
+
+
+---
+
+# ✅ VERIFISERT 3. sept 2026 — korreksjon av 19.aug-status
+
+Sjekket faktisk Android-kode (ikke bare sjekklista). Følgende var **allerede gjort** i commit 2455383 (etter 19. aug):
+- ✅ **1.4.3-opprydding fullført**: «Marker som røkt» → «Loggfør sigar» (0 treff igjen), flamme-ikoner fjernet (0 treff), Aktivitet/venner-ruter fjernet fra navigasjon.
+- ✅ **Founding-feiring finnes** (`FoundingWelcome.kt`, kobler `claim_founding_number`).
+
+**Reelle gjenstående blokkere/gap (oppdatert):**
+1. 🔴 **Betalingsmodell** — RevenueCat → Play Billing (livstid + tips). *Blokkert på ekstern oppsett: Play-konto + `goog_`-nøkkel.*
+2. 🔴 **Design/UX-paritet fra sept-økta** (seksjon A–F over) — dette er den store reelle kodejobben nå.
+3. 🟠 Verifiser at founding-cap = 50 og at «Pro låst opp»-kortet vises (matcher iOS).
+4. 🟡 Strekkode, makro-kamera, tilbakemelding, tynnere skjermer (uendret).
+
+---
+
+## UTFØRT 3. sept 2026 — visuell + strukturell parity
+
+Design-system (delte komponenter → slår igjennom app-vidt):
+- Dark mode som standard (ThemeState).
+- ScoreBadge → outline (Accent-kant + hvit tekst).
+- Ny delt `SecondaryButton` (1.2dp Accent + hvit tekst/ikon) — rullet ut på
+  cigar-detalj, humidor-detalj, utforsk, skann-treff, del-sheet, profil.
+- Aktiv tab = Accent-pille + hvitt ikon (matcher FAB).
+- Skillelinjer → diskret sekundærtone @ 14%.
+- Chips (vitola / butikk / filter) + «Tidlig tester»/nivå-badge → outline,
+  fylt Accent når valgt.
+
+Strukturelt:
+- `Cigar.displayName` (dedup av gjentatte ord, speiler iOS) + brukt i journal.
+- Journal-kort → kompakt rad med lite kvadratisk miniatyrbilde (var stort topp-bilde).
+- Ny delt `EditablePhoto` (Endre-pille + Fjern bilde + placeholder) i journal-endre-sheet.
+- `JournalRepository.updateLog(clearPhoto=…)` — kan nå fjerne bilde (var umulig).
+- Avansert filter: alle chips alltid åpne (fjernet «Se alle»); vertikale bunnknapper.
+- Founding-cap 100 → 50 (matcher iOS + server-RPC).
+
+Gjenstår:
+- Foto-opplasting i loggfør-/legg-i-humidor-sheets (Android mangler helt; trenger repo-endring).
+- EditablePhoto på cigar-detalj / humidor-detalj / profil (immediate-upload; trenger server-remove).
+- Betaling: RevenueCat/Play Billing (blokkert — trenger Play-konto + goog_-nøkkel).

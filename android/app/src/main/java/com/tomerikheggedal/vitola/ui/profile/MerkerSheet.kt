@@ -81,7 +81,7 @@ private fun SectionLabelM(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = modifier)
 }
 
-private fun levelIcon(level: MemberLevel): ImageVector = when (level) {
+private fun merkerLevelIcon(level: MemberLevel): ImageVector = when (level) {
     MemberLevel.SIGARENTUSIAST -> Icons.Outlined.Spa
     MemberLevel.KJENNER -> Icons.Outlined.Star
     MemberLevel.SAMLER -> Icons.Outlined.Inventory2
@@ -113,7 +113,7 @@ private fun LevelRow(level: MemberLevel, earned: Boolean, isCurrent: Boolean) {
                 .background(accent.copy(alpha = if (earned) 0.14f else 0.06f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(levelIcon(level), null, modifier = Modifier.size(18.dp),
+            Icon(merkerLevelIcon(level), null, modifier = Modifier.size(18.dp),
                 tint = if (earned) accent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
         }
         Spacer(Modifier.width(12.dp))

@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -183,7 +184,6 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFavorites: () -> Unit = {}) {
                             fontSize = 20.sp
                         )
                         Spacer(Modifier.height(12.dp))
-                        val badgeBg = Color(0xFFE0D2BA)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             selfProfile?.let { sp ->
@@ -191,27 +191,27 @@ fun ProfileScreen(onSettings: () -> Unit = {}, onFavorites: () -> Unit = {}) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                    modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
+                                    modifier = Modifier.clip(RoundedCornerShape(50)).border(1.2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
                                         .clickable { showMerker = true }
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(levelIcon(level), null, tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(14.dp))
                                     Text(level.title, style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
                                 }
                             }
                             if (profile?.isFoundingMember == true) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                    modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
+                                    modifier = Modifier.clip(RoundedCornerShape(50)).border(1.2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(Icons.Outlined.WorkspacePremium, null,
                                         tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                     Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
                                 }
                             }
                         }

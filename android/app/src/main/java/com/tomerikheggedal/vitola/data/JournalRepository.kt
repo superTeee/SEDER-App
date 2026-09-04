@@ -55,7 +55,7 @@ object JournalRepository {
     suspend fun updateLog(
         logId: String, rating: Int?, smokeAgain: Boolean?, notes: String?, store: String?,
         drawRating: Int? = null, burnRating: Int? = null, flavorRating: Int? = null,
-        cutType: String? = null, photoUrl: String? = null,
+        cutType: String? = null, photoUrl: String? = null, clearPhoto: Boolean = false,
     ) {
         Supa.client.from("tasting_logs").update(
             buildJsonObject {
@@ -67,7 +67,10 @@ object JournalRepository {
                 put("burn_rating", burnRating)
                 put("flavor_rating", flavorRating)
                 put("cut_type", cutType)
-                if (photoUrl != null) put("photo_url", photoUrl)
+                when {
+                    photoUrl != null -> put("photo_url", photoUrl)
+                    clearPhoto -> put("photo_url", null as String?)
+                }
             }
         ) { filter { eq("id", logId) } }
     }

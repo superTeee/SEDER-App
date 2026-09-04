@@ -1,6 +1,7 @@
 package com.tomerikheggedal.vitola.ui.explore
 
 import androidx.compose.foundation.Canvas
+import com.tomerikheggedal.vitola.ui.components.SecondaryButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -103,7 +104,7 @@ fun NoMatchSheet(
             Button(onClick = onManualAdd, modifier = Modifier.fillMaxWidth().padding(top = 18.dp)) {
                 Text("Legg den inn manuelt")
             }
-            OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+            SecondaryButton(onClick = onRetry) {
                 Text("Prøv på nytt med nytt bilde")
             }
         }

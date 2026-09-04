@@ -29,7 +29,7 @@ object ProConfig {
     const val revenueCatApiKey = "goog_LIM_INN_HER"
     const val entitlementId = "SEDER Pro"
     const val foundingCode = "SEDER100"
-    const val foundingCap = 100
+    const val foundingCap = 50
 
     val isConfigured: Boolean
         get() = revenueCatApiKey.startsWith("goog_") && !revenueCatApiKey.contains("LIM_INN")
@@ -38,7 +38,7 @@ object ProConfig {
 // MARK: - ProManager (speiler iOS ProManager)
 //
 // Global kilde til Pro-status. isPro = aktivt abonnement ELLER founding member
-// (livstids-Pro for de 100 første), med mindre DEBUG-bryteren tvinger gratis.
+// (livstids-Pro for de 50 første), med mindre DEBUG-bryteren tvinger gratis.
 object ProManager {
 
     private val _isPro = MutableStateFlow(false)

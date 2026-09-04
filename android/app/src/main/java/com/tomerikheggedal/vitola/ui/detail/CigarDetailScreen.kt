@@ -1,8 +1,6 @@
 package com.tomerikheggedal.vitola.ui.detail
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -39,6 +37,7 @@ import com.tomerikheggedal.vitola.data.FavoriteRepository
 import com.tomerikheggedal.vitola.data.HumidorRepository
 import com.tomerikheggedal.vitola.data.Supa
 import com.tomerikheggedal.vitola.data.WishlistRepository
+import com.tomerikheggedal.vitola.ui.components.SecondaryButton
 import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
 import com.tomerikheggedal.vitola.ui.rememberCropPicker
 import io.github.jan.supabase.gotrue.auth
@@ -193,11 +192,6 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
 
                 // Handlingsknapper nederst (som iOS), 12px mellomrom. Sekundære (outline)
                 // knapper får accent-kant i mørk modus.
-                val darkMode = com.tomerikheggedal.vitola.ui.theme.ThemeState.isDark(isSystemInDarkTheme())
-                val secondaryBorder = BorderStroke(
-                    1.dp,
-                    if (darkMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                )
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (humidorEntryId != null) {
                         Button(onClick = { requireAuth { showLogSheet = true } }, modifier = Modifier.fillMaxWidth()) {
@@ -209,25 +203,22 @@ fun CigarDetailScreen(id: String, onBack: () -> Unit) {
                         Button(onClick = { requireAuth { showAddSheet = true } }, modifier = Modifier.fillMaxWidth()) {
                             Text("Legg i humidor")
                         }
-                        OutlinedButton(
-                            onClick = { requireAuth { showLogSheet = true } },
-                            border = secondaryBorder, modifier = Modifier.fillMaxWidth()
+                        SecondaryButton(
+                            onClick = { requireAuth { showLogSheet = true } }
                         ) {
                             Icon(Icons.AutoMirrored.Outlined.MenuBook, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("Loggfør sigar")
                         }
                     }
-                    OutlinedButton(
+                    SecondaryButton(
                         onClick = {
                             requireAuth {
                                 scope.launch {
                                     inWishlist = runCatching { WishlistRepository.toggle(id) }.getOrDefault(inWishlist)
                                 }
                             }
-                        },
-                        border = secondaryBorder,
-                        modifier = Modifier.fillMaxWidth()
+                        }
                     ) {
                         Icon(
                             if (inWishlist) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,

@@ -197,43 +197,58 @@ private fun JournalTimelineEntry(
 
 @Composable
 private fun JournalCard(log: TastingLog, onClick: () -> Unit) {
-    Column(
+    // Kompakt rad (matcher iOS): lite kvadratisk miniatyrbilde til venstre,
+    // deduplisert navn + format + notat, og outline-score til høyre.
+    Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        log.photoUrl?.let { url ->
+        val c = log.cigar
+        val thumbShape = RoundedCornerShape(8.dp)
+        if (log.photoUrl != null) {
             AsyncImage(
-                model = url, contentDescription = null, contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(180.dp)
+                model = log.photoUrl, contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = Modifier.size(62.dp).clip(thumbShape)
             )
+        } else {
+            Box(
+                Modifier.size(62.dp).clip(thumbShape)
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Outlined.Description, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp))
+            }
         }
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                val c = log.cigar
-                Text(c?.brand ?: "Ukjent sigar", style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium, letterSpacing = 0.sp)
-                val sub = listOfNotNull(c?.series, c?.vitola).joinToString(" · ")
-                if (sub.isNotBlank()) Text(sub, style = MaterialTheme.typography.bodySmall,
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(c?.displayName ?: "Ukjent sigar", style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium, letterSpacing = 0.sp)
+            c?.vitola?.takeIf { it.isNotBlank() }?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                log.personalNotes?.takeIf { it.isNotBlank() }?.let {
-                    Spacer(Modifier.height(4.dp))
-                    Text(it, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
-                }
-                val date = parseInstant(log.smokedAt)?.atZone(ZoneId.systemDefault())?.format(DATE_FMT)
-                if (date != null) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(date, style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
-            log.rating?.let { rating ->
-                Spacer(Modifier.width(10.dp))
-                ScoreBadge("$rating", fontSize = 12.sp)
+            log.personalNotes?.takeIf { it.isNotBlank() }?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
             }
+            val date = parseInstant(log.smokedAt)?.atZone(ZoneId.systemDefault())?.format(DATE_FMT)
+            if (date != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(date, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        log.rating?.let { rating ->
+            Spacer(Modifier.width(10.dp))
+            ScoreBadge("$rating", fontSize = 12.sp)
         }
     }
 }

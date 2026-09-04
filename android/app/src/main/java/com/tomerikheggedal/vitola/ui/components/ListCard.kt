@@ -52,7 +52,8 @@ object ColumnScopeRows
 fun ColumnScopeRows.RowDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(start = 16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        // Diskret tone basert på sekundærtekst (matcher iOS TextSecondary @ 14%).
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.14f)
     )
 }
 

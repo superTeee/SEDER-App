@@ -5,17 +5,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-// Brukervalgt tema. "system" følger enheten, ellers tvunget lys/mørk.
+// Brukervalgt tema. Standard er "dark" (matcher iOS). "system" følger enheten, ellers tvunget lys/mørk.
 // Reaktiv Compose-state så endring i Innstillinger slår gjennom umiddelbart.
 object ThemeState {
     private const val PREFS = "vitola_prefs"
     private const val KEY = "theme_mode"
 
-    var mode by mutableStateOf("system")
+    var mode by mutableStateOf("dark")
         private set
 
     fun load(ctx: Context) {
-        mode = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, "system") ?: "system"
+        mode = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, "dark") ?: "dark"
     }
 
     fun set(ctx: Context, newMode: String) {

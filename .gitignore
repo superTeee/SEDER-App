@@ -32,3 +32,7 @@ supabase/.temp
 .env
 _git_lock_trash/
 CHAT_HANDOFF.md
+
+# FUSE-mount temp + flyttede git-låsefiler
+**/.fuse_hidden*
+_to_delete/

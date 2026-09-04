@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tomerikheggedal.vitola.data.JournalRepository
+import com.tomerikheggedal.vitola.ui.components.EditablePhoto
 import com.tomerikheggedal.vitola.data.TastingLog
 import com.tomerikheggedal.vitola.ui.rememberCropPicker
 import kotlinx.coroutines.Dispatchers
@@ -45,12 +46,14 @@ fun EditJournalSheet(log: TastingLog, onDismiss: () -> Unit, onChanged: () -> Un
     var cutType by remember { mutableStateOf(log.cutType) }
     var newPhotoJpeg by remember { mutableStateOf<ByteArray?>(null) }
     var photoPreview by remember { mutableStateOf<android.net.Uri?>(null) }
+    var removePhoto by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     val pickPhoto = rememberCropPicker(0, 0) { uri ->
         photoPreview = uri
+        removePhoto = false
         scope.launch { newPhotoJpeg = withContext(Dispatchers.IO) { journalUriToJpeg(context, uri) } }
     }
 
@@ -61,16 +64,28 @@ fun EditJournalSheet(log: TastingLog, onDismiss: () -> Unit, onChanged: () -> Un
                 .padding(horizontal = 24.dp).padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Text("Rediger journalinnlegg", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            // Bilde øverst (endre/fjern) — preview-stil som iOS.
+            val previewModel: Any? = photoPreview ?: if (removePhoto) null else log.photoUrl
+            EditablePhoto(
+                model = previewModel,
+                onPick = pickPhoto,
+                onRemove = {
+                    photoPreview = null
+                    newPhotoJpeg = null
+                    removePhoto = true
+                }
+            )
 
             log.cigar?.let { c ->
                 Column {
-                    Text(c.brand, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    val sub = listOfNotNull(c.series, c.vitola).joinToString(" · ")
-                    if (sub.isNotBlank()) Text(sub, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(c.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    c.vitola?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-            }
+            } ?: Text("Rediger journalinnlegg", style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold)
 
             // Poengsum
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -121,19 +136,6 @@ fun EditJournalSheet(log: TastingLog, onDismiss: () -> Unit, onChanged: () -> Un
                 }
             }
 
-            // Bilde (bytt/legg til)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Label("Bilde")
-                val previewModel: Any? = photoPreview ?: log.photoUrl
-                if (previewModel != null) {
-                    AsyncImage(model = previewModel, contentDescription = null, contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(8.dp)))
-                }
-                OutlinedButton(onClick = pickPhoto, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (previewModel != null) "Bytt bilde" else "Legg til bilde")
-                }
-            }
-
             OutlinedTextField(value = notes, onValueChange = { notes = it },
                 label = { Text("Notater") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             OutlinedTextField(value = store, onValueChange = { store = it },
@@ -156,6 +158,7 @@ fun EditJournalSheet(log: TastingLog, onDismiss: () -> Unit, onChanged: () -> Un
                                 burnRating = burn.takeIf { it > 0 },
                                 flavorRating = flavor.takeIf { it > 0 },
                                 cutType = cutType, photoUrl = photoUrl,
+                                clearPhoto = removePhoto && photoUrl == null,
                             )
                             onChanged()
                         } catch (e: Exception) { error = e.message ?: "Kunne ikke lagre"; saving = false }

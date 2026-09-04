@@ -1,6 +1,7 @@
 package com.tomerikheggedal.vitola.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
@@ -40,11 +41,14 @@ fun StoreChips(suggestions: List<String>, current: String, onPick: (String) -> U
             Text(
                 name,
                 fontSize = 13.sp,
-                color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .padding(end = 8.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                    .then(
+                        if (on) Modifier.background(MaterialTheme.colorScheme.primary)
+                        else Modifier.border(1.2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp))
+                    )
                     .clickable { onPick(if (on) "" else name) }
                     .padding(horizontal = 12.dp, vertical = 7.dp)
             )

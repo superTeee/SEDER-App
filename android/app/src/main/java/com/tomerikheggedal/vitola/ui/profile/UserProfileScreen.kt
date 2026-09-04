@@ -1,6 +1,8 @@
 package com.tomerikheggedal.vitola.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import com.tomerikheggedal.vitola.ui.components.SecondaryButton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -87,33 +89,32 @@ fun UserProfileScreen(userId: String, onBack: () -> Unit) {
                     Text(p.displayName ?: "SEDER-bruker", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     Spacer(Modifier.height(12.dp))
-                    val badgeBg = Color(0xFFE0D2BA)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         val level = com.tomerikheggedal.vitola.data.MemberLevel.current(p.memberStats())
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
+                            modifier = Modifier.clip(RoundedCornerShape(50)).border(1.2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
                                 .clickable { showMerker = true }
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Icon(levelIcon(level), null, tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(14.dp))
                             Text(level.title, style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
                         }
                         if (p.isFoundingMember) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                modifier = Modifier.clip(RoundedCornerShape(50)).background(badgeBg)
+                                modifier = Modifier.clip(RoundedCornerShape(50)).border(1.2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Icon(Icons.Outlined.WorkspacePremium, null,
                                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                 Text("Tidlig tester", style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
                             }
                         }
                     }
@@ -194,14 +195,14 @@ private fun FriendAction(state: FriendState, working: Boolean, onRequest: () -> 
             if (working) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
             else { Icon(Icons.Filled.PersonAdd, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Legg til venn") }
         }
-        FriendState.PENDING_OUT -> OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+        FriendState.PENDING_OUT -> SecondaryButton(onClick = {}, enabled = false) {
             Text("Forespørsel sendt")
         }
         FriendState.PENDING_IN -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(onClick = { onRespond(true) }, enabled = !working, modifier = Modifier.weight(1f)) { Text("Godta") }
-            OutlinedButton(onClick = { onRespond(false) }, enabled = !working, modifier = Modifier.weight(1f)) { Text("Avslå") }
+            SecondaryButton(onClick = { onRespond(false) }, enabled = !working, modifier = Modifier.weight(1f)) { Text("Avslå") }
         }
-        FriendState.FRIENDS -> OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+        FriendState.FRIENDS -> SecondaryButton(onClick = {}, enabled = false) {
             Icon(Icons.Filled.Check, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Venner")
         }
         FriendState.SELF -> {}

@@ -1,6 +1,7 @@
 package com.tomerikheggedal.vitola.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -48,12 +49,14 @@ fun VitolaChips(selected: String, onPick: (VitolaPreset) -> Unit) {
             val isSel = selected.equals(p.name, ignoreCase = true)
             Text(
                 p.name, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                color = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                // Outline-chip (matcher iOS): Accent-kant + hvit tekst; fylt Accent når valgt.
+                color = if (isSel) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(
-                        if (isSel) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    .then(
+                        if (isSel) Modifier.background(MaterialTheme.colorScheme.primary)
+                        else Modifier.border(1.2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                     )
                     .clickable { onPick(p) }
                     .padding(horizontal = 12.dp, vertical = 6.dp)

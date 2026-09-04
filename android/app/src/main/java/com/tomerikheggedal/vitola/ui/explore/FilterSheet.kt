@@ -48,7 +48,7 @@ fun FilterSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(Modifier.fillMaxWidth()) {
             // Tittel
@@ -107,16 +107,14 @@ fun FilterSheet(
 
             HorizontalDivider()
 
-            // Bunn-CTA: Tilbakestill + Vis N resultater
-            Row(
+            // Bunn-CTA: vertikal stack (som iOS) — Vis treff øverst, Nullstill under.
+            Column(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TextButton(onClick = { draft = CigarFilter() }) { Text("Tilbakestill") }
                 Button(
                     onClick = { onApply(draft) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         when (count) {
@@ -125,6 +123,9 @@ fun FilterSheet(
                         },
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+                TextButton(onClick = { draft = CigarFilter() }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Tilbakestill")
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -136,9 +137,6 @@ fun FilterSheet(
 }
 
 // Varm tan bak valgt chip — samme som iOS (#E0D2BA). Fast, uansett tema.
-private val ChipSelectedBg = Color(0xFFE0D2BA)
-private val ChipSelectedText = Color(0xFF1C1B18)
-private const val INITIAL_CHIP_COUNT = 6
 
 // Liten seksjonsoverskrift (13sp semibold, sekundær, uppercase) — som iOS.
 @Composable
@@ -169,8 +167,8 @@ private fun ChipSection(
     subtitles: Map<String, String> = emptyMap(),
     onInfo: (() -> Unit)? = null,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val shown = if (expanded) options else options.take(INITIAL_CHIP_COUNT)
+    // Alle chips er alltid åpne (som iOS) — ingen «Se alle»-kollaps.
+    val shown = options
 
     Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
         SectionHeader(title, onInfo)
@@ -188,16 +186,6 @@ private fun ChipSection(
                 )
             }
         }
-        if (options.size > INITIAL_CHIP_COUNT) {
-            Text(
-                if (expanded) "Vis færre ↑" else "Se alle ↓",
-                fontSize = 16.sp, fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(start = 16.dp, top = 10.dp, bottom = 6.dp)
-                    .clickable { expanded = !expanded }
-            )
-        }
     }
 }
 
@@ -205,18 +193,18 @@ private fun ChipSection(
 @Composable
 private fun FilterPill(text: String, subtitle: String?, selected: Boolean, onClick: () -> Unit) {
     val base = Modifier.clip(CircleShape)
-    val styled = if (selected) base.background(ChipSelectedBg)
-                 else base.border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+    val styled = if (selected) base.background(MaterialTheme.colorScheme.primary)
+                 else base.border(1.2.dp, MaterialTheme.colorScheme.primary, CircleShape)
     Row(
         styled.clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text, fontSize = 15.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.sp,
-            color = if (selected) ChipSelectedText else MaterialTheme.colorScheme.onSurface)
+            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
         if (subtitle != null) {
             Spacer(Modifier.width(6.dp))
             Text(subtitle, fontSize = 12.sp, letterSpacing = 0.sp,
-                color = if (selected) ChipSelectedText.copy(alpha = 0.6f)
+                color = if (selected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                         else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

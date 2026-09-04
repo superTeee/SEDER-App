@@ -46,6 +46,7 @@ import com.tomerikheggedal.vitola.data.RhReading
 import com.tomerikheggedal.vitola.data.RhStatus
 import com.tomerikheggedal.vitola.data.rhStatus
 import com.tomerikheggedal.vitola.ui.components.ListCard
+import com.tomerikheggedal.vitola.ui.components.SecondaryButton
 import com.tomerikheggedal.vitola.ui.components.NavRow
 import com.tomerikheggedal.vitola.ui.components.RowDivider
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
@@ -418,12 +419,12 @@ private fun RhCard(humidor: HumidorRow, readings: List<RhReading>, onRegister: (
             }
             // To knapper i bunnen: registrer ny måling + historikk (graf).
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(onClick = onRegister, modifier = Modifier.weight(1f)) {
+                SecondaryButton(onClick = onRegister, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Registrer", fontSize = 12.sp)
                 }
-                OutlinedButton(onClick = onHistory, enabled = readings.isNotEmpty(),
+                SecondaryButton(onClick = onHistory, enabled = readings.isNotEmpty(),
                     modifier = Modifier.weight(1f)) {
                     Icon(Icons.Filled.ShowChart, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))

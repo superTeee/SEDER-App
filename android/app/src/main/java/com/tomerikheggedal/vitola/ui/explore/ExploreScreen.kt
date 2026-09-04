@@ -59,6 +59,7 @@ import com.tomerikheggedal.vitola.ui.humidor.AddToHumidorSheet
 import com.tomerikheggedal.vitola.ui.components.ListCard
 import com.tomerikheggedal.vitola.ui.components.NavRow
 import com.tomerikheggedal.vitola.ui.components.ScoreBadge
+import com.tomerikheggedal.vitola.ui.components.SecondaryButton
 import com.tomerikheggedal.vitola.ui.components.RowDivider
 import com.tomerikheggedal.vitola.ui.components.SectionLabel
 import kotlinx.coroutines.Job
@@ -319,7 +320,7 @@ fun ExploreScreen(
                     searchHitGroups(vm.results, onCigar) { quickCigar = it }
                     // Fant ikke sigaren? La brukeren legge den inn selv (som iOS).
                     item {
-                        OutlinedButton(
+                        SecondaryButton(
                             onClick = { showManualAdd = true },
                             modifier = Modifier.fillMaxWidth().padding(16.dp)
                         ) {

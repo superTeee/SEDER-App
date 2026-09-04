@@ -32,6 +32,21 @@ data class Cigar(
     val fullName: String
         get() = listOfNotNull(brand, series, vitola).joinToString(" ")
 
+    /** Merke + serie som ett rent navn, uten gjentatte ord ved siden av
+     *  hverandre («Arturo Fuente» + «Fuente Fuente OpusX» → «Arturo Fuente
+     *  OpusX»). Speiler iOS Cigar.displayName. */
+    val displayName: String
+        get() {
+            val words = (brand.split(" ") + (series?.split(" ") ?: emptyList()))
+                .filter { it.isNotBlank() }
+            if (words.isEmpty()) return "Ukjent sigar"
+            val out = mutableListOf<String>()
+            for (w in words) {
+                if (out.lastOrNull()?.lowercase() != w.lowercase()) out.add(w)
+            }
+            return out.joinToString(" ")
+        }
+
     /** «50 × 4.9"» — null når ett av tallene mangler (halvt mål = ingen mål). */
     val dimensionsLabel: String?
         get() {
