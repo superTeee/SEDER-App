@@ -119,11 +119,50 @@ struct Cigar: Codable, Identifiable, Hashable {
         [brand, series, vitola].compactMap { $0 }.joined(separator: " ")
     }
 
-    /// «50 × 4.9"» — ringmål × lengde. Nil når ett av tallene mangler;
+    /// Viser eksakte produsentmål som vanlige tommebrøker, f.eks. 5 1/8".
+    /// Eldre avrundede databaseverdier (f.eks. 5.3) beholdes som desimaltall
+    /// i stedet for å late som de har mer presisjon enn kilden gir.
+    private func formattedInches(_ inches: Double) -> String {
+        let scaled = inches * 16
+        let nearestSixteenth = scaled.rounded()
+
+        if abs(scaled - nearestSixteenth) < 0.0001 {
+            let totalSixteenths = Int(nearestSixteenth)
+            let whole = totalSixteenths / 16
+            let remainder = totalSixteenths % 16
+
+            guard remainder != 0 else { return "\(whole)\"" }
+
+            func gcd(_ a: Int, _ b: Int) -> Int {
+                var x = a
+                var y = b
+                while y != 0 {
+                    let r = x % y
+                    x = y
+                    y = r
+                }
+                return x
+            }
+
+            let divisor = gcd(remainder, 16)
+            let numerator = remainder / divisor
+            let denominator = 16 / divisor
+            let fraction = "\(numerator)/\(denominator)"
+
+            return whole > 0 ? "\(whole) \(fraction)\"" : "\(fraction)\""
+        }
+
+        var decimal = String(format: "%.4f", inches)
+        while decimal.last == "0" { decimal.removeLast() }
+        if decimal.last == "." { decimal.removeLast() }
+        return "\(decimal)\""
+    }
+
+    /// «50 × 4 7/8"» — ringmål × lengde. Nil når ett av tallene mangler;
     /// et halvt mål er verre enn ingen mål. Ett sted, brukt i alle listene.
     var dimensionsLabel: String? {
         guard let ringGauge, let lengthInches else { return nil }
-        return "\(ringGauge) × \(String(format: "%.1f", lengthInches))\""
+        return "\(ringGauge) × \(formattedInches(lengthInches))"
     }
 
     var strengthLabel: String {
