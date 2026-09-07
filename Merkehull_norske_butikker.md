@@ -1,15 +1,15 @@
 # Dekningshull – norske sigarbutikker
 
-Sist oppdatert: **5. september 2026**
+Sist oppdatert: **7. september 2026**
 
 Dette dokumentet erstatter den gamle baseline-en som ble laget da databasen hadde 2 132 sigarer / 183 merker.
 
 ## Live SEDER-status
 
-- **3 863 sigarer**
-- **258 unike brand-navn**
-- **1 952 produsentverifiserte rader**
-- **1 911 rader som fortsatt venter på produsentverifisering**
+- **4 060 sigarer**
+- **261 unike brand-navn**
+- **2 184 produsentverifiserte rader**
+- **1 876 rader som fortsatt venter på produsentverifisering**
 
 Viktig: `uverifisert` betyr ikke `mangler i katalogen`. Catalog gap betyr kun at et relevant merke eller en relevant linje som faktisk selges i Norge ikke finnes i SEDER.
 
@@ -31,7 +31,10 @@ Butikkilder brukes kun til å avgjøre **om noe selges/føres i Norge**. Wrapper
 
 | Butikknavn / gammel betegnelse | Status i SEDER |
 |---|---|
-| 1881 | **4 nåværende standardvitolaer lagt inn og produsentverifisert 05.09.2026** |
+| 1881 | **4 nåværende standardvitolaer produsentverifisert** |
+| Inca | **2 norske produkter lagt inn og produsentverifisert 07.09.2026** |
+| Corrida | **3 aktuelle Robusto+-varianter lagt inn og produsentverifisert 07.09.2026** |
+| Buena Vista | **9 aktuelle norske produkter lagt inn og produsentverifisert 07.09.2026** |
 | Aliados | Finnes som **Cuba Aliados** – 5 rader |
 | Eiroa | **23 rader** |
 | Condega | **17 rader** |
@@ -65,13 +68,10 @@ Dette er en konservativ minimumsliste: navn tas først inn når dagens norske so
 |---|---|---|---|
 | **Alonso Menendez** | M. Sørensen | 0 rader | Høy |
 | **Bossner** | M. Sørensen | 0 rader | Høy |
-| **Buena Vista** | M. Sørensen | 0 rader | Høy |
 | **Carlos André** | M. Sørensen | 0 rader | Medium |
-| **Corrida** | M. Sørensen | 0 rader | Høy |
 | **DJU / Don Juan Urquijo** | M. Sørensen | 0 rader | Høy |
-| **Inca** | M. Sørensen | 0 rader | Høy |
 | **La Libertad** | M. Sørensen | 0 rader | Høy |
-| **Reposado 96** | M. Sørensen + NoSmoke | 0 rader | Høy |
+| **Reposado 96** | M. Sørensen + NoSmoke | 0 rader | Høy – produsentkilde ikke funnet ennå |
 | **Don Kiki** | Augusto | 0 rader | Medium |
 | **Viva la Vida** | Augusto / Artesano del Tobacco | 0 rader | Høy |
 | **Smoking Jacket** | Nordic Cigars | 0 rader | Medium |
@@ -87,13 +87,12 @@ Alejandro Lopez · Alhambra · Backwoods · Bellman · Chazz · Clubmaster · Co
 
 ## Neste databasebatch
 
-1. **Reposado 96** – 2 aktuelle Robusto-varianter
-2. **Inca** – 2 aktuelle produkter
-3. **Corrida** – liten og avgrenset serie
-4. **Buena Vista** – 9 aktuelle produkter hos M. Sørensen
-5. **Alonso Menendez** – 4 aktuelle produkter
-6. **DJU / Don Juan Urquijo** – 11 aktuelle produkter
-7. **Bossner** – større katalog
-8. **Viva la Vida / Don Kiki / Nordic boutique-hull** – produsentkilde må finnes før innlegging
+1. **Alonso Menendez** – 4 aktuelle produkter
+2. **DJU / Don Juan Urquijo** – 11 aktuelle produkter
+3. **La Libertad** – liten og avgrenset serie
+4. **Bossner** – større katalog
+5. **Carlos André** – aktuell norsk serie må avgrenses
+6. **Reposado 96** – beholdes som catalog lead til produsenteid kilde kan dokumentere spesifikasjonene
+7. **Viva la Vida / Don Kiki / Nordic boutique-hull** – produsentkilde må finnes før innlegging
 
 Alle nye cigar-rader skal følge SEDER-regelen: **produsentens egne kilder er eneste endelige autoritet for cigar-spesifikasjoner. Ikke gjett manglende data.**
