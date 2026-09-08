@@ -996,11 +996,29 @@ struct ExploreView: View {
         }
     }
 
+    /// Grovt, bevisst merket estimat: en 5×50 Robusto blir ca. 62,5 min.
+    /// Lengde og ringmål er produktdata; tempo, konstruksjon og miljø gjør at faktisk tid varierer.
+    private func estimatedBurnMinutes(for cigar: Cigar) -> Double? {
+        guard let length = cigar.lengthInches, let ring = cigar.ringGauge, length > 0, ring > 0 else { return nil }
+        return length * Double(ring) / 4.0
+    }
+
+    private func matchesEstimatedBurnTime(_ cigar: Cigar) -> Bool {
+        guard let selected = filterSmokingTime.first else { return true }
+        guard let minutes = estimatedBurnMinutes(for: cigar) else { return false }
+        switch selected {
+        case "< 45 min":  return minutes < 45
+        case "45–90 min": return minutes >= 45 && minutes < 90
+        case "90+ min":   return minutes >= 90
+        default:           return true
+        }
+    }
+
     private func applyFilters() async {
         isSearching = true
         defer { isSearching = false }
         do {
-            filteredResults = try await cigarService.fetchCigarsFiltered(
+            let baseResults = try await cigarService.fetchCigarsFiltered(
                 wrapperCountry:      filterWrapper,
                 binder:              filterBinder,
                 filler:              filterFiller,
@@ -1014,6 +1032,7 @@ struct ExploreView: View {
                 flavorNoteGroups:    selectedFlavorNoteGroups,
                 crossSection:        filterCrossSection
             )
+            filteredResults = baseResults.filter(matchesEstimatedBurnTime)
             hasAppliedFilter = true
         } catch {
             print("Filterfeil: \(error)")
@@ -1058,8 +1077,31 @@ struct ExploreView: View {
             return
         }
         do {
-            // Teller i databasen. Å telle radene vi faktisk laster ville gitt
-            // samme tall for alle filtre som treffer mer enn takgrensen.
+            // Brennetid er et lokalt estimat basert på mål, ikke et lagret produsentfelt.
+            // Når grunnspørringen treffer 1000-raders taket viser vi derfor ikke et
+            // potensielt misvisende antall i arket; resultatlisten filtreres fortsatt.
+            if !filterSmokingTime.isEmpty {
+                let baseResults = try await cigarService.fetchCigarsFiltered(
+                    wrapperCountry:      filterWrapper,
+                    binder:              filterBinder,
+                    filler:              filterFiller,
+                    commonFormat:        filterVitola,
+                    countryOrigin:       filterCountry,
+                    strengthRange:       filterStrengthMin > 1.0 || filterStrengthMax < 5.0 ? filterStrengthMin...filterStrengthMax : nil,
+                    bodyRange:           filterBodyMin > 1.0 || filterBodyMax < 5.0 ? filterBodyMin...filterBodyMax : nil,
+                    sweetnessRange:      filterSweetnessMin > 1.0 || filterSweetnessMax < 5.0 ? filterSweetnessMin...filterSweetnessMax : nil,
+                    flavorIntensityRange: filterFlavorIntensityMin > 1.0 || filterFlavorIntensityMax < 5.0 ? filterFlavorIntensityMin...filterFlavorIntensityMax : nil,
+                    smokingNotes:        filterSmokingNotes,
+                    flavorNoteGroups:    selectedFlavorNoteGroups,
+                    crossSection:        filterCrossSection
+                )
+                filterResultCount = baseResults.count < 1000
+                    ? baseResults.filter(matchesEstimatedBurnTime).count
+                    : nil
+                return
+            }
+
+            // Alle databasebaserte filtre kan telles eksakt uten å laste radene.
             filterResultCount = try await cigarService.countCigarsFiltered(
                 wrapperCountry:      filterWrapper,
                 binder:              filterBinder,
@@ -1259,7 +1301,7 @@ struct AdvancedFilterSheet: View {
     private let wrapperOptions  = ["Connecticut Shade", "Ecuador Connecticut", "San Andrés", "Cameroon", "Sumatra", "Broadleaf", "Habano", "Colorado Claro", "Maduro", "Corojo"]
     private let binderOptions   = ["Nicaraguan", "Dominican", "Honduran", "Mexican San Andrés", "Ecuadorian", "Connecticut", "Sumatran", "Cameroon"]
     private let fillerOptions   = ["Nicaraguan", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador", "Peru", "Pennsylvania"]
-    private let smokingTimeOpts = ["Under 45 min", "45–90 min", "90 min+"]
+    private let smokingTimeOpts = ["< 45 min", "45–90 min", "90+ min"]
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -1308,6 +1350,8 @@ struct AdvancedFilterSheet: View {
                                 infoAction: { showVitolaGuide = true })
                     sectionDivider()
                     crossSectionFilterSection
+                    sectionDivider()
+                    smokingTimeSection
                     sectionDivider()
                     chipSection(title: "OPPHAV",  options: originOptions,  selection: $countryOrigin,  showAll: $showAllOrigin)
                     sectionDivider()
@@ -1458,14 +1502,20 @@ struct AdvancedFilterSheet: View {
         .padding(.bottom, 6)
     }
 
-    // ── Røyketid (multi-select) ──
+    // ── Estimert brennetid (enkeltvalg) ──
+    // Nøytral produktinformasjon beregnet fra registrert lengde og ringmål.
     private var smokingTimeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("VARIGHET")
+            Text("ESTIMERT BRENNETID")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
+
+            Text("Beregnet ut fra registrert lengde og ringmål. Faktisk brennetid kan variere.")
+                .font(.footnote)
+                .foregroundColor(Color(.secondaryLabel))
+                .padding(.horizontal, 16)
 
             HStack(spacing: 8) {
                 ForEach(smokingTimeOpts, id: \.self) { opt in
@@ -1479,8 +1529,8 @@ struct AdvancedFilterSheet: View {
                         .overlay(Capsule().stroke(isSelected ? Color.clear : chipStroke, lineWidth: 1))
                         .clipShape(Capsule())
                         .onTapGesture {
-                            if isSelected { smokingTime.removeAll { $0 == opt } }
-                            else { smokingTime.append(opt) }
+                            // Tidsintervallene overlapper ikke, så ett valg er tydeligst.
+                            smokingTime = isSelected ? [] : [opt]
                         }
                 }
                 Spacer(minLength: 0)
