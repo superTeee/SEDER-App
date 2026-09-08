@@ -95,7 +95,7 @@ struct CigarDetailViewDesign: View {
         }
         .navigationBarBackButtonHidden(true)
         .navigationTitle(cigar.brand)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -543,7 +543,7 @@ struct CigarDetailViewDesign: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, entry != nil ? 48 : 8) // tettere kobling mellom large title og serienavn i Utforsk
+        .padding(.top, entry != nil ? 48 : 20) // plass til quantity-pill kun i humidor
         .padding(.bottom, 100)
     }
 

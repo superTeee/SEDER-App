@@ -1025,12 +1025,64 @@ struct ExploreView: View {
         }
     }
 
+
+    /// Avansert søk viser noen få forståelige wrapper-familier, mens katalogen
+    /// fortsatt kan beholde detaljerte verdier som "Ecuadorian Habano 2000".
+    /// Her oversettes valgt familie tilbake til de faktiske katalogverdiene.
+    private func wrapperFilterValues() -> [String] {
+        guard !filterWrapper.isEmpty else { return [] }
+
+        let matchingLabels = store.catalogFilters.wrappers.compactMap { option -> String? in
+            let label = option.label
+                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                .lowercased()
+
+            let matches = filterWrapper.contains { family in
+                switch family {
+                case "Connecticut Shade":
+                    return label.contains("connecticut") && label.contains("shade") && !label.contains("broadleaf")
+                case "Connecticut Broadleaf":
+                    return label.contains("connecticut") && label.contains("broadleaf")
+                case "Habano":
+                    return label.contains("habano")
+                case "Corojo":
+                    return label.contains("corojo")
+                case "Criollo":
+                    return label.contains("criollo")
+                case "Cameroon":
+                    return label.contains("cameroon")
+                case "Sumatra":
+                    return label.contains("sumatra")
+                case "San Andrés":
+                    return label.contains("san andres")
+                case "Maduro":
+                    return label.contains("maduro")
+                case "Oscuro":
+                    return label.contains("oscuro")
+                case "Candela":
+                    return label.contains("candela")
+                case "Colorado Claro":
+                    return label.contains("colorado") && label.contains("claro")
+                case "Colorado":
+                    return label.contains("colorado") && !label.contains("claro")
+                case "Rosado":
+                    return label.contains("rosado")
+                default:
+                    return false
+                }
+            }
+            return matches ? option.label : nil
+        }
+
+        return CatalogFilterOptions.values(for: matchingLabels, in: store.catalogFilters.wrappers)
+    }
+
     private func applyFilters() async {
         isSearching = true
         defer { isSearching = false }
         do {
             let baseResults = try await cigarService.fetchCigarsFiltered(
-                wrapperCountry:      CatalogFilterOptions.values(for: filterWrapper, in: store.catalogFilters.wrappers),
+                wrapperCountry:      wrapperFilterValues(),
                 binder:              CatalogFilterOptions.values(for: filterBinder, in: store.catalogFilters.binders),
                 filler:              CatalogFilterOptions.values(for: filterFiller, in: store.catalogFilters.fillers),
                 commonFormat:        CatalogFilterOptions.values(for: filterVitola, in: store.catalogFilters.formats),
@@ -1094,7 +1146,7 @@ struct ExploreView: View {
             // potensielt misvisende antall i arket; resultatlisten filtreres fortsatt.
             if !filterSmokingTime.isEmpty {
                 let baseResults = try await cigarService.fetchCigarsFiltered(
-                    wrapperCountry:      CatalogFilterOptions.values(for: filterWrapper, in: store.catalogFilters.wrappers),
+                    wrapperCountry:      wrapperFilterValues(),
                     binder:              CatalogFilterOptions.values(for: filterBinder, in: store.catalogFilters.binders),
                     filler:              CatalogFilterOptions.values(for: filterFiller, in: store.catalogFilters.fillers),
                     commonFormat:        CatalogFilterOptions.values(for: filterVitola, in: store.catalogFilters.formats),
@@ -1116,7 +1168,7 @@ struct ExploreView: View {
 
             // Alle databasebaserte filtre kan telles eksakt uten å laste radene.
             let count = try await cigarService.countCigarsFiltered(
-                wrapperCountry:      CatalogFilterOptions.values(for: filterWrapper, in: store.catalogFilters.wrappers),
+                wrapperCountry:      wrapperFilterValues(),
                 binder:              CatalogFilterOptions.values(for: filterBinder, in: store.catalogFilters.binders),
                 filler:              CatalogFilterOptions.values(for: filterFiller, in: store.catalogFilters.fillers),
                 commonFormat:        CatalogFilterOptions.values(for: filterVitola, in: store.catalogFilters.formats),
@@ -1310,8 +1362,18 @@ struct AdvancedFilterSheet: View {
 
     private var crossSectionOptions: [String] { catalogOptions.sections.map(\.label) }
     private var originOptions: [String] { catalogOptions.origins.map(\.label) }
-    private var vitolaOptions: [String] { catalogOptions.formats.map(\.label) }
-    private var wrapperOptions: [String] { catalogOptions.wrappers.map(\.label) }
+    // Kuratert liste over hovedformater. Databasen kan fortsatt inneholde
+    // produsentspesifikke vitola-navn, men de skal ikke fylle avansert søk.
+    private let vitolaOptions = [
+        "Robusto", "Toro", "Gordo", "Corona", "Corona Gorda", "Churchill",
+        "Lancero", "Petit Corona", "Petit Robusto", "Panatela", "Lonsdale",
+        "Double Corona", "Torpedo", "Belicoso", "Perfecto", "Figurado"
+    ]
+    private let wrapperOptions = [
+        "Connecticut Shade", "Connecticut Broadleaf", "Habano", "Corojo",
+        "Criollo", "Cameroon", "Sumatra", "San Andrés", "Maduro", "Oscuro",
+        "Candela", "Colorado", "Colorado Claro", "Rosado"
+    ]
     private var binderOptions: [String] { catalogOptions.binders.map(\.label) }
     private var fillerOptions: [String] { catalogOptions.fillers.map(\.label) }
     private let smokingTimeOpts = ["< 45 min", "45–90 min", "90+ min"]
