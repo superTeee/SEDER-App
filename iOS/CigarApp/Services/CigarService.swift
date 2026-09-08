@@ -2,6 +2,84 @@ import Foundation
 import Supabase
 import UIKit
 
+// Filter choices retain the exact database strings used for matching.
+struct CatalogFilterOption: Identifiable {
+    let label: String
+    let values: [String]
+    var id: String { label }
+}
+
+struct CatalogFilterRow: Decodable {
+    let common_format: String?
+    let country_origin: String?
+    let wrapper_leaf: String?
+    let binder: String?
+    let filler: [String]?
+    let cross_section: String?
+    let flavor_notes: [String]?
+}
+
+struct CatalogFilterOptions {
+    var formats: [CatalogFilterOption] = []
+    var origins: [CatalogFilterOption] = []
+    var wrappers: [CatalogFilterOption] = []
+    var binders: [CatalogFilterOption] = []
+    var fillers: [CatalogFilterOption] = []
+    var sections: [CatalogFilterOption] = []
+    var notes: [String] = []
+
+    static func values(for labels: [String], in options: [CatalogFilterOption]) -> [String] {
+        Array(Set(labels.flatMap { label in
+            options.first { $0.label == label }?.values ?? [label]
+        })).sorted()
+    }
+
+    init(rows: [CatalogFilterRow] = []) {
+        formats = Self.group(rows.compactMap(\.common_format))
+        origins = Self.group(rows.compactMap(\.country_origin), countries: true)
+        wrappers = Self.group(rows.compactMap(\.wrapper_leaf))
+        binders = Self.group(rows.compactMap(\.binder), countries: true)
+        fillers = Self.group(rows.flatMap { $0.filler ?? [] }, countries: true)
+        sections = Self.group(rows.compactMap(\.cross_section))
+        notes = Array(Set(rows.flatMap { $0.flavor_notes ?? [] })).sorted()
+    }
+
+    private static func group(_ values: [String], countries: Bool = false) -> [CatalogFilterOption] {
+        // Only whole country names/adjectives are aliases. Blends, regions and
+        // leaf varieties remain separate; no inferred tobacco specifications.
+        let aliases = ["nicaraguan": "Nicaragua", "dominican": "Dominican Republic",
+                       "honduran": "Honduras", "cuban": "Cuba", "mexican": "Mexico",
+                       "ecuadorian": "Ecuador", "brazilian": "Brazil", "peruvian": "Peru",
+                       "indonesian": "Indonesia", "costa rican": "Costa Rica",
+                       "usa": "United States", "u.s.a.": "United States",
+                       "american": "United States", "italian": "Italy",
+                       "colombian": "Colombia", "zimbabwean": "Zimbabwe"]
+        var groups: [String: (label: String, raw: Set<String>, count: Int)] = [:]
+        for raw in values.sorted() {
+            let clean = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !clean.isEmpty else { continue }
+            let label = countries ? (aliases[clean.lowercased()] ?? clean) : clean
+            let key = label.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            var entry = groups[key] ?? (label, [], 0)
+            // Prefer normal capitalization to ALL CAPS, retaining raw variants.
+            if entry.label == entry.label.uppercased(), label != label.uppercased() { entry.label = label }
+            entry.raw.insert(raw)
+            entry.count += 1
+            groups[key] = entry
+        }
+        return groups.values.sorted {
+            $0.count == $1.count ? $0.label.localizedStandardCompare($1.label) == .orderedAscending : $0.count > $1.count
+        }.map { CatalogFilterOption(label: $0.label, values: $0.raw.sorted()) }
+    }
+
+    // This SDK version does not quote array / IN values itself. Preserve commas,
+    // quotes and parentheses as literal data, never as PostgREST syntax.
+    static func quoted(_ value: String) -> String {
+        "\"" + value.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
+}
+
 // MARK: - CigarService
 // Håndterer alle database-kall mot "cigars"-tabellen
 
@@ -417,6 +495,27 @@ class CigarService: ObservableObject {
         }
     }
 
+    /// Read every public catalog page in a stable order; publish only a complete
+    /// snapshot so a failed page cannot silently remove available filter choices.
+    func fetchCatalogFilterOptions() async throws -> CatalogFilterOptions {
+        var rows: [CatalogFilterRow] = []
+        var offset = 0
+        let pageSize = 500
+        while true {
+            try Task.checkCancellation()
+            let page: [CatalogFilterRow] = try await supabase.from("cigars")
+                .select("common_format,country_origin,wrapper_leaf,binder,filler,cross_section,flavor_notes")
+                .or("is_public.eq.true,is_public.is.null")
+                .order("id")
+                .range(from: offset, to: offset + pageSize - 1)
+                .execute().value
+            rows.append(contentsOf: page)
+            if page.count < pageSize { break }
+            offset += page.count
+        }
+        return CatalogFilterOptions(rows: rows)
+    }
+
     // MARK: - Distinkte smaksnoter (for avansert-søk-filter)
     // Henter alle flavor_notes-arrays og returnerer et sett med de faktiske
     // rå-notatene som finnes på sigarer i databasen.
@@ -492,24 +591,14 @@ class CigarService: ObservableObject {
     ) -> PostgrestFilterBuilder {
         var builder = query
 
-        if !wrapperCountry.isEmpty {
-            let f = wrapperCountry.map { "wrapper_leaf.ilike.%\($0)%" }.joined(separator: ",")
-            builder = builder.or(f)
-        }
-        if !binder.isEmpty {
-            let f = binder.map { "binder.ilike.%\($0)%" }.joined(separator: ",")
-            builder = builder.or(f)
+        // OR within a category, AND across categories. Exact matches keep
+        // Corona separate from Corona Gorda and Petit Corona.
+        for (column, values) in [("wrapper_leaf", wrapperCountry), ("binder", binder),
+                                 ("common_format", commonFormat), ("country_origin", countryOrigin)] where !values.isEmpty {
+            builder = builder.in(column, values: values.map(CatalogFilterOptions.quoted))
         }
         if !filler.isEmpty {
-            builder = builder.overlaps("filler", value: filler)
-        }
-        if !commonFormat.isEmpty {
-            let f = commonFormat.map { "common_format.ilike.%\($0)%" }.joined(separator: ",")
-            builder = builder.or(f)
-        }
-        if !countryOrigin.isEmpty {
-            let f = countryOrigin.map { "country_origin.ilike.%\($0)%" }.joined(separator: ",")
-            builder = builder.or(f)
+            builder = builder.overlaps("filler", value: filler.map(CatalogFilterOptions.quoted))
         }
         if let r = strengthRange {
             builder = builder.gte("strength", value: r.lowerBound).lte("strength", value: r.upperBound)
@@ -527,25 +616,23 @@ class CigarService: ObservableObject {
             // Dynamiske grupper (utledet fra faktiske DB-notater). Én overlaps
             // per gruppe → AND mellom valgte smaksnoter, OR innad i hver gruppe.
             for group in flavorNoteGroups where !group.isEmpty {
-                builder = builder.overlaps("flavor_notes", value: group)
+                builder = builder.overlaps("flavor_notes", value: group.map(CatalogFilterOptions.quoted))
             }
         } else if !smokingNotes.isEmpty {
             // Fallback: statisk norsk→engelsk-mapping.
             for note in smokingNotes {
                 let engValues = Self.norToEngNotes[note] ?? [note]
-                builder = builder.overlaps("flavor_notes", value: engValues)
+                builder = builder.overlaps("flavor_notes", value: engValues.map(CatalogFilterOptions.quoted))
             }
         }
         if !crossSection.isEmpty {
-            let f = crossSection.map { "cross_section.eq.\($0)" }.joined(separator: ",")
-            builder = builder.or(f)
+            builder = builder.in("cross_section", values: crossSection.map(CatalogFilterOptions.quoted))
         }
 
         return builder
     }
 
-    /// Sigarer som matcher filtrene. Merk taket på 1000 — PostgREST returnerer
-    /// uansett ikke mer per kall.
+    /// Alle treff, paginert forbi serverens grense per kall.
     func fetchCigarsFiltered(
         wrapperCountry: [String] = [],
         binder: [String] = [],
@@ -560,8 +647,12 @@ class CigarService: ObservableObject {
         flavorNoteGroups: [[String]] = [],
         crossSection: [String] = []
     ) async throws -> [Cigar] {
-        let builder = applyFilters(
-            to: supabase.from("cigars").select(),
+        var results: [Cigar] = []
+        let pageSize = 500
+        while true {
+            try Task.checkCancellation()
+            let builder = applyFilters(
+            to: supabase.from("cigars").select().or("is_public.eq.true,is_public.is.null"),
             wrapperCountry: wrapperCountry, binder: binder, filler: filler,
             commonFormat: commonFormat, countryOrigin: countryOrigin,
             strengthRange: strengthRange, bodyRange: bodyRange,
@@ -569,13 +660,13 @@ class CigarService: ObservableObject {
             smokingNotes: smokingNotes, flavorNoteGroups: flavorNoteGroups,
             crossSection: crossSection)
 
-        let results: [Cigar] = try await builder
-            .order("brand")
-            .order("series")
-            .limit(1000)
-            .execute()
-            .value
-
+            let page: [Cigar] = try await builder
+                .order("brand").order("series").order("id")
+                .range(from: results.count, to: results.count + pageSize - 1)
+                .execute().value
+            results.append(contentsOf: page)
+            if page.count < pageSize { break }
+        }
         return results
     }
 
@@ -600,7 +691,7 @@ class CigarService: ObservableObject {
         crossSection: [String] = []
     ) async throws -> Int {
         let builder = applyFilters(
-            to: supabase.from("cigars").select("id", head: true, count: .exact),
+            to: supabase.from("cigars").select("id", head: true, count: .exact).or("is_public.eq.true,is_public.is.null"),
             wrapperCountry: wrapperCountry, binder: binder, filler: filler,
             commonFormat: commonFormat, countryOrigin: countryOrigin,
             strengthRange: strengthRange, bodyRange: bodyRange,

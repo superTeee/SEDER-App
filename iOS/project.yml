@@ -1,4 +1,4 @@
-name: Vitola
+name: SEDER
 options:
   bundleIdPrefix: com.tomerikheggedal
   deploymentTarget:
@@ -24,7 +24,7 @@ packages:
     from: 5.0.0
 
 targets:
-  Vitola:
+  SEDER:
     type: application
     platform: iOS
     sources:
@@ -46,7 +46,7 @@ targets:
       - package: RevenueCat
         product: RevenueCat
     entitlements:
-      path: CigarApp/Vitola.entitlements
+      path: CigarApp/SEDER.entitlements
       properties:
         com.apple.developer.applesignin:
           - Default

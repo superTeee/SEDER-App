@@ -23,6 +23,11 @@ final class ExploreStore: ObservableObject {
     // MARK: Data
 
     @Published private(set) var brands: [BrandSummary] = []
+    @Published private(set) var catalogFilters = CatalogFilterOptions()
+    @Published private(set) var isLoadingFilters = false
+    @Published private(set) var filterError: String?
+    private var filtersLoadedAt: Date?
+
     @Published private(set) var flavorOptions: [FlavorFilterOption] = []
     @Published private(set) var topCigars: [Cigar] = []
     @Published private(set) var featuredCigar: Cigar? = nil
@@ -64,7 +69,7 @@ final class ExploreStore: ObservableObject {
                 group.addTask { await self.loadTopCigars() }
                 group.addTask { await self.loadFeaturedCigar() }
                 group.addTask { await self.loadBrands() }
-                group.addTask { await self.loadFlavorOptions() }
+                group.addTask { await self.loadFilterOptions() }
             }
         }
     }
@@ -121,23 +126,33 @@ final class ExploreStore: ObservableObject {
         }
     }
 
-    private func loadFlavorOptions() async {
+    func loadFilterOptions(force: Bool = false) async {
+        guard !isLoadingFilters else { return }
+        if !force, let date = filtersLoadedAt, Date().timeIntervalSince(date) < 300 { return }
+        isLoadingFilters = true
+        filterError = nil
+        defer { isLoadingFilters = false }
         do {
-            let rawNotes = try await cigarService.fetchDistinctFlavorNotes()
+            let catalog = try await cigarService.fetchCatalogFilterOptions()
+            let rawNotes = catalog.notes
             // Grupper rå-notatene på ikon-familie slik at hvert filtervalg
-            // svarer til minst én ekte sigar. Ukjente notater (uten ikon) droppes.
+            // svarer til minst én ekte sigar. Notater uten ikon beholder navnet fra basen.
             var byFamily: [String: [String]] = [:]
             for note in rawNotes {
-                guard let family = FlavorIcon.name(for: note) else { continue }
+                let clean = note.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !clean.isEmpty else { continue }
+                let family = FlavorIcon.name(for: note) ?? "raw:" + clean.lowercased()
                 byFamily[family, default: []].append(note)
             }
+            catalogFilters = catalog
+            filtersLoadedAt = Date()
             flavorOptions = byFamily
-                .map { FlavorFilterOption(label: FlavorIcon.displayLabel(for: $0.key),
+                .map { FlavorFilterOption(label: $0.key.hasPrefix("raw:") ? String($0.key.dropFirst(4)) : FlavorIcon.displayLabel(for: $0.key),
                                           iconFamily: $0.key,
                                           dbNotes: $0.value) }
                 .sorted { $0.label < $1.label }
         } catch {
-            print("Feil ved lasting av smaksnoter: \(error)")
+            filterError = "Kunne ikke oppdatere filtrene. Kontroller forbindelsen og prøv igjen."
         }
     }
 }

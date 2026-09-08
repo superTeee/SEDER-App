@@ -1029,12 +1029,21 @@ struct ExploreView: View {
         isSearching = true
         defer { isSearching = false }
         do {
+<<<<<<< Updated upstream
             let baseResults = try await cigarService.fetchCigarsFiltered(
+                wrapperCountry:      filterWrapper,
+                binder:              filterBinder,
+                filler:              filterFiller,
+                commonFormat:        filterVitola,
+                countryOrigin:       filterCountry,
+=======
+            filteredResults = try await cigarService.fetchCigarsFiltered(
                 wrapperCountry:      CatalogFilterOptions.values(for: filterWrapper, in: store.catalogFilters.wrappers),
                 binder:              CatalogFilterOptions.values(for: filterBinder, in: store.catalogFilters.binders),
                 filler:              CatalogFilterOptions.values(for: filterFiller, in: store.catalogFilters.fillers),
                 commonFormat:        CatalogFilterOptions.values(for: filterVitola, in: store.catalogFilters.formats),
                 countryOrigin:       CatalogFilterOptions.values(for: filterCountry, in: store.catalogFilters.origins),
+>>>>>>> Stashed changes
                 strengthRange:       filterStrengthMin > 1.0 || filterStrengthMax < 5.0 ? filterStrengthMin...filterStrengthMax : nil,
                 bodyRange:           filterBodyMin > 1.0 || filterBodyMax < 5.0 ? filterBodyMin...filterBodyMax : nil,
                 sweetnessRange:      filterSweetnessMin > 1.0 || filterSweetnessMax < 5.0 ? filterSweetnessMin...filterSweetnessMax : nil,
@@ -1089,25 +1098,25 @@ struct ExploreView: View {
             return
         }
         do {
+<<<<<<< Updated upstream
             // Brennetid er et lokalt estimat basert på mål, ikke et lagret produsentfelt.
             // Når grunnspørringen treffer 1000-raders taket viser vi derfor ikke et
             // potensielt misvisende antall i arket; resultatlisten filtreres fortsatt.
             if !filterSmokingTime.isEmpty {
                 let baseResults = try await cigarService.fetchCigarsFiltered(
-                    wrapperCountry:      CatalogFilterOptions.values(for: filterWrapper, in: store.catalogFilters.wrappers),
-                    binder:              CatalogFilterOptions.values(for: filterBinder, in: store.catalogFilters.binders),
-                    filler:              CatalogFilterOptions.values(for: filterFiller, in: store.catalogFilters.fillers),
-                    commonFormat:        CatalogFilterOptions.values(for: filterVitola, in: store.catalogFilters.formats),
-                    countryOrigin:       CatalogFilterOptions.values(for: filterCountry, in: store.catalogFilters.origins),
+                    wrapperCountry:      filterWrapper,
+                    binder:              filterBinder,
+                    filler:              filterFiller,
+                    commonFormat:        filterVitola,
+                    countryOrigin:       filterCountry,
                     strengthRange:       filterStrengthMin > 1.0 || filterStrengthMax < 5.0 ? filterStrengthMin...filterStrengthMax : nil,
                     bodyRange:           filterBodyMin > 1.0 || filterBodyMax < 5.0 ? filterBodyMin...filterBodyMax : nil,
                     sweetnessRange:      filterSweetnessMin > 1.0 || filterSweetnessMax < 5.0 ? filterSweetnessMin...filterSweetnessMax : nil,
                     flavorIntensityRange: filterFlavorIntensityMin > 1.0 || filterFlavorIntensityMax < 5.0 ? filterFlavorIntensityMin...filterFlavorIntensityMax : nil,
                     smokingNotes:        filterSmokingNotes,
                     flavorNoteGroups:    selectedFlavorNoteGroups,
-                    crossSection:        CatalogFilterOptions.values(for: filterCrossSection, in: store.catalogFilters.sections)
+                    crossSection:        filterCrossSection
                 )
-                guard !Task.isCancelled else { return }
                 filterResultCount = baseResults.count < 1000
                     ? baseResults.filter(matchesEstimatedBurnTime).count
                     : nil
@@ -1115,12 +1124,22 @@ struct ExploreView: View {
             }
 
             // Alle databasebaserte filtre kan telles eksakt uten å laste radene.
+            filterResultCount = try await cigarService.countCigarsFiltered(
+                wrapperCountry:      filterWrapper,
+                binder:              filterBinder,
+                filler:              filterFiller,
+                commonFormat:        filterVitola,
+                countryOrigin:       filterCountry,
+=======
+            // Teller i databasen. Å telle radene vi faktisk laster ville gitt
+            // samme tall for alle filtre som treffer mer enn takgrensen.
             let count = try await cigarService.countCigarsFiltered(
                 wrapperCountry:      CatalogFilterOptions.values(for: filterWrapper, in: store.catalogFilters.wrappers),
                 binder:              CatalogFilterOptions.values(for: filterBinder, in: store.catalogFilters.binders),
                 filler:              CatalogFilterOptions.values(for: filterFiller, in: store.catalogFilters.fillers),
                 commonFormat:        CatalogFilterOptions.values(for: filterVitola, in: store.catalogFilters.formats),
                 countryOrigin:       CatalogFilterOptions.values(for: filterCountry, in: store.catalogFilters.origins),
+>>>>>>> Stashed changes
                 strengthRange:       filterStrengthMin > 1.0 || filterStrengthMax < 5.0 ? filterStrengthMin...filterStrengthMax : nil,
                 bodyRange:           filterBodyMin > 1.0 || filterBodyMax < 5.0 ? filterBodyMin...filterBodyMax : nil,
                 sweetnessRange:      filterSweetnessMin > 1.0 || filterSweetnessMax < 5.0 ? filterSweetnessMin...filterSweetnessMax : nil,
@@ -1308,13 +1327,30 @@ struct AdvancedFilterSheet: View {
 
     private let initialCount = 6
 
+<<<<<<< Updated upstream
+    private let crossSectionOptions = ["Box Pressed", "Oval", "Hexagonal"]
+    private let originOptions   = ["Nicaragua", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador", "Peru", "Costa Rica", "Panama", "USA"]
+    private let vitolaOptions   = ["Toro", "Robusto", "Gordo", "Corona Gorda", "Churchill", "Corona", "Lancero", "Torpedo", "Belicoso", "Figurado", "Panatela", "Petit Corona"]
+    // Typiske mål per format (ringmål × lengde) — en pekepinn, ikke en fasit.
+    // Figurado utelates: det er en form-familie, ikke ett bestemt mål.
+    private let vitolaSizes: [String: String] = [
+        "Toro": "50 × 6\"", "Robusto": "50 × 5\"", "Gordo": "60 × 6\"",
+        "Corona Gorda": "46 × 5.6\"", "Churchill": "48 × 7\"", "Corona": "42 × 5.5\"",
+        "Lancero": "38 × 7.5\"", "Torpedo": "52 × 6.1\"", "Belicoso": "52 × 5.5\"",
+        "Panatela": "38 × 6\"", "Petit Corona": "42 × 4.5\""
+    ]
+    private let wrapperOptions  = ["Connecticut Shade", "Ecuador Connecticut", "San Andrés", "Cameroon", "Sumatra", "Broadleaf", "Habano", "Colorado Claro", "Maduro", "Corojo"]
+    private let binderOptions   = ["Nicaraguan", "Dominican", "Honduran", "Mexican San Andrés", "Ecuadorian", "Connecticut", "Sumatran", "Cameroon"]
+    private let fillerOptions   = ["Nicaraguan", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador", "Peru", "Pennsylvania"]
+    private let smokingTimeOpts = ["< 45 min", "45–90 min", "90+ min"]
+=======
     private var crossSectionOptions: [String] { catalogOptions.sections.map(\.label) }
     private var originOptions: [String] { catalogOptions.origins.map(\.label) }
     private var vitolaOptions: [String] { catalogOptions.formats.map(\.label) }
     private var wrapperOptions: [String] { catalogOptions.wrappers.map(\.label) }
     private var binderOptions: [String] { catalogOptions.binders.map(\.label) }
     private var fillerOptions: [String] { catalogOptions.fillers.map(\.label) }
-    private let smokingTimeOpts = ["< 45 min", "45–90 min", "90+ min"]
+>>>>>>> Stashed changes
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -1535,6 +1571,7 @@ struct AdvancedFilterSheet: View {
         .padding(.bottom, 6)
     }
 
+<<<<<<< Updated upstream
     // ── Estimert brennetid (enkeltvalg) ──
     // Nøytral produktinformasjon beregnet fra registrert lengde og ringmål.
     private var smokingTimeSection: some View {
@@ -1572,6 +1609,8 @@ struct AdvancedFilterSheet: View {
             .padding(.bottom, 28)
         }
     }
+=======
+>>>>>>> Stashed changes
 }
 
 // MARK: - VitolaGuideSheet

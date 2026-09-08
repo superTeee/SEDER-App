@@ -110,7 +110,7 @@
 		940D2F398ECEDA8C8B017BEF /* PINComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINComponents.swift; sourceTree = "<group>"; };
 		99853265E9A2AA623B941165 /* CigarAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CigarAppApp.swift; sourceTree = "<group>"; };
 		A09FBD8194558961F794F5FE /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
-		A73F63ADC1F4B94C040887F2 /* Vitola.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vitola.entitlements; sourceTree = "<group>"; };
+		A73F63ADC1F4B94C040887F2 /* SEDER.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SEDER.entitlements; sourceTree = "<group>"; };
 		AA00000000000000000000B2 /* HumidorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorModels.swift; sourceTree = "<group>"; };
 		AA00000000000000000000C2 /* CreateHumidorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateHumidorSheet.swift; sourceTree = "<group>"; };
 		AA00000000000000000000D2 /* HumidorDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumidorDetailView.swift; sourceTree = "<group>"; };
@@ -129,7 +129,7 @@
 		AC30FILLSHEET000FILE00000001 /* Admin/CigarFillSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Admin/CigarFillSheet.swift; sourceTree = "<group>"; };
 		B0DA58E65C4D170ADE5C31BF /* BarcodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeService.swift; sourceTree = "<group>"; };
 		B4C89DE87D59170A59BF29DB /* ProfileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileService.swift; sourceTree = "<group>"; };
-		B9F107D7AB9A439828124088 /* Vitola.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vitola.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9F107D7AB9A439828124088 /* SEDER.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SEDER.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD6574A222EED0313457BD6D /* PINSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINSetupView.swift; sourceTree = "<group>"; };
 		C88921AF95DA591733B22CC6 /* FeedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedModels.swift; sourceTree = "<group>"; };
 		DFDAFD471ECD732AD0BC15DA /* UserProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileView.swift; sourceTree = "<group>"; };
@@ -266,7 +266,7 @@
 		74FB52B4C2F775FFE89822E3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B9F107D7AB9A439828124088 /* Vitola.app */,
+				B9F107D7AB9A439828124088 /* SEDER.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -325,7 +325,7 @@
 				FA22E9CEDD719507D54C5C19 /* Assets.xcassets */,
 				99853265E9A2AA623B941165 /* CigarAppApp.swift */,
 				E7283863F25CF40E1B3513A7 /* Info.plist */,
-				A73F63ADC1F4B94C040887F2 /* Vitola.entitlements */,
+				A73F63ADC1F4B94C040887F2 /* SEDER.entitlements */,
 			);
 			path = CigarApp;
 			sourceTree = "<group>";
@@ -370,9 +370,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8926F3C15BA9A18BCE11896B /* Vitola */ = {
+		8926F3C15BA9A18BCE11896B /* SEDER */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "Vitola" */;
+			buildConfigurationList = 78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "SEDER" */;
 			buildPhases = (
 				9826BF3DD8BF0B27B15A5D59 /* Sources */,
 				F53AD1EBEB3F6CD9F5626326 /* Resources */,
@@ -382,7 +382,7 @@
 			);
 			dependencies = (
 			);
-			name = Vitola;
+			name = SEDER;
 			packageProductDependencies = (
 				333232B66274F8E65263E2F7 /* Supabase */,
 				D1EEF6BE6627FFD5DE0C2C4B /* GoogleSignIn */,
@@ -390,8 +390,8 @@
 				AA20MANTISPROD0100000000 /* Mantis */,
 				AA20REVCATPROD0100000000 /* RevenueCat */,
 			);
-			productName = Vitola;
-			productReference = B9F107D7AB9A439828124088 /* Vitola.app */;
+			productName = SEDER;
+			productReference = B9F107D7AB9A439828124088 /* SEDER.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -409,7 +409,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "Vitola" */;
+			buildConfigurationList = 0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "SEDER" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -430,7 +430,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8926F3C15BA9A18BCE11896B /* Vitola */,
+				8926F3C15BA9A18BCE11896B /* SEDER */,
 			);
 		};
 /* End PBXProject section */
@@ -578,7 +578,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
+				CODE_SIGN_ENTITLEMENTS = CigarApp/SEDER.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 307;
@@ -601,7 +601,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = CigarApp/Vitola.entitlements;
+				CODE_SIGN_ENTITLEMENTS = CigarApp/SEDER.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 307;
@@ -686,7 +686,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "Vitola" */ = {
+		0BBEBE3D5FF6346D83BF95C3 /* Build configuration list for PBXProject "SEDER" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				EA592A9C18B2F205CE926746 /* Debug */,
@@ -695,7 +695,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "Vitola" */ = {
+		78207B1E9A7030C3C829F94D /* Build configuration list for PBXNativeTarget "SEDER" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B9520257BC520B238292C1FA /* Debug */,
