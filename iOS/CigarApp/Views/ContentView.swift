@@ -1,23 +1,17 @@
 import SwiftUI
 
 // MARK: - AppShell
-// Liten app-koordinator som lar den globale skann-knappen og profil-avataren
-// (som lever i ContentView / toolbars) styre resten av appen:
-//  • showScan/pendingScan — åpner skann-arket globalt, kjører flyt på Utforsk
-//  • showProfile — presenterer profilen modalt (avatar øverst til venstre)
-//  • ownAvatarUrl/ownName — hentes én gang, brukes i avatar-knappen
+// Global coordinator for scanning and shared app state.
 enum ScanAction { case band, photo, receipt }
 
 extension Notification.Name {
-    /// Sendes når en journal-logg er fullført → appen bytter til Journal-fanen.
+    /// Sent when a log entry is completed -> switch to Logg.
     static let didLogTasting = Notification.Name("didLogTasting")
 }
 
 @MainActor
 final class AppShell: ObservableObject {
-    /// Presenterer skann-arket globalt (over gjeldende fane — ingen navigasjon).
     @Published var showScan = false
-    /// Valgt skann-handling → Utforsk kjører riktig flyt (kamera/kvittering).
     @Published var pendingScan: ScanAction? = nil
     @Published var showProfile = false
     @Published var ownAvatarUrl: String?
@@ -25,10 +19,8 @@ final class AppShell: ObservableObject {
 
     private let profileService = ProfileService()
 
-    /// Åpner skann-arket der brukeren står (senter-knappen).
     func requestScan() { showScan = true }
 
-    /// Henter egen avatar/navn til profil-knappen (kalles én gang ved oppstart).
     func loadOwnProfile(userId: UUID) async {
         if let p = try? await profileService.fetchOwnProfile(userId: userId) {
             ownAvatarUrl = p.avatarUrl
@@ -38,63 +30,59 @@ final class AppShell: ObservableObject {
 }
 
 // MARK: - ContentView
-// Egen tab-bar (SwiftUI TabView støtter ikke en overlappende senter-knapp):
-// 4 faner (Utforsk · Journal | Humidor · Profil) med en hevet, rund
-// SKANN-knapp i midten. Profil er flyttet ut av tab-baren til en avatar
-// øverst til venstre på hver hovedskjerm.
+// Review-safe information architecture:
+// Søk · Logg | [Skann FAB] | Humidor · Innstillinger
+//
+// Profil and Aktivitet are intentionally removed from primary navigation.
+// Scan remains a global FAB because identification is a core utility action.
 struct ContentView: View {
 
     @EnvironmentObject var authService: AuthService
     @StateObject private var appShell = AppShell()
     @Environment(\.colorScheme) private var colorScheme
 
-    @State private var selectedTab = 0   // åpner på Utforsk
+    @State private var selectedTab = 0
     @AppStorage("humidorHasNew") private var humidorHasNew: Bool = false
 
-    // Fane-taggene beholdes fra før (0=Utforsk, 3=Aktivitet, 2=Journal, 1=Humidor)
-    private let exploreTag  = 0
-    private let journalTag  = 2
+    private let searchTag   = 0
+    private let logTag      = 2
     private let humidorTag  = 1
-    private let profileTag  = 4
+    private let settingsTag = 4
 
     var body: some View {
         TabView(selection: $selectedTab) {
             ExploreView()
-                .tag(exploreTag)
+                .tag(searchTag)
                 .toolbar(.hidden, for: .tabBar)
 
             JournalView()
-                .tag(journalTag)
+                .tag(logTag)
                 .toolbar(.hidden, for: .tabBar)
 
             HumidorView()
                 .tag(humidorTag)
                 .toolbar(.hidden, for: .tabBar)
 
-            ProfileView()
+            SettingsRootView()
                 .environmentObject(authService)
-                .tag(profileTag)
+                .tag(settingsTag)
                 .toolbar(.hidden, for: .tabBar)
         }
         .tint(Color("Accent"))
         .environmentObject(appShell)
-        // Egen tab-bar legges i safe-area-inset → innhold skyves aldri under baren
         .safeAreaInset(edge: .bottom, spacing: 0) {
             customTabBar
         }
         .task {
-            if let uid = authService.userId { await appShell.loadOwnProfile(userId: uid) }
+            if let uid = authService.userId {
+                await appShell.loadOwnProfile(userId: uid)
+            }
         }
         .onChange(of: authService.userId) { uid in
-            if let uid { Task { await appShell.loadOwnProfile(userId: uid) } }
+            if let uid {
+                Task { await appShell.loadOwnProfile(userId: uid) }
+            }
         }
-        .fullScreenCover(isPresented: $appShell.showProfile) {
-            ProfileView(onClose: { appShell.showProfile = false })
-                .environmentObject(authService)
-                .environmentObject(appShell)
-        }
-        // Skann-arket presenteres globalt (over gjeldende fane). Først når et valg
-        // gjøres bytter vi til Utforsk og kjører flyten der (kamera/kvittering).
         .sheet(isPresented: $appShell.showScan) {
             ScanSheet(
                 onBand:    { appShell.pendingScan = .band },
@@ -105,40 +93,36 @@ struct ContentView: View {
             .presentationDragIndicator(.visible)
         }
         .onChange(of: appShell.pendingScan) { action in
-            if action != nil { selectedTab = exploreTag }
+            // ExploreView currently owns the scan/receipt flows.
+            // Keep routing there while its visible content is being simplified.
+            if action != nil { selectedTab = searchTag }
         }
-        // Fullført journal-logg → naviger til Journal-fanen (den laster på nytt ved onAppear).
         .onReceive(NotificationCenter.default.publisher(for: .didLogTasting)) { _ in
-            selectedTab = journalTag
+            selectedTab = logTag
         }
     }
 
-    // MARK: - Egen tab-bar
+    // MARK: - Custom tab bar
 
-    // Opak bar-farge (hvit i light, mørkt kort i dark) — tydelig atskilt fra
-    // den beige sidebakgrunnen slik at innhold ikke skinner gjennom.
     private var barFill: Color {
         colorScheme == .light ? .white : Color("Card")
     }
 
     private var customTabBar: some View {
         ZStack {
-            // Fanene
             HStack(spacing: 0) {
-                tabButton(tag: exploreTag,  title: "Utforsk",   image: "tab_explore")
-                tabButton(tag: journalTag,  title: "Journal",   image: "tab_journal")
+                tabButton(tag: searchTag, title: "Søk", image: "tab_explore")
+                tabButton(tag: logTag, title: "Logg", image: "tab_journal")
 
-                // Hull til senter-knappen
                 Color.clear.frame(width: 66)
 
-                tabButton(tag: humidorTag,  title: "Humidor",   image: "tab_humidor", showBadge: humidorHasNew)
-                tabButton(tag: profileTag,  title: "Profil",    image: "tab_profile")
+                tabButton(tag: humidorTag, title: "Humidor", image: "tab_humidor", showBadge: humidorHasNew)
+                tabButton(tag: settingsTag, title: "Innstillinger", systemImage: "gearshape")
             }
             .frame(maxWidth: .infinity)
             .frame(height: 60)
-            .padding(.horizontal, 12)   // ytterste faner litt nærmere de indre
+            .padding(.horizontal, 12)
 
-            // Hevet senter-knapp: SKANN
             scanCenterButton
                 .offset(y: -16)
         }
@@ -155,39 +139,54 @@ struct ContentView: View {
         )
     }
 
-    private func tabButton(tag: Int, title: String, image: String, showBadge: Bool = false) -> some View {
+    private func tabButton(
+        tag: Int,
+        title: String,
+        image: String? = nil,
+        systemImage: String? = nil,
+        showBadge: Bool = false
+    ) -> some View {
         let selected = selectedTab == tag
-        // Solid, lesbar inaktiv-farge (ikke gjennomsiktig → ser ikke «disabled» ut)
         let inactive = Color("TextSecondary")
+
         return Button {
             selectedTab = tag
         } label: {
             VStack(spacing: 4) {
-                // Aktivt ikon får en avrundet flate i skann-knappens farge, hvitt ikon
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(selected ? Color("Accent") : Color.clear)
                         .frame(width: 46, height: 34)
-                    Image(image)
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 26, height: 26)
-                        .foregroundColor(selected ? .white : inactive)
-                        .overlay(alignment: .topTrailing) {
-                            if showBadge {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 4, y: -2)
-                            }
+
+                    Group {
+                        if let image {
+                            Image(image)
+                                .renderingMode(.template)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 26, height: 26)
+                        } else if let systemImage {
+                            Image(systemName: systemImage)
+                                .font(.system(size: 23, weight: .regular))
                         }
+                    }
+                    .foregroundColor(selected ? .white : inactive)
+                    .overlay(alignment: .topTrailing) {
+                        if showBadge {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 4, y: -2)
+                        }
+                    }
                 }
                 .frame(height: 34)
 
                 Text(title)
-                    .font(.system(size: 11, weight: selected ? .semibold : .medium))
+                    .font(.system(size: 10, weight: selected ? .semibold : .medium))
                     .foregroundColor(selected ? Color("Accent") : inactive)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -197,14 +196,13 @@ struct ContentView: View {
 
     private var scanCenterButton: some View {
         Button {
-            appShell.requestScan()         // åpne skann-arket der brukeren står
+            appShell.requestScan()
         } label: {
             ZStack {
                 Circle()
                     .fill(Color("Accent"))
                     .frame(width: 60, height: 60)
 
-                // Skann-ikon: søker-ramme + horisontal skann-strek
                 ZStack {
                     Image(systemName: "viewfinder")
                         .font(.system(size: 27, weight: .regular))
@@ -219,20 +217,78 @@ struct ContentView: View {
     }
 }
 
-// MARK: - ProfileAvatarButton
-// Avatar-knappen som ligger øverst til venstre på hovedskjermene og åpner
-// profilen. Leser cachet avatar/navn fra AppShell.
+// MARK: - SettingsRootView
+// A neutral utility/settings destination replacing the previous profile tab.
+// Profile/taste-preference content is intentionally not part of the primary IA.
+struct SettingsRootView: View {
+    @EnvironmentObject var authService: AuthService
+    @AppStorage("appearance") private var appearance = "system"
+    @State private var showSignOutConfirm = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let email = authService.currentUser?.email {
+                    Section("Konto") {
+                        LabeledContent("Innlogget som", value: email)
+                    }
+                }
+
+                Section("Utseende") {
+                    Picker("Tema", selection: $appearance) {
+                        Text("System").tag("system")
+                        Text("Mørk").tag("dark")
+                        Text("Lys").tag("light")
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section("Om SEDER") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Helse og formål")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Tobakk innebærer helserisiko. SEDER selger ingen produkter, formidler ingen kjøp og oppfordrer ikke til bruk. Appen er et referanse-, lagrings- og registreringsverktøy for voksne som ønsker å holde oversikt over en egen samling.")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color("TextSecondary"))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 4)
+
+                    Link("Vilkår for bruk", destination: URL(string: "https://sederappen.no/terms.html")!)
+                    Link("Personvern", destination: URL(string: "https://sederappen.no/privacy.html")!)
+                }
+
+                if authService.userId != nil {
+                    Section {
+                        Button("Logg ut", role: .destructive) {
+                            showSignOutConfirm = true
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color("Background"))
+            .navigationTitle("Innstillinger")
+            .navigationBarTitleDisplayMode(.inline)
+            .alert("Logg ut?", isPresented: $showSignOutConfirm) {
+                Button("Avbryt", role: .cancel) {}
+                Button("Logg ut", role: .destructive) {
+                    Task { try? await authService.signOut() }
+                }
+            }
+        }
+    }
+}
+
+// Kept for compatibility with screens that still reference the avatar helper.
+// It is no longer exposed from the primary navigation.
 struct ProfileAvatarButton: View {
     @EnvironmentObject var appShell: AppShell
 
     var body: some View {
-        Button {
-            appShell.showProfile = true
-        } label: {
-            AvatarView(url: appShell.ownAvatarUrl, name: appShell.ownName, size: 30)
-        }
-        .buttonStyle(.plain)   // fjern iOS-standard rund knappe-bakgrunn/kant i toolbaren
-        .accessibilityLabel("Profil")
+        AvatarView(url: appShell.ownAvatarUrl, name: appShell.ownName, size: 30)
+            .accessibilityHidden(true)
     }
 }
 
