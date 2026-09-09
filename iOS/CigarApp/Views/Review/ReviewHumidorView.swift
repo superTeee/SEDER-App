@@ -85,7 +85,7 @@ struct ReviewHumidorView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(humidors) { humidor in
-                    NavigationLink(destination: HumidorDetailView(
+                    NavigationLink(destination: ReviewHumidorDetailView(
                         humidor: humidor,
                         allHumidors: humidors,
                         onChanged: { Task { await loadHumidors() } }
