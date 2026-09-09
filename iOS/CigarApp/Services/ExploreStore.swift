@@ -248,7 +248,7 @@ final class ExploreStore: ObservableObject {
         case "malt", "graham", "graham cracker", "baked bread":
             return "toast"
         case "brown sugar", "raw sugar", "sugar dust":
-            return "honey"
+            return "sugar"
         case "buttery smooth", "creamy", "malted milk":
             return "cream"
         case "cacao":
@@ -269,7 +269,11 @@ final class ExploreStore: ObservableObject {
     }
 
     private static func flavorLabel(for family: String) -> String {
-        family == "herbal" ? "Urter" : FlavorIcon.displayLabel(for: family)
+        switch family {
+        case "herbal": return "Urter"
+        case "sugar": return "Sukker"
+        default: return FlavorIcon.displayLabel(for: family)
+        }
     }
 
     // MARK: - Hentinger
@@ -336,9 +340,9 @@ final class ExploreStore: ObservableObject {
                 categories: Self.fillerCategories
             )
 
-            // Smaksnoter: ett valg per eksisterende ikonfamilie. Synonymer samles,
-            // rå stavevarianter eksponeres ikke som egne chips. «Urter» er eneste
-            // meningsfulle familie i dagens katalog som mangler eget ikon-asset.
+            // Smaksnoter: synonymer samles i meningsfulle familier i stedet for at
+            // rå stavevarianter eksponeres som egne chips. Sukker holdes bevisst
+            // separat fra honning fordi de er forskjellige smaksnoter.
             var byFamily: [String: [String]] = [:]
             for note in rawCatalog.notes {
                 let clean = note.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -357,11 +361,9 @@ final class ExploreStore: ObservableObject {
                     )
                 }
                 .sorted { lhs, rhs in
-                    // Eksisterende ikonfamilier i en stabil, intuitiv rekkefølge;
-                    // Urter legges til slutt til eget ikon er på plass.
                     let order = [
                         "Sedertre", "Tre", "Jord", "Lær", "Pepper", "Krydder", "Kanel",
-                        "Kakao", "Kaffe", "Toast", "Nøtter", "Kremete", "Honning", "Vanilje",
+                        "Kakao", "Kaffe", "Toast", "Nøtter", "Kremete", "Sukker", "Honning", "Vanilje",
                         "Frukt", "Sitrus", "Blomst", "Høy", "Mineral", "Mynte", "Tobakk",
                         "Whisky", "Urter"
                     ]
