@@ -13,7 +13,22 @@ final class AppShell: ObservableObject {
     @Published var showScan = false
     @Published var pendingScan: ScanAction? = nil
 
+    // Kept for source compatibility with legacy views. Profile is not exposed
+    // anywhere in the review-safe primary navigation.
+    @Published var showProfile = false
+    @Published var ownAvatarUrl: String?
+    @Published var ownName: String = ""
+
+    private let profileService = ProfileService()
+
     func requestScan() { showScan = true }
+
+    func loadOwnProfile(userId: UUID) async {
+        if let p = try? await profileService.fetchOwnProfile(userId: userId) {
+            ownAvatarUrl = p.avatarUrl
+            ownName = p.displayName ?? ""
+        }
+    }
 }
 
 // MARK: - ContentView
