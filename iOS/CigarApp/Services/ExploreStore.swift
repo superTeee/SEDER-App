@@ -85,6 +85,193 @@ final class ExploreStore: ObservableObject {
         flavorOptions.first { $0.label == label }?.dbNotes
     }
 
+    // MARK: - Kuraterte katalogfiltre
+
+    /// Rå katalogdata skal være detaljerte, men filteret skal ikke eksponere
+    /// 100+ skrivemåter av det samme. Disse listene er bevisst korte og stabile.
+    private static let binderOrder = [
+        "Nicaragua", "Dominican Republic", "Honduras", "Cuba", "Mexico", "Ecuador",
+        "United States", "Indonesia", "Brazil", "Cameroon", "Peru", "Costa Rica"
+    ]
+
+    private static let fillerOrder = [
+        "Nicaragua", "Dominican Republic", "Honduras", "Cuba", "United States", "Peru",
+        "Mexico", "Brazil", "Costa Rica", "Colombia", "Ecuador", "Paraguay"
+    ]
+
+    private static func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .lowercased()
+    }
+
+    private static func containsAny(_ value: String, _ needles: [String]) -> Bool {
+        needles.contains { value.contains($0) }
+    }
+
+    /// Ett råfelt kan være en blend (f.eks. «Dominican and Nicaraguan»), og skal
+    /// da kunne finnes fra begge relevante filtervalg. Vi gjetter ikke på generiske
+    /// bladnavn som «Sumatra», «Corojo» eller «Habano» når opprinnelsen ikke står der.
+    private static func binderCategories(for raw: String) -> [String] {
+        let v = normalized(raw)
+        var result: [String] = []
+
+        if containsAny(v, ["nicarag", "aganorsa", "jalapa", "esteli", "condega", "ometepe", "quilali"]) {
+            result.append("Nicaragua")
+        }
+        if containsAny(v, ["dominican", "piloto", "olor dominicano", "la vega especial"]) {
+            result.append("Dominican Republic")
+        }
+        if containsAny(v, ["hondur", "jamastran", "olancho"]) {
+            result.append("Honduras")
+        }
+        if v == "cuba" || v == "cuban" || v.contains("habana vuelta arriba") || v.hasPrefix("hva (") {
+            result.append("Cuba")
+        }
+        if containsAny(v, ["mexic", "san andres"]) {
+            result.append("Mexico")
+        }
+        if v.contains("ecuador") {
+            result.append("Ecuador")
+        }
+        if containsAny(v, ["united states", "u.s.", "usa", "pennsylvania", "american havana"]) ||
+            v == "connecticut broadleaf" || v == "connecticut shade" {
+            result.append("United States")
+        }
+        if containsAny(v, ["indonesia", "indonesian", "besuki", "bezuki"]) {
+            result.append("Indonesia")
+        }
+        if containsAny(v, ["brazil", "mata fina", "arapiraca"]) {
+            result.append("Brazil")
+        }
+        if v.contains("cameroon") {
+            result.append("Cameroon")
+        }
+        if v.contains("peru") {
+            result.append("Peru")
+        }
+        if v.contains("costa rica") {
+            result.append("Costa Rica")
+        }
+        return result
+    }
+
+    private static func fillerCategories(for raw: String) -> [String] {
+        let v = normalized(raw)
+        var result: [String] = []
+
+        if containsAny(v, ["nicarag", "aganorsa", "jalapa", "esteli", "condega", "ometepe", "pueblo nuevo", "masatepe", "quilali"]) {
+            result.append("Nicaragua")
+        }
+        if containsAny(v, ["dominican", "piloto", "olor", "andullo", "cubita mao"]) {
+            result.append("Dominican Republic")
+        }
+        if containsAny(v, ["hondur", "jamastran", "la entrada", "olancho"]) {
+            result.append("Honduras")
+        }
+        if v == "cuba" || v == "cuban" {
+            result.append("Cuba")
+        }
+        if containsAny(v, ["united states", "u.s.", "usa", "pennsylvania"]) ||
+            v == "connecticut broadleaf" || v == "american" {
+            result.append("United States")
+        }
+        if v.contains("peru") || v.contains("peruvian") {
+            result.append("Peru")
+        }
+        if containsAny(v, ["mexic", "san andres"]) {
+            result.append("Mexico")
+        }
+        if containsAny(v, ["brazil", "mata fina", "braganca", "fuma en corda"]) {
+            result.append("Brazil")
+        }
+        if v.contains("costa rica") || v.contains("costa rican") {
+            result.append("Costa Rica")
+        }
+        if v.contains("colombia") || v.contains("colombian") {
+            result.append("Colombia")
+        }
+        if v.contains("ecuador") {
+            result.append("Ecuador")
+        }
+        if v.contains("paraguay") {
+            result.append("Paraguay")
+        }
+        return result
+    }
+
+    private static func curatedOptions(
+        from options: [CatalogFilterOption],
+        order: [String],
+        categories: (String) -> [String]
+    ) -> [CatalogFilterOption] {
+        let rawValues = Set(options.flatMap(\.values))
+        var grouped: [String: Set<String>] = [:]
+
+        for raw in rawValues {
+            for category in categories(raw) where order.contains(category) {
+                grouped[category, default: []].insert(raw)
+            }
+        }
+
+        return order.compactMap { label in
+            guard let values = grouped[label], !values.isEmpty else { return nil }
+            return CatalogFilterOption(label: label, values: values.sorted())
+        }
+    }
+
+    /// Noen DB-notater er bare alternative skrivemåter av en eksisterende ikonfamilie.
+    /// De mappes her uten å endre rådataene. Generiske kvalitetsord holdes ute av
+    /// smaksfilteret; de hører hjemme i profil/rating, ikke som egne smaker.
+    private static func flavorFamily(for raw: String) -> String? {
+        let v = normalized(raw)
+
+        let nonFlavorDescriptors: Set<String> = [
+            "sweetness", "sweet", "natural sweetness", "gentle sweetness", "mild sweetness",
+            "full-bodied", "balanced", "complex", "rich", "smooth"
+        ]
+        if nonFlavorDescriptors.contains(v) { return nil }
+
+        if let existing = FlavorIcon.name(for: raw) { return existing }
+
+        switch v {
+        case "baking spice", "warm spice", "silky spice", "subtle spice", "nutmeg", "licorice":
+            return "spice"
+        case "cherry", "dark cherry", "dried cherry", "fig", "sweet figs":
+            return "fruit"
+        case "herbal", "herbaceous", "dried herbs", "vegetal":
+            return "herbal"
+        case "smoke", "fire", "ash":
+            return "tobacco"
+        case "mocha", "dark espresso", "dark roast coffee", "creamy coffee":
+            return "coffee"
+        case "malt", "graham", "graham cracker", "baked bread":
+            return "toast"
+        case "brown sugar", "raw sugar", "sugar dust":
+            return "honey"
+        case "buttery smooth", "creamy", "malted milk":
+            return "cream"
+        case "cacao":
+            return "cocoa"
+        case "charred wood", "dark wood":
+            return "wood"
+        case "salt":
+            return "minerals"
+        case "toasted almond", "cashew", "light nuttiness":
+            return "nuts"
+        case "barnyard":
+            return "earth"
+        case "dark cedar", "light cedar":
+            return "cedar"
+        default:
+            return nil
+        }
+    }
+
+    private static func flavorLabel(for family: String) -> String {
+        family == "herbal" ? "Urter" : FlavorIcon.displayLabel(for: family)
+    }
+
     // MARK: - Hentinger
 
     private func loadTopCigars() async {
@@ -133,24 +320,53 @@ final class ExploreStore: ObservableObject {
         filterError = nil
         defer { isLoadingFilters = false }
         do {
-            let catalog = try await cigarService.fetchCatalogFilterOptions()
-            let rawNotes = catalog.notes
-            // Grupper rå-notatene på ikon-familie slik at hvert filtervalg
-            // svarer til minst én ekte sigar. Notater uten ikon beholder navnet fra basen.
+            let rawCatalog = try await cigarService.fetchCatalogFilterOptions()
+            var catalog = rawCatalog
+
+            // Binder/filler: behold eksakte DB-strenger som matchverdier, men vis kun
+            // de vanligste, forståelige opprinnelseskategoriene i avansert søk.
+            catalog.binders = Self.curatedOptions(
+                from: rawCatalog.binders,
+                order: Self.binderOrder,
+                categories: Self.binderCategories
+            )
+            catalog.fillers = Self.curatedOptions(
+                from: rawCatalog.fillers,
+                order: Self.fillerOrder,
+                categories: Self.fillerCategories
+            )
+
+            // Smaksnoter: ett valg per eksisterende ikonfamilie. Synonymer samles,
+            // rå stavevarianter eksponeres ikke som egne chips. «Urter» er eneste
+            // meningsfulle familie i dagens katalog som mangler eget ikon-asset.
             var byFamily: [String: [String]] = [:]
-            for note in rawNotes {
+            for note in rawCatalog.notes {
                 let clean = note.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !clean.isEmpty else { continue }
-                let family = FlavorIcon.name(for: note) ?? "raw:" + clean.lowercased()
+                guard !clean.isEmpty, let family = Self.flavorFamily(for: clean) else { continue }
                 byFamily[family, default: []].append(note)
             }
+
             catalogFilters = catalog
             filtersLoadedAt = Date()
             flavorOptions = byFamily
-                .map { FlavorFilterOption(label: $0.key.hasPrefix("raw:") ? String($0.key.dropFirst(4)) : FlavorIcon.displayLabel(for: $0.key),
-                                          iconFamily: $0.key,
-                                          dbNotes: $0.value) }
-                .sorted { $0.label < $1.label }
+                .map { family, notes in
+                    FlavorFilterOption(
+                        label: Self.flavorLabel(for: family),
+                        iconFamily: family,
+                        dbNotes: Array(Set(notes)).sorted()
+                    )
+                }
+                .sorted { lhs, rhs in
+                    // Eksisterende ikonfamilier i en stabil, intuitiv rekkefølge;
+                    // Urter legges til slutt til eget ikon er på plass.
+                    let order = [
+                        "Sedertre", "Tre", "Jord", "Lær", "Pepper", "Krydder", "Kanel",
+                        "Kakao", "Kaffe", "Toast", "Nøtter", "Kremete", "Honning", "Vanilje",
+                        "Frukt", "Sitrus", "Blomst", "Høy", "Mineral", "Mynte", "Tobakk",
+                        "Whisky", "Urter"
+                    ]
+                    return (order.firstIndex(of: lhs.label) ?? 999) < (order.firstIndex(of: rhs.label) ?? 999)
+                }
         } catch {
             filterError = "Kunne ikke oppdatere filtrene. Kontroller forbindelsen og prøv igjen."
         }
