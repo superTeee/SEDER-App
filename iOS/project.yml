@@ -31,6 +31,7 @@ targets:
       - path: CigarApp
         excludes:
           - "**/.DS_Store"
+          - "Views/Cigar/_CigarDetailViewDesign.swift"
     resources:
       - CigarApp/Assets.xcassets
       - CigarApp/Preview Content
