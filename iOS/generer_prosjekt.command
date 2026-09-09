@@ -1,10 +1,10 @@
 #!/bin/bash
-# Vitola — Generer Xcode-prosjekt
+# SEDER — Generer Xcode-prosjekt
 # Dobbeltklikk denne filen for å kjøre
 
 cd "$(dirname "$0")"
 echo "================================================"
-echo "  Vitola — Xcode-prosjektgenerator"
+echo "  SEDER — Xcode-prosjektgenerator"
 echo "================================================"
 echo ""
 
@@ -25,15 +25,15 @@ else
 fi
 
 echo ""
-echo "▶ Genererer Vitola.xcodeproj..."
+echo "▶ Genererer SEDER.xcodeproj..."
 xcodegen generate --spec project.yml
 
 if [ $? -eq 0 ]; then
   echo ""
-  echo "✓ Vitola.xcodeproj er klar!"
+  echo "✓ SEDER.xcodeproj er klar!"
   echo ""
   echo "▶ Åpner i Xcode..."
-  open Vitola.xcodeproj
+  open SEDER.xcodeproj
 else
   echo ""
   echo "✗ Noe gikk galt. Sjekk feilmeldingen over."
